@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"target": "es2018",
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"sourceMap": true,
+		"outDir": "out",
+		"rootDir": "src",
+		"lib": ["es2018"],
+		"strict": true
+	},
+	"include": ["src"],
+	"exclude": [
+		"node_modules", 
+		".vscode-test"
+	]
+}

@@ -1,0 +1,108 @@
+{
+	"name": "vscode-css-navigation",
+	"displayName": "CSS Navigation",
+	"description": "Peek definition from HTML document or HTML template, into a CSS / LESS / SCSS document, by the HTML tag name, class or id attribute",
+	"icon": "images/logo.png",
+	"version": "1.0.0",
+	"license": "MIT",
+	"publisher": "pucelle",
+	"homepage": "https://github.com/pucelle/vscode-css-navigation",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/pucelle/vscode-css-navigation.git"
+	},
+	"bugs": {
+		"url": "https://github.com/pucelle/vscode-navigation/issues"
+	},
+	"engines": {
+		"vscode": "^1.31.1"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"keywords": [
+		"HTML Goto Definition",
+		"HTML Peek Definition"
+	],
+	"activationEvents": [
+		"onLanguage:html",
+		"onLanguage:ejs",
+		"onLanguage:php",
+		"onLanguage:javascript",
+		"onLanguage:typescript",
+		"onLanguage:javascriptreact",
+		"onLanguage:typescriptreact"
+	],
+	"main": "./client/out/extension",
+	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "CSS Navigation",
+			"properties": {
+				"CSSNavigation.cssFileExtensions": {
+					"type": "array",
+					"default": [
+						"scss",
+						"less",
+						"css"
+					],
+					"items": {
+						"type": "string"
+					},
+					"description": "Specify the extensions of the css file, only the matched files will be peeked."
+				},
+				"CSSNavigation.excludeGlobPatterns": {
+					"type": "array",
+					"default": [
+						"**/node_modules/**"
+					],
+					"items": {
+						"type": "string"
+					},
+					"description": "Specify a glob pattern, files whose path match it will be excluded from the CSS lookup."
+				},
+				"CSSNavigation.definitionsOrderBy": {
+					"type": "string",
+					"enum": [
+						"name",
+						"extension"
+					],
+					"default": "name",
+					"enumDescriptions": [
+						"file name",
+						"file extensions specified by above"
+					],
+					"description": "Specify the definitions order. if you prefer the scss definitions always before css definitions, choose \"extension\" and makesure \"cssFileExtensions\" item \"scss\" before \"css\"."
+				},
+				"CSSNavigation.trace.server": {
+					"scope": "window",
+					"type": "string",
+					"enum": [
+						"off",
+						"messages",
+						"verbose"
+					],
+					"default": "off",
+					"description": "Traces the communication between VS Code and the language server."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
+		"compile": "tsc -b",
+		"watch": "tsc -b -w",
+		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
+		"test": "sh ./scripts/e2e.sh"
+	},
+	"devDependencies": {
+		"@types/mocha": "^5.2.5",
+		"@types/node": "^8.10.40",
+		"tslint": "^5.12.1",
+		"typescript": "^3.3.3",
+		"@types/glob": "^7.1.1"
+	},
+	"dependencies": {
+		"@types/minimatch": "^3.0.3"
+	}
+}
