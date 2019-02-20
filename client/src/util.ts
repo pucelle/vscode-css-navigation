@@ -8,22 +8,3 @@ export function getOutmostWorkspaceFolderPath(folderPath: string, folderPaths: s
 
 	return includedInPaths[0]
 }
-
-
-let htmlLanguages: string[]
-
-export function readHTMLLanguages(packageFilePath: string): Promise<string[]> {
-	return new Promise(resolve => {
-		if (htmlLanguages) {
-			resolve(htmlLanguages)
-		}
-		else {
-			fs.readFile(packageFilePath, 'utf8', (err, text) => {
-				htmlLanguages = JSON.parse(text).activationEvents.map((s: string) => {
-					return s.replace('onLanguage:', '')
-				})
-				resolve(htmlLanguages)
-			})
-		}
-	})
-}

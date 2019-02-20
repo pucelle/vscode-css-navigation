@@ -9,8 +9,7 @@ import {
 } from 'vscode-languageclient'
 
 import {
-	getOutmostWorkspaceFolderPath,
-	readHTMLLanguages
+	getOutmostWorkspaceFolderPath
 } from './util'
 
 
@@ -27,8 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration('CSSNavigation')) {
-				extension.loadConfig()
-				extension.restartAllClients()
+				extension.onConfigurationChanged()
 			}
 		}),
 
@@ -51,9 +49,12 @@ export function deactivate(): Thenable<void> {
 
 class CSSNavigationExtension {
 	private channel: vscode.OutputChannel
+
 	private context: vscode.ExtensionContext
+
 	private config!: vscode.WorkspaceConfiguration
-	private clients: Map<string, LanguageClient>	//one path for each workspace
+
+	private clients: Map<string, LanguageClient>	//one client for each workspace
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context
@@ -78,10 +79,11 @@ class CSSNavigationExtension {
 			return
 		}
 
-		let htmlLanguages = await readHTMLLanguages(this.context.asAbsolutePath('package.json'))
+		let htmlLanguages: string[] = this.config.get('htmlLanguages') || []
+		let cssFileExtensions: string[] = this.config.get('cssFileExtensions') || []
 		
 		//not a html or html like file
-		if (!htmlLanguages.includes(document.languageId)) {
+		if (![...htmlLanguages, ...cssFileExtensions].includes(document.languageId)) {
 			return
 		}
 
@@ -99,9 +101,8 @@ class CSSNavigationExtension {
 
 	private async createClientForWorkspace(workspaceFolder: vscode.WorkspaceFolder) {
 		let workspaceFolderPath = workspaceFolder.uri.fsPath
-		let htmlLanguages = await readHTMLLanguages(this.context.asAbsolutePath('package.json'))
+		let htmlLanguages: string[] = this.config.get('htmlLanguages') || []
 		let cssFileExtensions: string[] = this.config.get('cssFileExtensions') || []
-		let definitionsOrderBy = this.config.get('definitionsOrderBy') || 'name'
 
 		let serverModule = this.context.asAbsolutePath(
 			path.join('server', 'out', 'server.js')
@@ -140,12 +141,11 @@ class CSSNavigationExtension {
 			},
 
 			initializationOptions: {
-				htmlLanguages,
 				workspaceFolderPath,
 				configuration: {
+					htmlLanguages,
 					cssFileExtensions,
-					excludeGlobPatterns: this.config.get('excludeGlobPattern') || [],
-					definitionsOrderBy
+					excludeGlobPatterns: this.config.get('excludeGlobPattern') || []
 				}
 			}
 		}
@@ -176,16 +176,24 @@ class CSSNavigationExtension {
 		}
 	}
 
+	async onConfigurationChanged() {
+		this.loadConfig()
+		await this.restartAllClients()
+	}
+
+	private async restartAllClients() {
+		await this.stopAllClients()
+		await this.checkCurrentOpenedDocuments()
+	}
+
 	async stopAllClients() {
 		let promises: Thenable<void>[] = []
 		for (let client of this.clients.values()) {
 			promises.push(client.stop())
 		}
 		await Promise.all(promises)
-	}
 
-	async restartAllClients() {
-		await this.stopAllClients()
-		await this.checkCurrentOpenedDocuments()
+		this.clients.clear()
+		this.showChannelMessage(`All clients stopped`)
 	}
 }

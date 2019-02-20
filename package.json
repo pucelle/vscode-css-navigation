@@ -25,13 +25,7 @@
 		"HTML Peek Definition"
 	],
 	"activationEvents": [
-		"onLanguage:html",
-		"onLanguage:ejs",
-		"onLanguage:php",
-		"onLanguage:javascript",
-		"onLanguage:typescript",
-		"onLanguage:javascriptreact",
-		"onLanguage:typescriptreact"
+		"onLanguage:plaintext"
 	],
 	"main": "./client/out/extension",
 	"contributes": {
@@ -39,6 +33,22 @@
 			"type": "object",
 			"title": "CSS Navigation",
 			"properties": {
+				"CSSNavigation.htmlLanguages": {
+					"type": "array",
+					"default": [
+						"html",
+						"ejs",
+						"php",
+						"javascript",
+						"typescript",
+						"javascriptreact",
+						"typescriptreact"
+					],
+					"items": {
+						"type": "string"
+					},
+					"description": "Specify the extensions of the html files, in where you can \"go to definition\"."
+				},
 				"CSSNavigation.cssFileExtensions": {
 					"type": "array",
 					"default": [
@@ -49,7 +59,7 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "Specify the extensions of the css file, only the matched files will be peeked."
+					"description": "Specify the extensions of the css files, only the matched files will be peeked."
 				},
 				"CSSNavigation.excludeGlobPatterns": {
 					"type": "array",
@@ -60,19 +70,6 @@
 						"type": "string"
 					},
 					"description": "Specify a glob pattern, files whose path match it will be excluded from the CSS lookup."
-				},
-				"CSSNavigation.definitionsOrderBy": {
-					"type": "string",
-					"enum": [
-						"name",
-						"extension"
-					],
-					"default": "name",
-					"enumDescriptions": [
-						"file name",
-						"file extensions specified by above"
-					],
-					"description": "Specify the definitions order. if you prefer the scss definitions always before css definitions, choose \"extension\" and makesure \"cssFileExtensions\" item \"scss\" before \"css\"."
 				},
 				"CSSNavigation.trace.server": {
 					"scope": "window",

@@ -25,9 +25,7 @@ import {
 } from './css-service'
 
 import {
-	getHTMLSelectorAtPosition,
-	SimpleSelector,
-	SelectorType
+	SimpleSelector
 } from './html-service'
 
 import {
@@ -46,9 +44,9 @@ global.console = <any>connection.console
 
 
 interface InitializationOptions {
-	htmlLanguages: string[]
 	workspaceFolderPath: string
 	configuration: {
+		htmlLanguages: string[]
 		cssFileExtensions: string[]
 		excludeGlobPatterns: string[]
 		definitionsOrderBy: string
@@ -98,17 +96,18 @@ class CSSNaigationServer {
 	private stylesheetMap: StylesheetMap
 
 	constructor(options: InitializationOptions) {
-		this.htmlLanguages = options.htmlLanguages || []
 		this.workspaceFolderPath = options.workspaceFolderPath
+		this.htmlLanguages = options.configuration.htmlLanguages
 		this.cssFileExtensions = options.configuration.cssFileExtensions
 		this.excludeGlobPatterns = options.configuration.excludeGlobPatterns
 		this.definitionsOrderBy = options.configuration.definitionsOrderBy
 		this.stylesheetMap = new StylesheetMap(this.cssFileExtensions, this.excludeGlobPatterns)
 
 		console.log(`Server for workspace "${path.basename(options.workspaceFolderPath)}" prepared`)
-		this.stylesheetMap.loadFromFolder(this.workspaceFolderPath)
+		this.stylesheetMap.trackFolder(this.workspaceFolderPath)
 	}
 
+	//no need to handle file changes making by vscode, but here it cant be distinguished
 	async onWatchedFilesChanged(params: DidChangeWatchedFilesParams) {
 		let excludeGlobPattern = this.excludeGlobPatterns.length > 0 ? `!{${this.excludeGlobPatterns.join(',')}}` : ''
 		let excludeMinimatch = excludeGlobPattern ? new minimatch.Minimatch(excludeGlobPattern) : null
@@ -122,19 +121,21 @@ class CSSNaigationServer {
 			}
 
 			if (change.type === FileChangeType.Created) {
-				this.stylesheetMap.loadFromPath(fileOrFolderPath)
+				this.stylesheetMap.trackPath(fileOrFolderPath)
 			}
 			else if (change.type === FileChangeType.Changed) {
 				let stat = await getStat(fileOrFolderPath)
 				if (stat.isFile()) {
-					let extname = path.extname(fileOrFolderPath).slice(1).toLowerCase()
+					let filePath = fileOrFolderPath
+					let extname = path.extname(filePath).slice(1).toLowerCase()
+
 					if (this.cssFileExtensions.includes(extname)) {
-						this.stylesheetMap.addOrSetStale(fileOrFolderPath)
+						this.stylesheetMap.reTrackFile(filePath)
 					}
 				}
 			}
 			else if (change.type === FileChangeType.Deleted) {
-				this.stylesheetMap.deleteFromPath(fileOrFolderPath)
+				this.stylesheetMap.unTrackPath(fileOrFolderPath)
 			}
 		}
 	}
@@ -147,7 +148,7 @@ class CSSNaigationServer {
 		if (this.cssFileExtensions.includes(languageId)) {
 			let filePath = Files.uriToFilePath(document.uri)
 			if (filePath) {
-				this.stylesheetMap.addOrSetStale(filePath, document)
+				this.stylesheetMap.reTrackFile(filePath, document)
 			}
 		}
 	}
@@ -165,60 +166,23 @@ class CSSNaigationServer {
 			return null
 		}
 
-		let selector = getHTMLSelectorAtPosition(document, position)
+		let selector = SimpleSelector.getAtPosition(document, position)
 		if (!selector) {
 			return null
 		}
 
-		return await this.stylesheetMap.findDefinitionMatchSelector(selector)
+		let locations = await this.stylesheetMap.findDefinitionMatchSelector(selector)
+		return locations
 	}
 
 	async findSymbolsMatchQueryParam(symbol: WorkspaceSymbolParams): Promise<SymbolInformation[] | null> {
 		let query = symbol.query
-		let selectors: SimpleSelector[]
 		
-		if (/^[\w-]+$/.test(query)) {
-			selectors = [
-				{
-					type: SelectorType.CLASS,
-					value: query,
-					raw: '.' + query
-				},
-				{
-					type: SelectorType.ID,
-					value: query,
-					raw: '#' + query
-				},
-			]
-		}
-		else if (/^\.[\w-]+$/.test(query)) {
-			selectors = [
-				{
-					type: SelectorType.CLASS,
-					value: query,
-					raw: query
-				}
-			]
-		}
-		else if (/^#[\w-]+$/.test(query)) {
-			selectors = [
-				{
-					type: SelectorType.ID,
-					value: query,
-					raw: query
-				}
-			]
-		}
-		else {
+		if (!SimpleSelector.validate(query)) {
 			return null
 		}
 
-		let infos: SymbolInformation[] = []
-		for (let selector of selectors) {
-			infos.push(...await this.stylesheetMap.findSymbolsMatchSelector(selector))
-		}
-
-		return infos
+		return await this.stylesheetMap.findSymbolsMatchQuery(query)
 	}
 }
 

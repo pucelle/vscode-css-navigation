@@ -1,28 +1,51 @@
 import {
 	Position,
-	TextDocument,
-	RemoteConsole as console
+	TextDocument
 } from 'vscode-languageserver'
 
 
 export interface SimpleSelector {
-	type: SelectorType
+	type: SimpleSelector.Type
 	value: string
 	raw: string
 }
 
-export enum SelectorType{
-	TAG,
-	CLASS,
-	ID
-}
+export namespace SimpleSelector {
 
-
-export function getHTMLSelectorAtPosition(document: TextDocument, position: Position): SimpleSelector | null {
-	let text = document.getText()
-	let offset = document.offsetAt(position)
+	export enum Type{
+		Tag,
+		Class,
+		Id
+	}
 	
-	return new SelectorScanner(text, offset).scan()
+	export function create(raw: string): SimpleSelector | null {
+		if (!validate(raw)) {
+			return null
+		}
+
+		let type = raw[0] === '.' ? Type.Class
+			: raw[0] === '#' ? Type.Id
+			: Type.Tag
+
+		let value = type === Type.Tag ? raw : raw.slice(1)
+
+		return {
+			type,
+			value,
+			raw
+		}
+	}
+
+	export function validate(raw: string): boolean {
+		return /^[#.]?\w[\w-]*$/.test(raw)
+	}
+
+	export function getAtPosition(document: TextDocument, position: Position): SimpleSelector | null {
+		let text = document.getText()
+		let offset = document.offsetAt(position)
+		
+		return new SelectorScanner(text, offset).scan()
+	}
 }
 
 
@@ -121,11 +144,7 @@ class SelectorScanner {
 		let char = this.peek()
 
 		if (char === '<') {
-			return {
-				type: SelectorType.TAG,
-				value: word.toLowerCase(),
-				raw: word.toLowerCase()
-			}
+			return SimpleSelector.create(word)
 		}
 
 		let [untilChar, readChars] = this.readUntil(['<', '\'', '"'])
@@ -133,9 +152,14 @@ class SelectorScanner {
 			return null
 		}
 
-		//may be class="a or id="a in left
-		//or class="a b or class="a" b in left
-		//have a very low rate to meet <tag a="class=" b, ignore it
+		/*
+		may be in left:
+			class="a
+			id="a'
+			class="a b
+			class="a" b
+		have a very low possibility to meet '<tag a="class=" b', ignore it
+		*/
 		if (this.peek() === '\\') {
 			this.advance()
 		}
@@ -148,12 +172,9 @@ class SelectorScanner {
 		this.readWhiteSpaces()
 		let attribute = this.readWord().toLowerCase()
 
-		if (attribute === 'class' || attribute === 'class') {
-			return {
-				type: attribute === 'class' ? SelectorType.CLASS : SelectorType.ID,
-				value: word,
-				raw: (attribute === 'class' ? '.' : '#') + word
-			}
+		if (attribute === 'class' || attribute === 'id') {
+			let raw = (attribute === 'class' ? '.' : '#') + word
+			return SimpleSelector.create(raw)
 		}
 
 		return null
