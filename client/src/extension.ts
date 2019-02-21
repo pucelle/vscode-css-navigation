@@ -48,18 +48,14 @@ export function deactivate(): Thenable<void> {
 
 
 class CSSNavigationExtension {
-	private channel: vscode.OutputChannel
-
+	
+	private channel = vscode.window.createOutputChannel('CSS Navigation')
 	private context: vscode.ExtensionContext
-
 	private config!: vscode.WorkspaceConfiguration
-
-	private clients: Map<string, LanguageClient>	//one client for each workspace
+	private clients: Map<string, LanguageClient> = new Map()	//one client for each workspace
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context
-		this.channel = vscode.window.createOutputChannel('CSS Navigation')
-		this.clients = new Map()
 		this.loadConfig()
 		this.checkCurrentOpenedDocuments()
 	}

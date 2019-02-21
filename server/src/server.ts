@@ -5,7 +5,6 @@ import * as minimatch from 'minimatch'
 import {
 	createConnection,
 	TextDocuments,
-	TextDocument,
 	ProposedFeatures,
 	InitializeParams,
 	TextDocumentPositionParams,
@@ -49,7 +48,6 @@ interface InitializationOptions {
 		htmlLanguages: string[]
 		cssFileExtensions: string[]
 		excludeGlobPatterns: string[]
-		definitionsOrderBy: string
 	}
 }
 
@@ -75,6 +73,7 @@ connection.onInitialized(() => {
 	connection.onWorkspaceSymbol(server.findSymbolsMatchQueryParam.bind(server))
 
 	documents.onDidChangeContent(server.onFileOpenOrContentChanged.bind(server))
+	documents.onDidClose(server.onFileClosed.bind(server))
 })
 
 documents.listen(connection)
@@ -84,15 +83,9 @@ connection.listen()
 class CSSNaigationServer {
 
 	private htmlLanguages: string[]
-
 	private workspaceFolderPath: string
-	
 	private cssFileExtensions: string[]
-
 	private excludeGlobPatterns: string[]
-
-	private definitionsOrderBy: string
-
 	private stylesheetMap: StylesheetMap
 
 	constructor(options: InitializationOptions) {
@@ -100,7 +93,6 @@ class CSSNaigationServer {
 		this.htmlLanguages = options.configuration.htmlLanguages
 		this.cssFileExtensions = options.configuration.cssFileExtensions
 		this.excludeGlobPatterns = options.configuration.excludeGlobPatterns
-		this.definitionsOrderBy = options.configuration.definitionsOrderBy
 		this.stylesheetMap = new StylesheetMap(this.cssFileExtensions, this.excludeGlobPatterns)
 
 		console.log(`Server for workspace "${path.basename(options.workspaceFolderPath)}" prepared`)
@@ -130,7 +122,7 @@ class CSSNaigationServer {
 					let extname = path.extname(filePath).slice(1).toLowerCase()
 
 					if (this.cssFileExtensions.includes(extname)) {
-						this.stylesheetMap.reTrackFile(filePath)
+						this.stylesheetMap.trackFile(filePath)
 					}
 				}
 			}
@@ -142,13 +134,23 @@ class CSSNaigationServer {
 
 	//no need to handle file open because we have preloaded all the files, but here it cant be distinguished
 	onFileOpenOrContentChanged(event: TextDocumentChangeEvent) {
-		let document: TextDocument = event.document
-		let {languageId} = document
+		let document = event.document
 
-		if (this.cssFileExtensions.includes(languageId)) {
+		if (this.cssFileExtensions.includes(document.languageId)) {
 			let filePath = Files.uriToFilePath(document.uri)
 			if (filePath) {
-				this.stylesheetMap.reTrackFile(filePath, document)
+				this.stylesheetMap.trackOpenedFile(filePath, document)
+			}
+		}
+	}
+
+	onFileClosed(event: TextDocumentChangeEvent) {
+		let document = event.document
+		
+		if (this.cssFileExtensions.includes(document.languageId)) {
+			let filePath = Files.uriToFilePath(document.uri)
+			if (filePath) {
+				this.stylesheetMap.unTrackOpenedFile(filePath)
 			}
 		}
 	}
@@ -177,8 +179,7 @@ class CSSNaigationServer {
 
 	async findSymbolsMatchQueryParam(symbol: WorkspaceSymbolParams): Promise<SymbolInformation[] | null> {
 		let query = symbol.query
-		
-		if (!SimpleSelector.validate(query)) {
+		if (!query) {
 			return null
 		}
 

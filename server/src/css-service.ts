@@ -59,23 +59,19 @@ namespace CSSLanguageService {
 type StylesheetItem = {
 	document: TextDocument | null
 	stylesheet: Stylesheet | null
+	version: number
 }
 
 export class StylesheetMap {
 
 	cssFileExtensions: string[]
-
 	excludeGlobPatterns: string[]
-
-	map: Map<string, StylesheetItem>
-
-	fresh: boolean
+	map: Map<string, StylesheetItem> = new Map()
+	fresh: boolean = true
 
 	constructor(cssFileExtensions: string[], excludeGlobPatterns: string[]) {
 		this.cssFileExtensions = cssFileExtensions
 		this.excludeGlobPatterns = excludeGlobPatterns
-		this.map = new Map()
-		this.fresh = true
 	}
 
 	async trackPath(filePath: string) {
@@ -112,51 +108,67 @@ export class StylesheetMap {
 
 	trackFile(filePath: string) {
 		let item = this.map.get(filePath)
-		if (!item) {
-			this.map.set(filePath, {
-				document: null,
-				stylesheet: null
-			})
-
-			console.log(`File "${filePath}" tracked`)
-			this.fresh = false
-		}
-	}
-
-	//document was captured from vscode event
-	reTrackFile(filePath: string, document?: TextDocument) {
-		let item = this.map.get(filePath)
 		if (item) {
-			let isFresh = !!item.stylesheet
-			if (isFresh) {
-				if (document) {
-					item.document = document
-				}
-				else {
-					item.document = null
-				}
-
+			//after file edited, version will always > 1, so here we makesure saved opened file will not trigger refresh
+			if (item.version === 1) {
+				item.document = null
 				item.stylesheet = null
+				this.fresh = false
 				console.log(`File "${filePath}" expired`)
 			}
 		}
 		else {
 			this.map.set(filePath, {
 				document: null,
-				stylesheet: null
+				stylesheet: null,
+				version: 0
 			})
 
+			this.fresh = false
 			console.log(`File "${filePath}" tracked`)
 		}
+	}
 
-		this.fresh = false
+	//document was captured from vscode event, and its always the same document object for the same file
+	trackOpenedFile(filePath: string, document: TextDocument) {
+		let item = this.map.get(filePath)
+		if (item) {
+			//both newly created document and firstly opened document have version=1
+			let changed = document.version > item.version
+			item.document = document
+			item.version = document.version
+
+			if (changed) {
+				item.stylesheet = null
+				this.fresh = false
+				console.log(`File "${filePath}" expired`)
+			}
+		}
+		else {
+			this.map.set(filePath, {
+				document,
+				stylesheet: null,
+				version: document.version
+			})
+
+			this.fresh = false
+			console.log(`File "${filePath}" tracked`)
+		}
+	}
+
+	unTrackOpenedFile(filePath: string) {
+		let item = this.map.get(filePath)
+		if (item) {
+			item.version = 1
+			console.log(`File "${filePath}" closed`)
+		}
 	}
 
 	unTrackPath(deletedPath: string) {
 		for (let filePath of this.map.keys()) {
 			if (filePath.startsWith(deletedPath)) {
 				this.map.delete(filePath)
-				console.log(`File "${filePath}" untracked`)
+				console.log(`File "${filePath}" removed`)
 			}
 		}
 	}
@@ -165,12 +177,15 @@ export class StylesheetMap {
 		if (!this.fresh) {
 			for (let [filePath, item] of this.map.entries()) {
 				if (!item.stylesheet) {
-					if (item.document) {
-						await this.loadFromDocument(item.document)
+					if (!item.document) {
+						item.document = await this.loadDocumentFromFilePath(filePath)
 					}
-					else {
-						await this.loadFromFilePath(filePath)
+					
+					if (item.document && !item.stylesheet) {
+						item.stylesheet = this.loadStyleFromDocument(item.document)
 					}
+
+					console.log(`File "${filePath}" loaded`)
 				}
 			}
 
@@ -178,32 +193,28 @@ export class StylesheetMap {
 		}
 	}
 
-	private async loadFromFilePath(filePath: string) {
+	private async loadDocumentFromFilePath(filePath: string): Promise<TextDocument | null> {
 		let languageId = path.extname(filePath).slice(1).toLowerCase()
 		let uri = Uri.file(filePath).toString()
+		let document = null
 
 		try {
 			let text = await readText(filePath)
-			let document = TextDocument.create(uri, languageId, 1, text)
-			this.loadFromDocument(document)
+			document = TextDocument.create(uri, languageId, 1, text)
 		}
 		catch (err) {
 			console.log(err)
 		}
+
+		return document
 	}
 
-	private loadFromDocument(document: TextDocument) {
+	private loadStyleFromDocument(document: TextDocument): Stylesheet {
 		let {uri} = document
-		let filePath = Files.uriToFilePath(uri)!
 		let languageService = CSSLanguageService.getFromLanguageId(document.languageId)
 		let stylesheet = languageService.parseStylesheet(document)
 
-		this.map.set(filePath, {
-			document,
-			stylesheet
-		})
-
-		console.log(`File "${filePath}" updated`)
+		return stylesheet
 	}
 
 	async findDefinitionMatchSelector(selector: SimpleSelector): Promise<Location[]> {
@@ -321,18 +332,17 @@ class SelectorMatcher {
 	public findSymbolsMatchQuery(symbols: SymbolInformation[], query: string): SymbolInformation[] {
 		let matchedSymbols: SymbolInformation[] = []
 		let nestingMatcher: NestingQueryMatcher | null = null
-
-		query = query.toLowerCase()
+		let lowerQuery = query.toLowerCase()
 
 		if (this.supportsNesting) {
-			nestingMatcher = new NestingQueryMatcher(query)
+			nestingMatcher = new NestingQueryMatcher(lowerQuery)
 		}
 
 		for (let symbol of symbols) {
 			let symbolSelector = symbol.name.toLowerCase()
 			let matchedSymbol: SymbolInformation | null = null
 
-			if (symbolSelector.includes(query) && MatchHelper.isQueryBeStartOfLastPart(query, symbolSelector)) {
+			if (symbolSelector.includes(lowerQuery)) {
 				matchedSymbol = symbol
 			}
 
@@ -390,30 +400,6 @@ namespace MatchHelper {
 		return !isAnotherSelector
 	}
 
-	//'a' equals the union of '.a', '#a' and 'a' matches in isStartOfTheLastPart
-	export function isQueryBeStartOfLastPart(query: string, symbolSelector: string): boolean {
-		let lastPartRE = /(?:\[[^\]]+?\]|\([^)]+?\)|[^ >+~])+$/
-		let match = symbolSelector.match(lastPartRE)
-		if (!match) {
-			return false
-		}
-
-		let lastPart = match[0]
-		if (lastPart.startsWith(query)) {
-			return true
-		}
-		
-		if (isClassOrIdSelector(lastPart[0]) && !isClassOrIdSelector(query) && lastPart.slice(1).startsWith(query)) {
-			return true
-		}
-
-		return false
-	}
-
-	export function isClassOrIdSelector(selector: string) {
-		return selector[0] === '.' || selector[0] === '#'
-	}
-
 	//only test end position, null means range of whole document
 	export function isRangeIn(range: Range, widerRange: Range | null): boolean {
 		if (!widerRange) {
@@ -440,17 +426,15 @@ interface NestingSelector {
 
 class NestingMatcher {
 
-	protected nestingSelectors: NestingSelector[]
+	private nestingSelectors: NestingSelector[]
 
-	protected lastRejectedRange: Range | null
+	private lastRejectedRange: Range | null = null
 
 	constructor(rawSelector: string) {
 		this.nestingSelectors = [{
 			selector: rawSelector,
 			range: null
 		}]
-
-		this.lastRejectedRange = null
 	}
 
 	addSymbolAndTestIfMatch(symbol: SymbolInformation): boolean {
@@ -483,7 +467,7 @@ class NestingMatcher {
 		return false
 	}
 
-	protected isInRejectedRange(range: Range) {
+	private isInRejectedRange(range: Range) {
 		if (this.lastRejectedRange) {
 			if (MatchHelper.isRangeIn(range, this.lastRejectedRange)) {
 				return true
@@ -495,7 +479,7 @@ class NestingMatcher {
 		return false
 	}
 	
-	protected popOutOfRangeNestingSelectors(range: Range) {
+	private popOutOfRangeNestingSelectors(range: Range) {
 		while (this.nestingSelectors.length > 1) {
 			let {range: lastRange} = this.nestingSelectors[this.nestingSelectors.length - 1]
 			let isSymbolInLastRange = MatchHelper.isRangeIn(range, lastRange)
@@ -511,95 +495,48 @@ class NestingMatcher {
 }
 
 
-class NestingQueryMatcher extends NestingMatcher {
+class NestingQueryMatcher {
 
-	//we run nesting match by removing '.' and '#', here we need to cache root selector to restore the full selector
-	private rootSelector: string
+	query: string	//lowercase already
 
-	private isQueryingClassOrId: boolean
+	nestingSelectors: NestingSelector[] = []
 
 	constructor(query: string) {
-		super(query)
-
-		this.rootSelector = ''
-		this.isQueryingClassOrId = MatchHelper.isClassOrIdSelector(query)
+		this.query = query
 	}
 
 	addSymbolAndTestIfMatch(symbol: SymbolInformation) {
-		if (this.isInRejectedRange(symbol.location.range)) {
-			return false
-		}
-
 		this.popOutOfRangeNestingSelectors(symbol.location.range)
 
-		let symbolSelector = symbol.name.toLowerCase()
-		if (MatchHelper.isClassOrIdSelector(symbolSelector[0]) && !this.isQueryingClassOrId) {
-			symbolSelector = symbolSelector.slice(1)
+		let symbolSelector = symbol.name
+		if (symbolSelector[0] === '&' && this.nestingSelectors.length > 0) {
+			symbolSelector = this.nestingSelectors[this.nestingSelectors.length - 1].selector + symbolSelector.slice(1)
 		}
 
-		let expectedSelector = this.nestingSelectors[this.nestingSelectors.length - 1].selector
-		let matched = false
+		this.nestingSelectors.push({
+			selector: symbolSelector,
+			range: symbol.location.range
+		})
 
-		//symbol 'a-b' match query 'a', and generate an expected '&'
-		//symbol 'a' match query 'a', and also generate an expected '&'
-		//symbol '&:hover' not match query '&'
-		if (symbolSelector.startsWith(expectedSelector)) {
-			if (this.nestingSelectors.length === 1) {
-				this.rootSelector = symbol.name
-			}
-
-			matched = true
-			if (expectedSelector === '&' && !/[\w-]/.test(symbolSelector.charAt(1))) {
-				matched = false
-			}
-
-			if (matched) {
-				if (this.nestingSelectors.length > 1) {
-					symbol.name = this.mergeSymbolName(symbol.name)
-				}
-
-				this.nestingSelectors.push({
-					selector: '&',	//truly expected '&[\w-]'
-					range: symbol.location.range
-				})
-
-				return true
-			}
-		}
-		//when symbol 'a' meet 'a-b', generate an query '&-b'
-		else if (expectedSelector.startsWith(symbolSelector)) {
-			if (this.nestingSelectors.length === 1) {
-				this.rootSelector = symbol.name
-			}
-
-			this.nestingSelectors.push({
-				selector: '&' + expectedSelector.slice(symbolSelector.length),
-				range: symbol.location.range
-			})
-		}
-		else {
-			this.lastRejectedRange = symbol.location.range
+		if (symbolSelector.toLowerCase().includes(this.query)) {
+			symbol.name = symbolSelector
+			return true
 		}
 
 		return false
 	}
 
-	//name always starts with '&'
-	mergeSymbolName(name: string): string {
-		name = name.slice(1)
+	private popOutOfRangeNestingSelectors(range: Range) {
+		while (this.nestingSelectors.length > 0) {
+			let {range: lastRange} = this.nestingSelectors[this.nestingSelectors.length - 1]
+			let isSymbolInLastRange = MatchHelper.isRangeIn(range, lastRange)
 
-		//merge all except the last one, which has been tested
-		for (let i = this.nestingSelectors.length - 2; i >= 0; i--) {
-			let {selector} = this.nestingSelectors[i]
-
-			if (i === 0) {
-				name = this.rootSelector + name
+			if (isSymbolInLastRange) {
+				break
 			}
 			else {
-				name = selector.slice(1) + name
+				this.nestingSelectors.pop()
 			}
 		}
-
-		return name
 	}
 }
