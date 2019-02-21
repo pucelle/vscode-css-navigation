@@ -1,12 +1,11 @@
 import * as path from 'path'
-import Uri from 'vscode-uri'
 
 import {
 	TextDocument,
 	SymbolInformation,
 	Location,
-	Files,
-	Range
+	Range,
+	Position
 } from 'vscode-languageserver'
 
 import {
@@ -17,26 +16,19 @@ import {
 	Stylesheet
 } from 'vscode-css-languageservice'
 
-import {
-	SimpleSelector
-} from './html-service'
-
-import {
-	readText,
-	glob,
-	getStat
-} from './util'
+import { FileTracker, TrackMapItem } from './file-tracker'
+import { SimpleSelector } from './html-service'
 
 
 namespace CSSLanguageService {
 
-	let languageServiceGenerator: {[id: string]: Function} = {
+	let languageServiceGenerator: { [id: string]: Function } = {
 		css: getCSSLanguageService,
 		scss: getSCSSLanguageService,
 		less: getLESSLanguageService
 	}
 
-	let initializedLanguageServices: {[id: string]: LanguageService | null} = {
+	let initializedLanguageServices: { [id: string]: LanguageService | null } = {
 		css: null,
 		scss: null,
 		less: null
@@ -48,6 +40,7 @@ namespace CSSLanguageService {
 		}
 
 		if (!languageServiceGenerator[languageId]) {
+			languageId = 'css'
 			console.log(`Language "${languageId}" is not a declared css language, using css service instead.`)
 		}
 
@@ -56,164 +49,29 @@ namespace CSSLanguageService {
 }
 
 
-type StylesheetItem = {
-	document: TextDocument | null
-	stylesheet: Stylesheet | null
-	version: number
-}
+export class StylesheetMap extends FileTracker {
 
-export class StylesheetMap {
+	stylesheets: Map<string, Stylesheet> = new Map()
 
-	cssFileExtensions: string[]
-	excludeGlobPatterns: string[]
-	map: Map<string, StylesheetItem> = new Map()
-	fresh: boolean = true
+	protected onTrack(filePath: string, item: TrackMapItem) {}
 
-	constructor(cssFileExtensions: string[], excludeGlobPatterns: string[]) {
-		this.cssFileExtensions = cssFileExtensions
-		this.excludeGlobPatterns = excludeGlobPatterns
+	protected onExpired(filePath: string, item: TrackMapItem) {
+		this.stylesheets.delete(filePath)
 	}
 
-	async trackPath(filePath: string) {
-		let stat = await getStat(filePath)
-				
-		if (stat.isDirectory()) {
-			this.trackFolder(filePath)
-		}
-		else if (stat.isFile()) {
-			let extname = path.extname(filePath).slice(1).toLowerCase()
-			if (this.cssFileExtensions.includes(extname)) {
-				this.trackFile(filePath)
-			}
-		}
-	}
-	
-	async trackFolder(folderPath: string) {
-		let filePaths = await this.getCSSFilePathsInFolder(folderPath)
-
-		for (let filePath of filePaths) {
-			await this.trackFile(filePath)
-		}
-	}
-	
-	private async getCSSFilePathsInFolder(folderPath: string): Promise<string[]> {
-		let cssFilePaths = await glob(`${folderPath.replace(/\\/g, '/')}/**/*.{${this.cssFileExtensions.join(',')}}`, {
-			ignore: this.excludeGlobPatterns,
-			nodir: true
-		})
-		
-		cssFilePaths = cssFilePaths.map(path.normalize)
-		return cssFilePaths
+	protected onUnTrack(filePath: string, item: TrackMapItem) {
+		this.stylesheets.delete(filePath)
 	}
 
-	trackFile(filePath: string) {
-		let item = this.map.get(filePath)
-		if (item) {
-			//after file edited, version will always > 1, so here we makesure saved opened file will not trigger refresh
-			if (item.version === 1) {
-				item.document = null
-				item.stylesheet = null
-				this.fresh = false
-				console.log(`File "${filePath}" expired`)
-			}
+	async onUpdated(filePath: string, item: TrackMapItem) {
+		if (item.document) {
+			this.stylesheets.set(filePath,this.loadStyleFromDocument(item.document))
 		}
-		else {
-			this.map.set(filePath, {
-				document: null,
-				stylesheet: null,
-				version: 0
-			})
-
-			this.fresh = false
-			console.log(`File "${filePath}" tracked`)
-		}
-	}
-
-	//document was captured from vscode event, and its always the same document object for the same file
-	trackOpenedFile(filePath: string, document: TextDocument) {
-		let item = this.map.get(filePath)
-		if (item) {
-			//both newly created document and firstly opened document have version=1
-			let changed = document.version > item.version
-			item.document = document
-			item.version = document.version
-
-			if (changed) {
-				item.stylesheet = null
-				this.fresh = false
-				console.log(`File "${filePath}" expired`)
-			}
-		}
-		else {
-			this.map.set(filePath, {
-				document,
-				stylesheet: null,
-				version: document.version
-			})
-
-			this.fresh = false
-			console.log(`File "${filePath}" tracked`)
-		}
-	}
-
-	unTrackOpenedFile(filePath: string) {
-		let item = this.map.get(filePath)
-		if (item) {
-			item.version = 1
-			console.log(`File "${filePath}" closed`)
-		}
-	}
-
-	unTrackPath(deletedPath: string) {
-		for (let filePath of this.map.keys()) {
-			if (filePath.startsWith(deletedPath)) {
-				this.map.delete(filePath)
-				console.log(`File "${filePath}" removed`)
-			}
-		}
-	}
-
-	async beFresh() {
-		if (!this.fresh) {
-			for (let [filePath, item] of this.map.entries()) {
-				if (!item.stylesheet) {
-					if (!item.document) {
-						item.document = await this.loadDocumentFromFilePath(filePath)
-					}
-					
-					if (item.document && !item.stylesheet) {
-						item.stylesheet = this.loadStyleFromDocument(item.document)
-					}
-
-					console.log(`File "${filePath}" loaded`)
-				}
-			}
-
-			this.fresh = true
-		}
-	}
-
-	private async loadDocumentFromFilePath(filePath: string): Promise<TextDocument | null> {
-		let languageId = path.extname(filePath).slice(1).toLowerCase()
-		let uri = Uri.file(filePath).toString()
-		let document = null
-
-		try {
-			let text = await readText(filePath)
-			document = TextDocument.create(uri, languageId, 1, text)
-		}
-		catch (err) {
-			console.log(err)
-		}
-
-		return document
 	}
 
 	private loadStyleFromDocument(document: TextDocument): Stylesheet {
-		let {uri} = document
 		let languageService = CSSLanguageService.getFromLanguageId(document.languageId)
 		let stylesheet = languageService.parseStylesheet(document)
-
 		return stylesheet
 	}
 
@@ -225,20 +83,33 @@ export class StylesheetMap {
 
 	async findSymbolsMatchSelector(selector: SimpleSelector): Promise<SymbolInformation[]> {
 		await this.beFresh()
-
+		
 		let matchedSymbols: SymbolInformation[] = []
 
-		for (let {document, stylesheet} of this.map.values()) {
-			if (document && stylesheet) {
-				let {uri, languageId} = document
-				let symbols = CSSLanguageService.getFromLanguageId(languageId).findDocumentSymbols(document, stylesheet)
-				let matcher = new SelectorMatcher(uri)
+		for (let [document, stylesheet] of this.iterateDocumentAndStylesheet()) {
+			let { uri, languageId } = document
+			let symbols = CSSLanguageService.getFromLanguageId(languageId).findDocumentSymbols(document, stylesheet)
+			let matcher = new SelectorMatcher(uri)
 
-				matchedSymbols.push(...matcher.findSymbolsMatchSelector(symbols, selector))
-			}
+			matchedSymbols.push(...matcher.findSymbolsMatchSelector(symbols, selector))
 		}
 
 		return matchedSymbols
+	}
+
+	*iterateDocumentAndStylesheet(): IterableIterator<[TextDocument, Stylesheet]> {
+		for (let [filePath, {document}] of this.map.entries()) {
+			if (!document) {
+				continue
+			}
+
+			let stylesheet = this.stylesheets.get(filePath)
+			if (!stylesheet) {
+				continue
+			}
+
+			yield [document, stylesheet]
+		}
 	}
 	
 	async findSymbolsMatchQuery(query: string): Promise<SymbolInformation[]> {
@@ -246,14 +117,12 @@ export class StylesheetMap {
 
 		let matchedSymbols: SymbolInformation[] = []
 
-		for (let {document, stylesheet} of this.map.values()) {
-			if (document && stylesheet) {
-				let {uri, languageId} = document
-				let symbols = CSSLanguageService.getFromLanguageId(languageId).findDocumentSymbols(document, stylesheet)
-				let matcher = new SelectorMatcher(uri)
+		for (let [document, stylesheet] of this.iterateDocumentAndStylesheet()) {
+			let { uri, languageId } = document
+			let symbols = CSSLanguageService.getFromLanguageId(languageId).findDocumentSymbols(document, stylesheet)
+			let matcher = new SelectorMatcher(uri)
 
-				matchedSymbols.push(...matcher.findSymbolsMatchQuery(symbols, query))
-			}
+			matchedSymbols.push(...matcher.findSymbolsMatchQuery(symbols, query))
 		}
 
 		return matchedSymbols
@@ -284,7 +153,7 @@ class SelectorMatcher {
 	*/
 	findSymbolsMatchSelector(symbols: SymbolInformation[], selector: SimpleSelector): SymbolInformation[] {
 		let matchedSymbols: SymbolInformation[] = []
-		let nestingMatcher: NestingMatcher | undefined
+		let nestingMatcher: NestingMatcher | null = null
 
 		if (this.supportsNesting) {
 			nestingMatcher = new NestingMatcher(selector.raw)
@@ -292,7 +161,7 @@ class SelectorMatcher {
 
 		for (let symbol of symbols) {
 			let symbolSelector = symbol.name
-			let matchedSymbol: SymbolInformation | undefined
+			let matchedSymbol: SymbolInformation | null = null
 
 			if (!MatchHelper.isSimpleSelector(symbolSelector)) {
 				continue
@@ -329,7 +198,7 @@ class SelectorMatcher {
 		#p* as id
 	or the three as the start field of any part of the symbol name
 	*/
-	public findSymbolsMatchQuery(symbols: SymbolInformation[], query: string): SymbolInformation[] {
+	findSymbolsMatchQuery(symbols: SymbolInformation[], query: string): SymbolInformation[] {
 		let matchedSymbols: SymbolInformation[] = []
 		let nestingMatcher: NestingQueryMatcher | null = null
 		let lowerQuery = query.toLowerCase()
@@ -339,10 +208,9 @@ class SelectorMatcher {
 		}
 
 		for (let symbol of symbols) {
-			let symbolSelector = symbol.name.toLowerCase()
 			let matchedSymbol: SymbolInformation | null = null
 
-			if (symbolSelector.includes(lowerQuery)) {
+			if (MatchHelper.isMatchQuery(symbol.name, lowerQuery)) {
 				matchedSymbol = symbol
 			}
 
@@ -401,11 +269,7 @@ namespace MatchHelper {
 	}
 
 	//only test end position, null means range of whole document
-	export function isRangeIn(range: Range, widerRange: Range | null): boolean {
-		if (!widerRange) {
-			return true
-		}
-
+	export function isRangeIn(range: Range, widerRange: Range): boolean {
 		if (widerRange.end.line > range.end.line) {
 			return true
 		}
@@ -416,12 +280,25 @@ namespace MatchHelper {
 
 		return false
 	}
+
+	export function isMatchQuery(selector: string, query: string): boolean {
+		let lowerSelector = selector.toLowerCase()
+		let index = lowerSelector.indexOf(query)
+
+		//include and the first char appearance position match
+		if (index > -1 && lowerSelector.indexOf(query[0]) === index) {
+			return true
+		}
+
+		return false
+	}
+
 }
 
 
 interface NestingSelector {
 	selector: string
-	range: Range | null
+	range: Range
 }
 
 class NestingMatcher {
@@ -433,7 +310,7 @@ class NestingMatcher {
 	constructor(rawSelector: string) {
 		this.nestingSelectors = [{
 			selector: rawSelector,
-			range: null
+			range: Range.create(Position.create(0, 0), Position.create(Infinity, 0))
 		}]
 	}
 
@@ -481,7 +358,7 @@ class NestingMatcher {
 	
 	private popOutOfRangeNestingSelectors(range: Range) {
 		while (this.nestingSelectors.length > 1) {
-			let {range: lastRange} = this.nestingSelectors[this.nestingSelectors.length - 1]
+			let { range: lastRange } = this.nestingSelectors[this.nestingSelectors.length - 1]
 			let isSymbolInLastRange = MatchHelper.isRangeIn(range, lastRange)
 
 			if (isSymbolInLastRange) {
@@ -518,7 +395,7 @@ class NestingQueryMatcher {
 			range: symbol.location.range
 		})
 
-		if (symbolSelector.toLowerCase().includes(this.query)) {
+		if (MatchHelper.isMatchQuery(symbolSelector, this.query)) {
 			symbol.name = symbolSelector
 			return true
 		}
@@ -528,7 +405,7 @@ class NestingQueryMatcher {
 
 	private popOutOfRangeNestingSelectors(range: Range) {
 		while (this.nestingSelectors.length > 0) {
-			let {range: lastRange} = this.nestingSelectors[this.nestingSelectors.length - 1]
+			let { range: lastRange } = this.nestingSelectors[this.nestingSelectors.length - 1]
 			let isSymbolInLastRange = MatchHelper.isRangeIn(range, lastRange)
 
 			if (isSymbolInLastRange) {

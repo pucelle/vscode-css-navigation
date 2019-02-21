@@ -47,7 +47,7 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "Specify the extensions of the html files, in where you can \"go to definition\"."
+					"description": "The languages of the html files, in where you can 'go to definition'. View <https://code.visualstudio.com/docs/languages/identifiers> for more languages."
 				},
 				"CSSNavigation.cssFileExtensions": {
 					"type": "array",
@@ -59,7 +59,7 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "Specify the extensions of the css files, only the matched files will be peeked."
+					"description": "The extensions of the css files, only the matched files you can 'go to' and 'peek'."
 				},
 				"CSSNavigation.excludeGlobPatterns": {
 					"type": "array",
@@ -69,18 +69,12 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "Specify a glob pattern, files whose path match it will be excluded from the CSS lookup."
+					"description": "A glob pattern, defines paths to exclude from when searching for CSS definitions."
 				},
-				"CSSNavigation.trace.server": {
-					"scope": "window",
-					"type": "string",
-					"enum": [
-						"off",
-						"messages",
-						"verbose"
-					],
-					"default": "off",
-					"description": "Traces the communication between VS Code and the language server."
+				"CSSNavigation.updateImmediately": {
+					"type": "boolean",
+					"default": false,
+					"description": "when 'false' by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to 'true', CSS files are loaded immediately after you change it or project startup. If you are a heavy user in CSS definition searching and don't mind additional CPU and memory usage, just check it."
 				}
 			}
 		}
@@ -90,16 +84,18 @@
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-		"test": "sh ./scripts/e2e.sh"
+		"test": "sh ./client/test/scripts/e2e.sh"
 	},
 	"devDependencies": {
+		"@types/minimatch": "^3.0.3",
 		"@types/mocha": "^5.2.5",
 		"@types/node": "^8.10.40",
+		"@types/glob": "^7.1.1",
 		"tslint": "^5.12.1",
-		"typescript": "^3.3.3",
-		"@types/glob": "^7.1.1"
+		"typescript": "^3.3.3"
 	},
 	"dependencies": {
-		"@types/minimatch": "^3.0.3"
+		"glob": "^7.1.3",
+		"minimatch": "^3.0.4"
 	}
 }

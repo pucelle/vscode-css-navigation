@@ -24,17 +24,17 @@
 			"preLaunchTask": "npm: watch"
 		},
 		{
-			"name": "Language Server E2E Test",
+			"name": "Language E2E Test",
 			"type": "extensionHost",
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
 			"args": [
 				"--disable-extensions", 
 				"--extensionDevelopmentPath=${workspaceRoot}",
-				"--extensionTestsPath=${workspaceRoot}/client/out/test",
-				"${workspaceRoot}/client/testFixture"
+				"--extensionTestsPath=${workspaceRoot}/client/test/out",
+				"${workspaceRoot}/client/test/fixture"
 			],
-			"outFiles": ["${workspaceRoot}/client/out/test/**/*.js"],
+			"outFiles": ["${workspaceRoot}/client/test/out/**/*.js"],
 			"preLaunchTask": "npm: watch"
 		}
 	],

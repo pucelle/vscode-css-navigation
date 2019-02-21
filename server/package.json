@@ -12,11 +12,8 @@
 		"url": "https://github.com/Microsoft/vscode-extension-samples"
 	},
 	"dependencies": {
-		"glob": "^7.1.3",
-		"minimatch": "^3.0.4",
 		"vscode-css-languageservice": "^3.0.12",
 		"vscode-languageserver": "^4.4.2",
 		"vscode-uri": "^1.0.6"
-	},
-	"scripts": {}
+	}
 }

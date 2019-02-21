@@ -1,0 +1,28 @@
+html {
+  height: 100%; }
+
+body {
+  height: 100%; }
+
+custom-element {
+  color: red; }
+
+.class {
+  color: red; }
+  .class-subclass {
+    color: red; }
+    .class-subclass-subclass2 {
+      color: red; }
+
+#id {
+  color: red; }
+  #id-subid {
+    color: red; }
+    #id-subid-subid2 {
+      color: red; }
+
+.class1:hover {
+  color: red; }
+
+.class1::before {
+  color: red; }

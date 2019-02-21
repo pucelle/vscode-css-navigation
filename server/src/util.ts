@@ -40,3 +40,21 @@ export function glob(pattern: string, options: rawGlob.IOptions = {}): Promise<s
 		})
 	})
 }
+
+export function generateGlobPatternFromPatterns(patterns: string[]): string | undefined {
+	if (patterns.length > 1) {
+		return '{' + patterns.join(',') + '}'
+	}
+	else if (patterns.length === 1) {
+		return patterns[0]
+	}
+}
+
+export function generateGlobPatternFromExtensions(extensions: string[]): string | undefined {
+	if (extensions.length > 1) {
+		return '**/*.{' + extensions.join(',') + '}'
+	}
+	else if (extensions.length === 1) {
+		return '**/*.' + extensions[0]
+	}
+}

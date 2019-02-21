@@ -8,9 +8,7 @@ import {
 	TransportKind
 } from 'vscode-languageclient'
 
-import {
-	getOutmostWorkspaceFolderPath
-} from './util'
+import { getOutmostWorkspaceFolderPath } from './util'
 
 
 process.on('unhandledRejection', function(reason, promise){
@@ -20,7 +18,7 @@ process.on('unhandledRejection', function(reason, promise){
 
 let extension: CSSNavigationExtension
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext): CSSNavigationExtension {
 	extension = new CSSNavigationExtension(context)
 
 	context.subscriptions.push(
@@ -40,19 +38,21 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		})
 	)
+
+	return extension
 }
 
-export function deactivate(): Thenable<void> {
+export function deactivate(): Promise<void> {
 	return extension.stopAllClients()
 }
 
 
-class CSSNavigationExtension {
+export class CSSNavigationExtension {
 	
 	private channel = vscode.window.createOutputChannel('CSS Navigation')
 	private context: vscode.ExtensionContext
 	private config!: vscode.WorkspaceConfiguration
-	private clients: Map<string, LanguageClient> = new Map()	//one client for each workspace
+	private clients: Map<string, LanguageClient> = new Map()	//one client for each workspace folder
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context
@@ -99,16 +99,17 @@ class CSSNavigationExtension {
 		let workspaceFolderPath = workspaceFolder.uri.fsPath
 		let htmlLanguages: string[] = this.config.get('htmlLanguages') || []
 		let cssFileExtensions: string[] = this.config.get('cssFileExtensions') || []
+		let updateImmediately: boolean = this.config.get('updateImmediately') || false
 
 		let serverModule = this.context.asAbsolutePath(
 			path.join('server', 'out', 'server.js')
 		)
 		
 		//one port for only one server to debug should be ok
-		let debugOptions = {execArgv: ["--nolazy", '--inspect=6009']}
+		let debugOptions = { execArgv: ["--nolazy", '--inspect=6009'] }
 		let serverOptions: ServerOptions = {
-			run: {module: serverModule, transport: TransportKind.ipc},
-			debug: {module: serverModule, transport: TransportKind.ipc, options: debugOptions}
+			run: { module: serverModule, transport: TransportKind.ipc },
+			debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
 		}
 
 		//to notify server html & css files their open / close / content changed
@@ -141,7 +142,8 @@ class CSSNavigationExtension {
 				configuration: {
 					htmlLanguages,
 					cssFileExtensions,
-					excludeGlobPatterns: this.config.get('excludeGlobPattern') || []
+					excludeGlobPatterns: this.config.get('excludeGlobPattern') || [],
+					updateImmediately
 				}
 			}
 		}
@@ -150,7 +152,7 @@ class CSSNavigationExtension {
 		client.start()
 		this.clients.set(workspaceFolder.uri.toString(), client)
 
-		this.showChannelMessage(`Client for workspace "${workspaceFolder.name}" prepared`)
+		this.showChannelMessage(`Client for workspace folder "${workspaceFolder.name}" prepared`)
 	}
 
 	private showChannelMessage(message: string) {

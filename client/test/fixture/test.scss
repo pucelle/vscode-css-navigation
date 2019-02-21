@@ -1,0 +1,43 @@
+html{
+	height: 100%;
+}
+
+body{
+	height: 100%;
+}
+
+custom-element{
+	color: red;
+}
+
+.class{
+	color: red;
+
+	&-subclass{
+		color: red;
+
+		&-subclass2{
+			color: red
+		}
+	}
+}
+
+#id{
+	color: red;
+
+	&-subid{
+		color: red;
+
+		&-subid2{
+			color: red
+		}
+	}
+}
+
+.class1:hover{
+	color: red
+}
+
+.class1::before{
+	color: red
+}

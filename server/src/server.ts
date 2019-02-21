@@ -1,6 +1,4 @@
 import * as path from 'path'
-import Uri from 'vscode-uri'
-import * as minimatch from 'minimatch'
 
 import {
 	createConnection,
@@ -12,24 +10,13 @@ import {
 	Definition,
 	WorkspaceSymbolParams,
 	SymbolInformation,
-	TextDocumentChangeEvent,
-	Connection,
-	DidChangeWatchedFilesParams,
-	FileChangeType,
-	Files
+	Connection
 } from 'vscode-languageserver'
 
-import {
-	StylesheetMap
-} from './css-service'
+import { StylesheetMap } from './css-service'
+import { SimpleSelector } from './html-service'
+import { generateGlobPatternFromPatterns, generateGlobPatternFromExtensions } from './util'
 
-import {
-	SimpleSelector
-} from './html-service'
-
-import {
-	getStat
-} from './util'
 
 process.on('unhandledRejection', function(reason, promise){
     console.log("Unhandled Rejection: ", reason)
@@ -48,6 +35,7 @@ interface InitializationOptions {
 		htmlLanguages: string[]
 		cssFileExtensions: string[]
 		excludeGlobPatterns: string[]
+		updateImmediately: boolean
 	}
 }
 
@@ -68,12 +56,8 @@ connection.onInitialize((params: InitializeParams) => {
 })
 
 connection.onInitialized(() => {
-	connection.onDidChangeWatchedFiles(server.onWatchedFilesChanged.bind(server))
 	connection.onDefinition(server.findDefinitions.bind(server))
 	connection.onWorkspaceSymbol(server.findSymbolsMatchQueryParam.bind(server))
-
-	documents.onDidChangeContent(server.onFileOpenOrContentChanged.bind(server))
-	documents.onDidClose(server.onFileClosed.bind(server))
 })
 
 documents.listen(connection)
@@ -83,76 +67,22 @@ connection.listen()
 class CSSNaigationServer {
 
 	private htmlLanguages: string[]
-	private workspaceFolderPath: string
-	private cssFileExtensions: string[]
-	private excludeGlobPatterns: string[]
 	private stylesheetMap: StylesheetMap
 
 	constructor(options: InitializationOptions) {
-		this.workspaceFolderPath = options.workspaceFolderPath
-		this.htmlLanguages = options.configuration.htmlLanguages
-		this.cssFileExtensions = options.configuration.cssFileExtensions
-		this.excludeGlobPatterns = options.configuration.excludeGlobPatterns
-		this.stylesheetMap = new StylesheetMap(this.cssFileExtensions, this.excludeGlobPatterns)
+		let config = options.configuration
+		this.htmlLanguages = config.htmlLanguages
 
-		console.log(`Server for workspace "${path.basename(options.workspaceFolderPath)}" prepared`)
-		this.stylesheetMap.trackFolder(this.workspaceFolderPath)
-	}
+		this.stylesheetMap = new StylesheetMap(
+			connection,
+			documents,
+			generateGlobPatternFromExtensions(config.cssFileExtensions)!,
+			generateGlobPatternFromPatterns(config.excludeGlobPatterns),
+			config.updateImmediately
+		)
 
-	//no need to handle file changes making by vscode, but here it cant be distinguished
-	async onWatchedFilesChanged(params: DidChangeWatchedFilesParams) {
-		let excludeGlobPattern = this.excludeGlobPatterns.length > 0 ? `!{${this.excludeGlobPatterns.join(',')}}` : ''
-		let excludeMinimatch = excludeGlobPattern ? new minimatch.Minimatch(excludeGlobPattern) : null
-
-		for (let change of params.changes) {
-			let uri = change.uri
-			let fileOrFolderPath = Uri.parse(uri).fsPath
-
-			if (excludeMinimatch && excludeMinimatch.match(fileOrFolderPath)) {
-				continue
-			}
-
-			if (change.type === FileChangeType.Created) {
-				this.stylesheetMap.trackPath(fileOrFolderPath)
-			}
-			else if (change.type === FileChangeType.Changed) {
-				let stat = await getStat(fileOrFolderPath)
-				if (stat.isFile()) {
-					let filePath = fileOrFolderPath
-					let extname = path.extname(filePath).slice(1).toLowerCase()
-
-					if (this.cssFileExtensions.includes(extname)) {
-						this.stylesheetMap.trackFile(filePath)
-					}
-				}
-			}
-			else if (change.type === FileChangeType.Deleted) {
-				this.stylesheetMap.unTrackPath(fileOrFolderPath)
-			}
-		}
-	}
-
-	//no need to handle file open because we have preloaded all the files, but here it cant be distinguished
-	onFileOpenOrContentChanged(event: TextDocumentChangeEvent) {
-		let document = event.document
-
-		if (this.cssFileExtensions.includes(document.languageId)) {
-			let filePath = Files.uriToFilePath(document.uri)
-			if (filePath) {
-				this.stylesheetMap.trackOpenedFile(filePath, document)
-			}
-		}
-	}
-
-	onFileClosed(event: TextDocumentChangeEvent) {
-		let document = event.document
-		
-		if (this.cssFileExtensions.includes(document.languageId)) {
-			let filePath = Files.uriToFilePath(document.uri)
-			if (filePath) {
-				this.stylesheetMap.unTrackOpenedFile(filePath)
-			}
-		}
+		console.log(`Server for workspace folder "${path.basename(options.workspaceFolderPath)}" prepared`)
+		this.stylesheetMap.trackFolder(options.workspaceFolderPath)
 	}
 
 	async findDefinitions(positonParams: TextDocumentPositionParams): Promise<Definition | null> {
