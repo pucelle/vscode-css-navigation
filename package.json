@@ -1,7 +1,7 @@
 {
 	"name": "vscode-css-navigation",
 	"displayName": "CSS Navigation",
-	"description": "Peek definition from HTML document or HTML template, into a CSS / LESS / SCSS document, by the HTML tag name, class or id attribute",
+	"description": "Peek definition from HTML document, into a CSS / LESS / SCSS documents.",
 	"icon": "images/logo.png",
 	"version": "1.0.0",
 	"license": "MIT",
@@ -21,8 +21,8 @@
 		"Programming Languages"
 	],
 	"keywords": [
-		"HTML Goto Definition",
-		"HTML Peek Definition"
+		"Goto CSS Definition",
+		"Peek CSS Definition"
 	],
 	"activationEvents": [
 		"onLanguage:plaintext"
@@ -38,6 +38,7 @@
 					"default": [
 						"html",
 						"ejs",
+						"erb",
 						"php",
 						"javascript",
 						"typescript",
@@ -47,19 +48,19 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "The languages of the html files, in where you can 'go to definition'. View <https://code.visualstudio.com/docs/languages/identifiers> for more languages."
+					"description": "The languages of the html files, in where you can `go to definition`. View <https://code.visualstudio.com/docs/languages/identifiers> for more languages."
 				},
 				"CSSNavigation.cssFileExtensions": {
 					"type": "array",
 					"default": [
+						"css",
 						"scss",
-						"less",
-						"css"
+						"less"
 					],
 					"items": {
 						"type": "string"
 					},
-					"description": "The extensions of the css files, only the matched files you can 'go to' and 'peek'."
+					"description": "The extensions of the css files, only the matched files you can `go to` and `peek`."
 				},
 				"CSSNavigation.excludeGlobPatterns": {
 					"type": "array",
@@ -74,7 +75,7 @@
 				"CSSNavigation.updateImmediately": {
 					"type": "boolean",
 					"default": false,
-					"description": "when 'false' by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to 'true', CSS files are loaded immediately after you change it or project startup. If you are a heavy user in CSS definition searching and don't mind additional CPU and memory usage, just check it."
+					"description": "When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you change it or project startup. If you are a heavy user in CSS definition searching and don't mind additional CPU and memory usage, just check it."
 				}
 			}
 		}

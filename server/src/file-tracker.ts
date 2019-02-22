@@ -11,7 +11,7 @@ import {
 	FileChangeType
 } from 'vscode-languageserver'
 
-import { readText, glob, getStat } from './util'
+import {readText, glob, getStat} from './util'
 import Uri from 'vscode-uri'
 
 export interface TrackMapItem {
@@ -45,10 +45,11 @@ export class FileTracker {
 		
 		documents.onDidChangeContent(this.onFileOpenOrContentChanged.bind(this))
 		documents.onDidClose(this.onFileClosed.bind(this))
-		connection.onDidChangeWatchedFiles(this.onWatchedFilesChanged.bind(this))
+		connection.onDidChangeWatchedFiles(this.onWatchedPathChanged.bind(this))
 	}
 
-	//no need to handle file open because we have preloaded all the files, but here it cant be distinguished
+	//no need to handle file opening because we have preloaded all the files
+	//open and changed event will be distinguished by document version later
 	private onFileOpenOrContentChanged(event: TextDocumentChangeEvent) {
 		let document = event.document
 		let filePath = Files.uriToFilePath(document.uri)
@@ -58,7 +59,7 @@ export class FileTracker {
 		}
 	}
 
-	canTrackFilePath(filePath: string): boolean {
+	private canTrackFilePath(filePath: string): boolean {
 		if (!this.includeMatcher.match(filePath)) {
 			return false
 		}
@@ -70,7 +71,7 @@ export class FileTracker {
 		return true
 	}
 
-	canTrackPath(fileOrFolderPath: string): boolean {
+	private canTrackPath(fileOrFolderPath: string): boolean {
 		if (this.excludeMatcher && this.excludeMatcher.match(fileOrFolderPath)) {
 			return false
 		}
@@ -87,13 +88,13 @@ export class FileTracker {
 		}
 	}
 
-	//no need to handle file changes making by vscode, but here it cant be distinguished
-	private async onWatchedFilesChanged(params: DidChangeWatchedFilesParams) {
+	//no need to handle file changes making by vscode when document is opening, and document version > 1 at this time
+	private async onWatchedPathChanged(params: DidChangeWatchedFilesParams) {
 		for (let change of params.changes) {
 			let uri = change.uri
 			let fileOrFolderPath = Files.uriToFilePath(uri)
 
-			if (!fileOrFolderPath || !this.canTrackPath(fileOrFolderPath)) {
+			if (!fileOrFolderPath) {
 				continue
 			}
 
@@ -116,6 +117,10 @@ export class FileTracker {
 	}
 
 	async trackPath(fileOrFolderPath: string) {
+		if (!this.canTrackPath(fileOrFolderPath)) {
+			return
+		}
+
 		let stat = await getStat(fileOrFolderPath)
 				
 		if (stat.isDirectory()) {
@@ -129,7 +134,7 @@ export class FileTracker {
 		}
 	}
 	
-	async trackFolder(folderPath: string) {
+	private async trackFolder(folderPath: string) {
 		let filePaths = await this.getFilePathsInFolder(folderPath)
 
 		for (let filePath of filePaths) {
@@ -146,10 +151,15 @@ export class FileTracker {
 		return cssFilePaths.map(path.normalize)
 	}
 
-	trackFile(filePath: string) {
+	private trackFile(filePath: string) {
 		let item = this.map.get(filePath)
 		if (item) {
-			//after file edited, version will always > 1, so here we makesure saving opened file not trigger refresh
+			//when been tracked, version=0
+			//after read, version=1
+			//after first opening, version=1
+			//after been edited in vscode, version always > 1
+			//and we will restore the version to 1 after closed
+			//so version=1 means have read, and not been opened or just opened without any edit
 			if (item.version === 1) {
 				item.document = null
 				item.fresh = false
@@ -185,7 +195,7 @@ export class FileTracker {
 			item.document = document
 			item.version = document.version
 
-			if (changed) {
+			if (changed && item.fresh) {
 				item.fresh = false
 				this.fresh = false
 				this.onExpired(filePath, item)
@@ -213,7 +223,7 @@ export class FileTracker {
 	private unTrackOpenedFile(filePath: string) {
 		let item = this.map.get(filePath)
 		if (item) {
-			//it becomes same as an not opened document, but still fresh
+			//it becomes same as not opened document, but still fresh
 			item.version = 1
 			console.log(`"${filePath}" closed`)
 		}
@@ -251,7 +261,8 @@ export class FileTracker {
 			item.document = await this.loadDocumentFromFilePath(filePath)
 			item.version = item.document!.version
 		}
-
+		
+		item.fresh = true
 		await this.onUpdated(filePath, item)
 		console.log(`"${filePath}" updated`)
 	}

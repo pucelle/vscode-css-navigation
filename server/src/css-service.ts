@@ -16,19 +16,19 @@ import {
 	Stylesheet
 } from 'vscode-css-languageservice'
 
-import { FileTracker, TrackMapItem } from './file-tracker'
-import { SimpleSelector } from './html-service'
+import {FileTracker, TrackMapItem} from './file-tracker'
+import {SimpleSelector} from './html-service'
 
 
 namespace CSSLanguageService {
 
-	let languageServiceGenerator: { [id: string]: Function } = {
+	let languageServiceGenerator: {[id: string]: Function} = {
 		css: getCSSLanguageService,
 		scss: getSCSSLanguageService,
 		less: getLESSLanguageService
 	}
 
-	let initializedLanguageServices: { [id: string]: LanguageService | null } = {
+	let initializedLanguageServices: {[id: string]: LanguageService | null} = {
 		css: null,
 		scss: null,
 		less: null
@@ -87,7 +87,7 @@ export class StylesheetMap extends FileTracker {
 		let matchedSymbols: SymbolInformation[] = []
 
 		for (let [document, stylesheet] of this.iterateDocumentAndStylesheet()) {
-			let { uri, languageId } = document
+			let {uri, languageId} = document
 			let symbols = CSSLanguageService.getFromLanguageId(languageId).findDocumentSymbols(document, stylesheet)
 			let matcher = new SelectorMatcher(uri)
 
@@ -118,7 +118,7 @@ export class StylesheetMap extends FileTracker {
 		let matchedSymbols: SymbolInformation[] = []
 
 		for (let [document, stylesheet] of this.iterateDocumentAndStylesheet()) {
-			let { uri, languageId } = document
+			let {uri, languageId} = document
 			let symbols = CSSLanguageService.getFromLanguageId(languageId).findDocumentSymbols(document, stylesheet)
 			let matcher = new SelectorMatcher(uri)
 
@@ -142,15 +142,6 @@ class SelectorMatcher {
 		return ['scss', 'less'].includes(path.extname(uri).slice(1).toLowerCase())
 	}
 
-	/*
-	the selector should be the start field of the last part, e.g., '.class' matches
-		.class[...]
-		.class:actived
-		.class::before
-		.class.class2
-	these markers used to split parts: space > + ~ >>
-	* will match any tag
-	*/
 	findSymbolsMatchSelector(symbols: SymbolInformation[], selector: SimpleSelector): SymbolInformation[] {
 		let matchedSymbols: SymbolInformation[] = []
 		let nestingMatcher: NestingMatcher | null = null
@@ -168,11 +159,11 @@ class SelectorMatcher {
 			}
 
 			if (selector.type === SimpleSelector.Type.Tag) {
-				if (MatchHelper.isStartOfTheLastPart(selector.raw, symbolSelector)) {
+				if (MatchHelper.isSelectorBeStartOfTheRightMostDescendant(selector.raw, symbolSelector)) {
 					matchedSymbol = symbol
 				}
 			}
-			else if (symbolSelector.includes(selector.raw) && MatchHelper.isStartOfTheLastPart(selector.raw, symbolSelector)) {
+			else if (symbolSelector.includes(selector.raw) && MatchHelper.isSelectorBeStartOfTheRightMostDescendant(selector.raw, symbolSelector)) {
 				matchedSymbol = symbol
 			}
 
@@ -196,7 +187,7 @@ class SelectorMatcher {
 		p* as tag name
 		.p* as class name
 		#p* as id
-	or the three as the start field of any part of the symbol name
+	and may more decorated selectors follow
 	*/
 	findSymbolsMatchQuery(symbols: SymbolInformation[], query: string): SymbolInformation[] {
 		let matchedSymbols: SymbolInformation[] = []
@@ -239,22 +230,27 @@ namespace MatchHelper {
 		return selector[0] !== '@'
 	}
 
-	//'.a' matches '.b .a[...]', '.b > .a'
-	//'.a' not matches '.a .b'
-	export function isStartOfTheLastPart(selector: string, symbolSelector: string): boolean {
-		let lastPartRE = /(?:\[[^\]]+?\]|\([^)]+?\)|[^ >+~])+$/
-		let match = symbolSelector.match(lastPartRE)
+	//the descendant combinator used to split ancestor and descendant: space > + ~ >> ||
+	export function isSelectorBeStartOfTheRightMostDescendant(selector: string, symbolSelector: string): boolean {
+		let descendantRE = /(?:\[[^\]]+?\]|\([^)]+?\)|[^ >+~])+$/
+		let match = symbolSelector.match(descendantRE)
 		if (!match) {
 			return false
 		}
 
-		let lastPart = match[0]
-		return isStartOf(selector, lastPart)
+		let descendant = match[0]
+		return isSelectorBeStartOf(selector, descendant)
 	}
 
-	//'.a' matches '.a[...]', '.a.b'
-	//'.a' not matches '.a-b', '.b.a'
-	export function isStartOf(selector: string, symbolSelector: string) {
+	/*
+	the selector should already be the start of the right most descendant
+	e.g., '.a' matches
+		.a[...]
+		.a:actived
+		.a::before
+		.a.b
+	*/
+	export function isSelectorBeStartOf(selector: string, symbolSelector: string) {
 		if (!symbolSelector.startsWith(selector)) {
 			return false
 		}
@@ -268,7 +264,7 @@ namespace MatchHelper {
 		return !isAnotherSelector
 	}
 
-	//only test end position, null means range of whole document
+	//only compare end position since ranges already been ordered
 	export function isRangeIn(range: Range, widerRange: Range): boolean {
 		if (widerRange.end.line > range.end.line) {
 			return true
@@ -281,16 +277,35 @@ namespace MatchHelper {
 		return false
 	}
 
+	//have match when left word boundary match
 	export function isMatchQuery(selector: string, query: string): boolean {
 		let lowerSelector = selector.toLowerCase()
 		let index = lowerSelector.indexOf(query)
 
-		//include and the first char appearance position match
-		if (index > -1 && lowerSelector.indexOf(query[0]) === index) {
+		if (index === -1) {
+			return false
+		}
+
+		if (index === 0) {
 			return true
 		}
 
-		return false
+		//@abc match query ab
+		if (!/[a-z]/.test(query[0])) {
+			return true
+		}
+		
+		//abc not match query bc, but ab-bc does
+		while (/[a-z]/.test(lowerSelector[index - 1])) {
+			lowerSelector = lowerSelector.slice(index + query.length)
+			index = lowerSelector.indexOf(query)
+
+			if (index === -1) {
+				return false
+			}
+		}
+
+		return true
 	}
 
 }
@@ -324,7 +339,7 @@ class NestingMatcher {
 		let symbolSelector = symbol.name
 		let expectedSelector = this.nestingSelectors[this.nestingSelectors.length - 1].selector
 
-		if (symbolSelector.includes(expectedSelector) && MatchHelper.isStartOf(expectedSelector, symbolSelector)) {
+		if (symbolSelector.includes(expectedSelector) && MatchHelper.isSelectorBeStartOfTheRightMostDescendant(expectedSelector, symbolSelector)) {
 			return true
 		}
 
@@ -336,7 +351,7 @@ class NestingMatcher {
 			})
 		}
 
-		//symbol '.c' not match '.a-b', all the following symbols in range will be skipped
+		//if symbol '.c' not match '.a-b', all the following symbols in range will be skipped
 		else {
 			this.lastRejectedRange = symbol.location.range
 		}
@@ -358,7 +373,7 @@ class NestingMatcher {
 	
 	private popOutOfRangeNestingSelectors(range: Range) {
 		while (this.nestingSelectors.length > 1) {
-			let { range: lastRange } = this.nestingSelectors[this.nestingSelectors.length - 1]
+			let {range: lastRange} = this.nestingSelectors[this.nestingSelectors.length - 1]
 			let isSymbolInLastRange = MatchHelper.isRangeIn(range, lastRange)
 
 			if (isSymbolInLastRange) {
@@ -405,7 +420,7 @@ class NestingQueryMatcher {
 
 	private popOutOfRangeNestingSelectors(range: Range) {
 		while (this.nestingSelectors.length > 0) {
-			let { range: lastRange } = this.nestingSelectors[this.nestingSelectors.length - 1]
+			let {range: lastRange} = this.nestingSelectors[this.nestingSelectors.length - 1]
 			let isSymbolInLastRange = MatchHelper.isRangeIn(range, lastRange)
 
 			if (isSymbolInLastRange) {

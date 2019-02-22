@@ -24,7 +24,7 @@
 			"preLaunchTask": "npm: watch"
 		},
 		{
-			"name": "Language E2E Test",
+			"name": "Launch E2E Test",
 			"type": "extensionHost",
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",

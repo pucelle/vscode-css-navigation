@@ -13,12 +13,12 @@ import {
 	Connection
 } from 'vscode-languageserver'
 
-import { StylesheetMap } from './css-service'
-import { SimpleSelector } from './html-service'
-import { generateGlobPatternFromPatterns, generateGlobPatternFromExtensions } from './util'
+import {StylesheetMap} from './css-service'
+import {SimpleSelector} from './html-service'
+import {generateGlobPatternFromPatterns, generateGlobPatternFromExtensions} from './util'
 
 
-process.on('unhandledRejection', function(reason, promise){
+process.on('unhandledRejection', function(reason, promise) {
     console.log("Unhandled Rejection: ", reason)
 })
 
@@ -82,7 +82,7 @@ class CSSNaigationServer {
 		)
 
 		console.log(`Server for workspace folder "${path.basename(options.workspaceFolderPath)}" prepared`)
-		this.stylesheetMap.trackFolder(options.workspaceFolderPath)
+		this.stylesheetMap.trackPath(options.workspaceFolderPath)
 	}
 
 	async findDefinitions(positonParams: TextDocumentPositionParams): Promise<Definition | null> {
@@ -94,7 +94,7 @@ class CSSNaigationServer {
 			return null
 		}
 		
-		if (!this.htmlLanguages.includes(document.languageId)){
+		if (!this.htmlLanguages.includes(document.languageId)) {
 			return null
 		}
 

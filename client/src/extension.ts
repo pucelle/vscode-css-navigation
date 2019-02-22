@@ -8,10 +8,10 @@ import {
 	TransportKind
 } from 'vscode-languageclient'
 
-import { getOutmostWorkspaceFolderPath } from './util'
+import {getOutmostWorkspaceFolderPath} from './util'
 
 
-process.on('unhandledRejection', function(reason, promise){
+process.on('unhandledRejection', function(reason, promise) {
     console.log("Unhandled Rejection: ", reason)
 })
 
@@ -49,7 +49,7 @@ export function deactivate(): Promise<void> {
 
 export class CSSNavigationExtension {
 	
-	private channel = vscode.window.createOutputChannel('CSS Navigation')
+	channel = vscode.window.createOutputChannel('CSS Navigation')
 	private context: vscode.ExtensionContext
 	private config!: vscode.WorkspaceConfiguration
 	private clients: Map<string, LanguageClient> = new Map()	//one client for each workspace folder
@@ -106,10 +106,10 @@ export class CSSNavigationExtension {
 		)
 		
 		//one port for only one server to debug should be ok
-		let debugOptions = { execArgv: ["--nolazy", '--inspect=6009'] }
+		let debugOptions = {execArgv: ["--nolazy", '--inspect=6009']}
 		let serverOptions: ServerOptions = {
-			run: { module: serverModule, transport: TransportKind.ipc },
-			debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
+			run: {module: serverModule, transport: TransportKind.ipc},
+			debug: {module: serverModule, transport: TransportKind.ipc, options: debugOptions}
 		}
 
 		//to notify server html & css files their open / close / content changed
@@ -142,7 +142,7 @@ export class CSSNavigationExtension {
 				configuration: {
 					htmlLanguages,
 					cssFileExtensions,
-					excludeGlobPatterns: this.config.get('excludeGlobPattern') || [],
+					excludeGlobPatterns: this.config.get('excludeGlobPatterns') || [],
 					updateImmediately
 				}
 			}
