@@ -1,14 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
-
-import {
-	LanguageClient,
-	LanguageClientOptions,
-	ServerOptions,
-	TransportKind
-} from 'vscode-languageclient'
-
-import {getOutmostWorkspaceFolderPath} from './util'
+import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} from 'vscode-languageclient'
+import {getOutmostWorkspaceURI} from './util'
 
 
 process.on('unhandledRejection', function(reason, promise) {
@@ -24,18 +17,22 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration('CSSNavigation')) {
-				extension.onConfigurationChanged()
+				extension.loadConfig()
+				extension.restartAllClients()
 			}
 		}),
 
 		vscode.workspace.onDidOpenTextDocument((document: vscode.TextDocument) => {
-			extension.onOpenDocument(document)
+			extension.checkClientForOpenedDocument(document)
 		}),
 
 		vscode.workspace.onDidChangeWorkspaceFolders(event => {
+			//since one 
 			for (let folder of event.removed) {
-				extension.onWorkspaceURIRemoved(folder.uri.toString())
+				extension.onWorkspaceRemoved(folder)
 			}
+
+			extension.checkClients()
 		})
 	)
 
@@ -57,21 +54,48 @@ export class CSSNavigationExtension {
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context
 		this.loadConfig()
-		this.checkCurrentOpenedDocuments()
+		this.checkClients()
 	}
 
 	loadConfig() {
 		this.config = vscode.workspace.getConfiguration('CSSNavigation')
 	}
 
-	async onOpenDocument(document: vscode.TextDocument) {
-		if (document.uri.scheme !== 'file') {
-			return
-		}
+	checkClients() {
+		let searchAcrossWorkspaceFolders: boolean = this.config.get('searchAcrossWorkspaceFolders') || false
 
-		//not in any workspace
-		let workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri)
-		if (!workspaceFolder) {
+		if (searchAcrossWorkspaceFolders) {
+			for (let workspaceFolder of vscode.workspace.workspaceFolders || []) {
+				this.checkClientForworkspace(workspaceFolder)
+			}
+		}
+		else {
+			for (let document of vscode.workspace.textDocuments) {
+				this.checkClientForOpenedDocument(document)
+			}
+		}
+	}
+
+	private checkClientForworkspace(workspaceFolder: vscode.WorkspaceFolder) {
+		let workspaceURI = workspaceFolder.uri.toString()
+		let workspaceURIs = (vscode.workspace.workspaceFolders || []).map(folder => folder.uri.toString())
+		let outmostWorkspaceURI = getOutmostWorkspaceURI(workspaceURI, workspaceURIs)
+
+		//was covered by another folder, stop it
+		if (outmostWorkspaceURI && workspaceURI !== outmostWorkspaceURI && this.clients.has(workspaceURI)) {
+			this.clients.get(workspaceURI)!.stop()
+		}
+		
+		if (outmostWorkspaceURI && !this.clients.has(outmostWorkspaceURI)) {
+			let workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(outmostWorkspaceURI))
+			if (workspaceFolder) {
+				this.createClientForWorkspaceFolder(workspaceFolder)
+			}
+		}
+	}
+
+	checkClientForOpenedDocument(document: vscode.TextDocument) {
+		if (document.uri.scheme !== 'file') {
 			return
 		}
 
@@ -83,23 +107,20 @@ export class CSSNavigationExtension {
 			return
 		}
 
-		let workspaceFolderPath = workspaceFolder.uri.toString()
-		let workspaceFolderPaths = (vscode.workspace.workspaceFolders || []).map(folder => folder.uri.toString())
-		let outmostWorkspaceFolderPath = getOutmostWorkspaceFolderPath(workspaceFolderPath, workspaceFolderPaths)
-		
-		if (outmostWorkspaceFolderPath && !this.clients.has(outmostWorkspaceFolderPath)) {
-			let workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(outmostWorkspaceFolderPath))
-			if (workspaceFolder) {
-				await this.createClientForWorkspace(workspaceFolder)
-			}
+		//not in any workspace
+		let workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri)
+		if (!workspaceFolder) {
+			return
 		}
+
+		this.checkClientForworkspace(workspaceFolder)
 	}
 
-	private async createClientForWorkspace(workspaceFolder: vscode.WorkspaceFolder) {
+	private createClientForWorkspaceFolder(workspaceFolder: vscode.WorkspaceFolder) {
 		let workspaceFolderPath = workspaceFolder.uri.fsPath
 		let htmlLanguages: string[] = this.config.get('htmlLanguages') || []
 		let cssFileExtensions: string[] = this.config.get('cssFileExtensions') || []
-		let updateImmediately: boolean = this.config.get('updateImmediately') || false
+		let searchAcrossWorkspaceFolders: boolean = this.config.get('searchAcrossWorkspaceFolders') || false
 
 		let serverModule = this.context.asAbsolutePath(
 			path.join('server', 'out', 'server.js')
@@ -112,12 +133,13 @@ export class CSSNavigationExtension {
 			debug: {module: serverModule, transport: TransportKind.ipc, options: debugOptions}
 		}
 
-		//to notify server html & css files their open / close / content changed
+		//to notify open / close / content changed for html & css files in specified range 
+		//and provide language service for them
 		let documentSelector = [...cssFileExtensions, ...htmlLanguages]
 			.map(language => ({
 				scheme: 'file',
 				language,
-				pattern: `${workspaceFolderPath}/**`
+				pattern: searchAcrossWorkspaceFolders ? undefined : `${workspaceFolderPath}/**`
 			}))
 		
 		let clientOptions: LanguageClientOptions = {
@@ -143,7 +165,9 @@ export class CSSNavigationExtension {
 					htmlLanguages,
 					cssFileExtensions,
 					excludeGlobPatterns: this.config.get('excludeGlobPatterns') || [],
-					updateImmediately
+					preload: this.config.get('preload') || false,
+					ignoreSameNameCSSFile: this.config.get('ignoreSameNameCSSFile') || true,
+					ignoreCustomElement: this.config.get('ignoreCustomElement') || false
 				}
 			}
 		}
@@ -158,15 +182,9 @@ export class CSSNavigationExtension {
 	private showChannelMessage(message: string) {
 		this.channel.appendLine(message)
 	}
-
-	//to eusure they have related clients
-	async checkCurrentOpenedDocuments() {
-		for (let document of vscode.workspace.textDocuments) {
-			await this.onOpenDocument(document)
-		}
-	}
 	
-	onWorkspaceURIRemoved(uri: string) {
+	onWorkspaceRemoved(folder: vscode.WorkspaceFolder) {
+		let uri = folder.uri.toString()
 		let client = this.clients.get(uri)
 		if (client) {
 			this.clients.delete(uri)
@@ -174,14 +192,9 @@ export class CSSNavigationExtension {
 		}
 	}
 
-	async onConfigurationChanged() {
-		this.loadConfig()
-		await this.restartAllClients()
-	}
-
-	private async restartAllClients() {
+	async restartAllClients() {
 		await this.stopAllClients()
-		await this.checkCurrentOpenedDocuments()
+		this.checkClients()
 	}
 
 	async stopAllClients() {

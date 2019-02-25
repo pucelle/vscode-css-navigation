@@ -11,19 +11,6 @@ custom-element{
 }
 
 
-.class{
-	color: red;
-
-	&-subclass{
-		color: red;
-
-		&-subclass2{
-			color: red
-		}
-	}
-}
-
-
 #id{
 	color: red;
 
@@ -37,14 +24,37 @@ custom-element{
 }
 
 
-.class-multi-match{
+.class1{
 	color: red;
+
+	&-sub{
+		color: red;
+
+		&-tail{
+			color: red
+		}
+	}
 }
 
-.class-multi-match:hover{
+.class2, .class3{
 	color: red;
+
+	&-sub{
+		color: red;
+	}
 }
 
+.class4, .class4-sub{
+	color: red;
+
+	&-sub{
+		color: red;
+
+		&-tail{
+			color: red;
+		}
+	}
+}
 
 .class-match1:hover{
 	color: red;

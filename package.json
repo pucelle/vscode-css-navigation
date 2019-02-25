@@ -40,6 +40,7 @@
 						"ejs",
 						"erb",
 						"php",
+						"hbs",
 						"javascript",
 						"typescript",
 						"javascriptreact",
@@ -65,17 +66,33 @@
 				"CSSNavigation.excludeGlobPatterns": {
 					"type": "array",
 					"default": [
-						"**/node_modules/**"
+						"**/node_modules/**",
+						"**/bower_components/**"
 					],
 					"items": {
 						"type": "string"
 					},
 					"description": "A glob pattern, defines paths to exclude from when searching for CSS definitions."
 				},
-				"CSSNavigation.updateImmediately": {
+				"CSSNavigation.searchAcrossWorkspaceFolders": {
 					"type": "boolean",
 					"default": false,
-					"description": "When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you change it or project startup. If you are a heavy user in CSS definition searching and don't mind additional CPU and memory usage, just check it."
+					"description": "When `false` by default, Only search CSS definition in current workspace folder. If one workspace folder requires css references from another workspace folder, you should set this to `true`."
+				},
+				"CSSNavigation.preload": {
+					"type": "boolean",
+					"default": false,
+					"description": "When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you change and save it or project startup. If you are a heavy user in CSS definition searching, just check it."
+				},
+				"CSSNavigation.ignoreSameNameCSSFile": {
+					"type": "boolean",
+					"default": true,
+					"description": "When `true` by default, e.g.: If 'any-name.scss and 'any-name.css' exist in the same directory, the CSS file will be skipped. If you prefer compiling SCSS or LESS file to the same name CSS file, ignore the CSS files would be helpful."
+				},
+				"CSSNavigation.ignoreCustomElement": {
+					"type": "boolean",
+					"default": true,
+					"description": "Set to `true` to ignore custom element definition searching, such that it will not disturb going to it's defined place."
 				}
 			}
 		}

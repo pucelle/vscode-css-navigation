@@ -1,6 +1,7 @@
 {
 	"rules": {
 		"indent": [true, "tabs"],
-		"semicolon": [true, "always"]
+		"semicolon": [true, "always"],
+		"object-curly-spacing": ["error", "never"]
 	}
 }

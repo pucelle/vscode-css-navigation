@@ -58,3 +58,7 @@ export function generateGlobPatternFromExtensions(extensions: string[]): string 
 		return '**/*.' + extensions[0]
 	}
 }
+
+export function replaceExtension(filePath: string, toExtension: string): string {
+	return filePath.replace(/\.\w+$/, '.' + toExtension)
+}

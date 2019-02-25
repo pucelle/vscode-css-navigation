@@ -10,12 +10,14 @@ import {
 	Definition,
 	WorkspaceSymbolParams,
 	SymbolInformation,
-	Connection
+	Connection,
+	CompletionItem,
+	CompletionItemKind
 } from 'vscode-languageserver'
 
-import {StylesheetMap} from './css-service'
-import {SimpleSelector} from './html-service'
-import {generateGlobPatternFromPatterns, generateGlobPatternFromExtensions} from './util'
+import {CSSSymbolMap} from './libs/css-service'
+import {SimpleSelector, findDefinitionMatchSelectorInInnerStyle} from './libs/html-service'
+import {generateGlobPatternFromPatterns, generateGlobPatternFromExtensions} from './libs/util'
 
 
 process.on('unhandledRejection', function(reason, promise) {
@@ -35,7 +37,10 @@ interface InitializationOptions {
 		htmlLanguages: string[]
 		cssFileExtensions: string[]
 		excludeGlobPatterns: string[]
-		updateImmediately: boolean
+
+		preload: boolean
+		ignoreSameNameCSSFile: boolean
+		ignoreCustomElement: boolean
 	}
 }
 
@@ -49,6 +54,9 @@ connection.onInitialize((params: InitializeParams) => {
 				openClose: true,
 				change: TextDocumentSyncKind.Full
 			},
+			completionProvider: {
+				resolveProvider: true
+			},
 			definitionProvider: true,
 			workspaceSymbolProvider: true
 		}
@@ -58,6 +66,8 @@ connection.onInitialize((params: InitializeParams) => {
 connection.onInitialized(() => {
 	connection.onDefinition(server.findDefinitions.bind(server))
 	connection.onWorkspaceSymbol(server.findSymbolsMatchQueryParam.bind(server))
+	connection.onCompletion(server.provideCompletion.bind(server))
+	connection.onCompletionResolve(server.onCompletionResolve.bind(server))
 })
 
 documents.listen(connection)
@@ -67,22 +77,26 @@ connection.listen()
 class CSSNaigationServer {
 
 	private htmlLanguages: string[]
-	private stylesheetMap: StylesheetMap
+	private ignoreCustomElement: boolean
+	private cssSymbolMap: CSSSymbolMap
 
 	constructor(options: InitializationOptions) {
 		let config = options.configuration
 		this.htmlLanguages = config.htmlLanguages
+		this.ignoreCustomElement = config.ignoreCustomElement
 
-		this.stylesheetMap = new StylesheetMap(
+		this.cssSymbolMap = new CSSSymbolMap({
 			connection,
 			documents,
-			generateGlobPatternFromExtensions(config.cssFileExtensions)!,
-			generateGlobPatternFromPatterns(config.excludeGlobPatterns),
-			config.updateImmediately
-		)
+			includeGlobPattern: generateGlobPatternFromExtensions(config.cssFileExtensions)!,
+			excludeGlobPattern: generateGlobPatternFromPatterns(config.excludeGlobPatterns),
+			updateImmediately: config.preload,
+			startPath: options.workspaceFolderPath,
+
+			ignoreSameNameCSSFile: config.ignoreSameNameCSSFile && config.cssFileExtensions.length > 1 && config.cssFileExtensions.includes('css')
+		})
 
 		console.log(`Server for workspace folder "${path.basename(options.workspaceFolderPath)}" prepared`)
-		this.stylesheetMap.trackPath(options.workspaceFolderPath)
 	}
 
 	async findDefinitions(positonParams: TextDocumentPositionParams): Promise<Definition | null> {
@@ -103,8 +117,14 @@ class CSSNaigationServer {
 			return null
 		}
 
-		let locations = await this.stylesheetMap.findDefinitionMatchSelector(selector)
-		return locations
+		if (this.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
+			return null
+		}
+
+		let locationsInHTML = findDefinitionMatchSelectorInInnerStyle(document, selector)
+		let locations = await this.cssSymbolMap.findDefinitionMatchSelector(selector)
+
+		return [...locationsInHTML, ...locations]
 	}
 
 	async findSymbolsMatchQueryParam(symbol: WorkspaceSymbolParams): Promise<SymbolInformation[] | null> {
@@ -113,7 +133,36 @@ class CSSNaigationServer {
 			return null
 		}
 
-		return await this.stylesheetMap.findSymbolsMatchQuery(query)
+		return await this.cssSymbolMap.findSymbolsMatchQuery(query)
+	}
+
+	async provideCompletion(textDocumentPosition: TextDocumentPositionParams): Promise<CompletionItem[]> {
+		let document = textDocumentPosition.textDocument
+		let position = textDocumentPosition.position
+
+		return [
+			{
+				label: 'TypeScript',
+				kind: CompletionItemKind.Text,
+				data: 1
+			},
+			{
+				label: 'JavaScript',
+				kind: CompletionItemKind.Text,
+				data: 2
+			}
+		];
+	}
+
+	onCompletionResolve(item: CompletionItem): CompletionItem {
+		if (item.data === 1) {
+			item.detail = 'TypeScript details';
+			item.documentation = 'TypeScript documentation';
+		} else if (item.data === 2) {
+			item.detail = 'JavaScript details';
+			item.documentation = 'JavaScript documentation';
+		}
+		return item;
 	}
 }
 
