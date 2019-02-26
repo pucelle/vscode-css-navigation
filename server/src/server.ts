@@ -7,17 +7,18 @@ import {
 	InitializeParams,
 	TextDocumentPositionParams,
 	TextDocumentSyncKind,
-	Definition,
+	Location,
 	WorkspaceSymbolParams,
 	SymbolInformation,
 	Connection,
 	CompletionItem,
-	CompletionItemKind
+	CompletionItemKind,
+	ReferenceParams
 } from 'vscode-languageserver'
 
-import {CSSSymbolMap} from './libs/css-service'
-import {SimpleSelector, findDefinitionMatchSelectorInInnerStyle} from './libs/html-service'
-import {generateGlobPatternFromPatterns, generateGlobPatternFromExtensions} from './libs/util'
+import {CSSSymbolMap} from './libs/css/css-service'
+import {SimpleSelector, findDefinitionMatchSelectorInInnerStyle} from './libs/html/html-service'
+import {generateGlobPatternFromPatterns, generateGlobPatternFromExtensions, pipeTimedConsoleToConnection, timer} from './libs/util'
 
 
 process.on('unhandledRejection', function(reason, promise) {
@@ -28,7 +29,7 @@ process.on('unhandledRejection', function(reason, promise) {
 let connection: Connection = createConnection(ProposedFeatures.all)
 let documents: TextDocuments = new TextDocuments()
 let server: CSSNaigationServer
-global.console = <any>connection.console
+pipeTimedConsoleToConnection(connection)
 
 
 interface InitializationOptions {
@@ -58,16 +59,18 @@ connection.onInitialize((params: InitializeParams) => {
 				resolveProvider: true
 			},
 			definitionProvider: true,
+			referencesProvider: true,
 			workspaceSymbolProvider: true
 		}
 	}
 })
 
 connection.onInitialized(() => {
-	connection.onDefinition(server.findDefinitions.bind(server))
-	connection.onWorkspaceSymbol(server.findSymbolsMatchQueryParam.bind(server))
-	connection.onCompletion(server.provideCompletion.bind(server))
+	connection.onDefinition(timer.countListReturnedFunctionExecutedTime(server.findCSSDefinitions.bind(server), 'definition'))
+	connection.onWorkspaceSymbol(timer.countListReturnedFunctionExecutedTime(server.findSymbolsMatchQueryParam.bind(server), 'workplace symbol'))
+	connection.onCompletion(timer.countListReturnedFunctionExecutedTime(server.provideCompletion.bind(server), 'completion'))
 	connection.onCompletionResolve(server.onCompletionResolve.bind(server))
+	connection.onReferences(timer.countListReturnedFunctionExecutedTime(server.findHTMLRefenerces.bind(server), 'reference'))
 })
 
 documents.listen(connection)
@@ -99,10 +102,10 @@ class CSSNaigationServer {
 		console.log(`Server for workspace folder "${path.basename(options.workspaceFolderPath)}" prepared`)
 	}
 
-	async findDefinitions(positonParams: TextDocumentPositionParams): Promise<Definition | null> {
+	async findCSSDefinitions(positonParams: TextDocumentPositionParams): Promise<Location[] | null> {
 		let documentIdentifier = positonParams.textDocument
-		let position = positonParams.position	
 		let document = documents.get(documentIdentifier.uri)
+		let position = positonParams.position	
 
 		if (!document) {
 			return null
@@ -136,33 +139,46 @@ class CSSNaigationServer {
 		return await this.cssSymbolMap.findSymbolsMatchQuery(query)
 	}
 
-	async provideCompletion(textDocumentPosition: TextDocumentPositionParams): Promise<CompletionItem[]> {
-		let document = textDocumentPosition.textDocument
-		let position = textDocumentPosition.position
+	async provideCompletion(params: TextDocumentPositionParams): Promise<CompletionItem[] | null> {
+		let documentIdentifier = params.textDocument
+		let document = documents.get(documentIdentifier.uri)
+		let position = params.position
 
-		return [
-			{
-				label: 'TypeScript',
-				kind: CompletionItemKind.Text,
-				data: 1
-			},
-			{
-				label: 'JavaScript',
-				kind: CompletionItemKind.Text,
-				data: 2
-			}
-		];
+		if (!document) {
+			return null
+		}
+
+		if (!this.htmlLanguages.includes(document.languageId)) {
+			return null
+		}
+
+		let selector = SimpleSelector.getAtPosition(document, position)
+		if (!selector) {
+			return null
+		}
+
+		if (this.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
+			return null
+		}
+
+		let labels = await this.cssSymbolMap.findCompletionMatchSelector(selector)
+		return labels.map(label => {
+			let item = CompletionItem.create(label)
+			item.kind = CompletionItemKind.Class
+			return item
+		})
 	}
 
 	onCompletionResolve(item: CompletionItem): CompletionItem {
-		if (item.data === 1) {
-			item.detail = 'TypeScript details';
-			item.documentation = 'TypeScript documentation';
-		} else if (item.data === 2) {
-			item.detail = 'JavaScript details';
-			item.documentation = 'JavaScript documentation';
-		}
-		return item;
+		return item
+	}
+
+	async findHTMLRefenerces(params: ReferenceParams): Promise<Location[] | null> {
+		let documentIdentifier = params.textDocument
+		let document = documents.get(documentIdentifier.uri)
+		let position = params.position
+
+		return []
 	}
 }
 

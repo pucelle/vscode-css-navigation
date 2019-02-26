@@ -1,6 +1,3 @@
-import * as fs from 'fs'
-import * as path from 'path'
-import * as vscode from 'vscode'
 import * as assert from 'assert'
 import {sleep, prepare, searchSymbolNames as gs} from './helper'
 

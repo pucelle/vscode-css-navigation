@@ -1,10 +1,10 @@
 import * as path from 'path'
 
 import {SymbolInformation, Location} from 'vscode-languageserver'
-import {FileTrackerOptions, FileTracker, TrackMapItem} from './file-tracker'
-import {SimpleSelector} from './html-service'
+import {FileTrackerOptions, FileTracker, TrackMapItem} from '../file-tracker'
+import {SimpleSelector} from '../html/html-service'
 import {CSSSymbol} from './css-symbol'
-import {replaceExtension} from './util'
+import {replaceExtension} from '../util'
 
 
 interface CSSSymbolMapOptions extends FileTrackerOptions{
@@ -25,14 +25,14 @@ export class CSSSymbolMap extends FileTracker {
 		if (this.ignoreSameNameCSSFile) {
 			let ext = path.extname(filePath).slice(1).toLowerCase()
 			if (ext === 'css') {
-				let sassOrLessExist = this.map.has(replaceExtension(filePath, 'scss')) || this.map.has(replaceExtension(filePath, 'scss'))
+				let sassOrLessExist = this.has(replaceExtension(filePath, 'scss')) || this.has(replaceExtension(filePath, 'scss'))
 				if (sassOrLessExist) {
 					this.ignore(filePath)
 				}
 			}
 			else {
 				let cssPath = replaceExtension(filePath, 'css')
-				if (this.map.has(cssPath)) {
+				if (this.has(cssPath)) {
 					this.ignore(cssPath)
 				}
 			}
@@ -49,7 +49,7 @@ export class CSSSymbolMap extends FileTracker {
 		let ext = path.extname(filePath).slice(1).toLowerCase()
 		if (ext !== 'css') {
 			let cssPath = replaceExtension(filePath, 'css')
-			if (this.map.has(cssPath)) {
+			if (this.has(cssPath)) {
 				this.notIgnore(cssPath)
 			}
 		}
@@ -59,8 +59,16 @@ export class CSSSymbolMap extends FileTracker {
 		if (item.document) {
 			this.cssSymbolMap.set(filePath, CSSSymbol.create(item.document))
 
-			//very important, remove document memory usage after symbol generated
+			//very important, release document memory usage after symbols generated
 			item.document = null
+		}
+	}
+
+	private *iterateAvailableCSSSymbols(): IterableIterator<CSSSymbol> {
+		for (let [filePath, cssSymbol] of this.cssSymbolMap.entries()) {
+			if (!this.hasIgnored(filePath)) {
+				yield cssSymbol
+			}
 		}
 	}
 
@@ -68,10 +76,8 @@ export class CSSSymbolMap extends FileTracker {
 		await this.beFresh()
 		
 		let locations: Location[] = []
-		for (let [filePath, cssSymbol] of this.cssSymbolMap.entries()) {
-			if (!this.ignoredFilePaths.has(filePath)) {
-				locations.push(...cssSymbol.findLocationsMatchSelector(selector))
-			}
+		for (let cssSymbol of this.iterateAvailableCSSSymbols()) {
+			locations.push(...cssSymbol.findLocationsMatchSelector(selector))
 		}
 		return locations
 	}
@@ -80,12 +86,22 @@ export class CSSSymbolMap extends FileTracker {
 		await this.beFresh()
 
 		let symbols: SymbolInformation[] = []
-		for (let [filePath, cssSymbol] of this.cssSymbolMap.entries()) {
-			if (!this.ignoredFilePaths.has(filePath)) {
-				symbols.push(...cssSymbol.findSymbolsMatchQuery(query))
-			}
+		for (let cssSymbol of this.iterateAvailableCSSSymbols()) {
+			symbols.push(...cssSymbol.findSymbolsMatchQuery(query))
 		}
 		return symbols
+	}
+
+	async findCompletionMatchSelector(selector: SimpleSelector): Promise<string[]> {
+		await this.beFresh()
+
+		let labelSet: Set<string> = new Set()
+		for (let cssSymbol of this.iterateAvailableCSSSymbols()) {
+			for (let label of cssSymbol.findCompletionMatchSelector(selector)) {
+				labelSet.add(label)
+			}
+		}
+		return [...labelSet.values()]
 	}
 }
 

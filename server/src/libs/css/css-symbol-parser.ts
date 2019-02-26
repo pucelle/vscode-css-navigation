@@ -1,78 +1,9 @@
-import {TextDocument, Range, SymbolInformation, SymbolKind, Location} from 'vscode-languageserver'
-import {SimpleSelector} from './html-service'
+import {TextDocument, Range} from 'vscode-languageserver'
+import {NamedRange, CSSSymbol} from './css-symbol'
+import {getMainSelector} from './helper'
 
 
-interface NamedRange {
-	names: string[]
-	range: Range
-}
-
-export class CSSSymbol {
-
-	private languageId: string
-	private uri: string
-	private ranges: NamedRange[]
-
-	static create(document: TextDocument): CSSSymbol {
-		return new CSSSymbolParser(document).parse()
-	}
-
-	constructor(document: TextDocument, ranges: NamedRange[]) {
-		this.languageId = document.languageId
-		this.uri = document.uri
-		this.ranges = ranges
-	}
-
-	findLocationsMatchSelector(selector: SimpleSelector): Location[] {
-		let locations: Location[] = []
-
-		for (let range of this.ranges) {
-			let isMatch = range.names.some((name) => {
-				if (!Helper.isSelector(name)) {
-					return false
-				}
-				return Helper.isSelectorBeStartOfTheRightMostDescendant(selector.raw, name)
-			})
-
-			if (isMatch) {
-				locations.push(Location.create(this.uri, range.range))
-			}
-		}
-
-		return locations
-	}
-
-	/*
-	query 'p' will match:
-		p* as tag name
-		.p* as class name
-		#p* as id
-	and may more decorated selectors follow
-	*/
-	findSymbolsMatchQuery(query: string): SymbolInformation[] {
-		let symbols: SymbolInformation[] = []
-		let lowerQuery = query.toLowerCase()
-
-		for (let range of this.ranges) {
-			for (let name of range.names) {
-				let isMatch = Helper.isMatchQuery(name, lowerQuery)
-				if (isMatch) {
-					symbols.push(SymbolInformation.create(
-						name,
-						SymbolKind.Class,
-						range.range,
-						this.uri
-					))
-				}
-			}
-		}
-
-		return symbols
-	}
-}
-
-
-class CSSSymbolParser {
+export class CSSSymbolParser {
 
 	private supportedLanguages = ['css', 'less', 'scss']
 	private supportedNestingLanguages = ['less', 'scss']
@@ -162,7 +93,10 @@ class CSSSymbolParser {
 
 		let symbols: NamedRange[] = list.map(({names, start, end}) => {
 			return {
-				names,
+				names: names.map(full => ({
+					full,
+					main: getMainSelector(full)
+				})),
 
 				//positionAt use a binary search algorithm, it should be fast enough, no need to count lines here, although faster
 				range: Range.create(this.document.positionAt(start), this.document.positionAt(end))
@@ -217,79 +151,5 @@ class CSSSymbolParser {
 		}
 
 		return fixed
-	}
-}
-
-
-namespace Helper {
-
-	//avoid parsing @keyframes anim-name as tag name
-	export function isSelector(selector: string): boolean {
-		return selector[0] !== '@'
-	}
-
-	//the descendant combinator used to split ancestor and descendant: space > + ~ >> ||
-	export function isSelectorBeStartOfTheRightMostDescendant(selector: string, symbolSelector: string): boolean {
-		let descendantRE = /(?:\[[^\]]+?\]|\([^)]+?\)|[^\s>+~])+$/
-		let match = symbolSelector.match(descendantRE)
-		if (!match) {
-			return false
-		}
-
-		let descendant = match[0]
-		return isSelectorBeStartOf(selector, descendant)
-	}
-
-	/*
-	the selector should already be the start of the right most descendant
-	e.g., '.a' matches
-		.a[...]
-		.a:actived
-		.a::before
-		.a.b
-	*/
-	export function isSelectorBeStartOf(selector: string, symbolSelector: string) {
-		if (!symbolSelector.startsWith(selector)) {
-			return false
-		}
-
-		if (symbolSelector === selector) {
-			return true
-		}
-
-		//.a is not the start of .a-b
-		let isAnotherSelector = /[\w-]/.test(symbolSelector.charAt(selector.length))
-		return !isAnotherSelector
-	}
-
-	//have match when left word boundary match
-	export function isMatchQuery(selector: string, query: string): boolean {
-		let lowerSelector = selector.toLowerCase()
-		let index = lowerSelector.indexOf(query)
-
-		if (index === -1) {
-			return false
-		}
-
-		if (index === 0) {
-			return true
-		}
-
-		//@abc match query ab
-		if (!/[a-z]/.test(query[0])) {
-			return true
-		}
-
-		//abc not match query bc, but ab-bc does
-		while (/[a-z]/.test(lowerSelector[index - 1])) {
-			lowerSelector = lowerSelector.slice(index + query.length)
-			index = lowerSelector.indexOf(query)
-
-			if (index === -1) {
-				return false
-			}
-		}
-
-		return true
 	}
 }

@@ -1,5 +1,7 @@
 import * as fs from 'fs'
 import * as rawGlob from 'glob'
+import {Connection, RequestType} from 'vscode-languageserver'
+import {Func} from 'mocha';
 
 
 export function readText(fsPath: string): Promise<string> {
@@ -61,4 +63,63 @@ export function generateGlobPatternFromExtensions(extensions: string[]): string 
 
 export function replaceExtension(filePath: string, toExtension: string): string {
 	return filePath.replace(/\.\w+$/, '.' + toExtension)
+}
+
+export function pipeTimedConsoleToConnection(connection: Connection) {
+	global.console.log = (msg: string | Error) => {
+		let date = new Date()
+		let dateString =
+			String(date.getDate()).padStart(2, '0')
+			+ ':'
+			+  String(date.getMinutes()).padStart(2, '0')
+			+ ':'
+			+  String(date.getSeconds()).padStart(2, '0')
+	
+		connection.console.log(dateString + ' ' + msg)
+	}
+}
+
+export namespace timer {
+	let startTimeMap: Map<string, number> = new Map()
+
+	export function getMillisecond(): number {
+		let time = process.hrtime()
+		return time[0] * 1000 + time[1] / 1000000
+	}
+
+	export function start(name: string) {
+		startTimeMap.set(name, getMillisecond())
+	}
+
+	export function end(name: string): number {
+		let startTime = startTimeMap.get(name)
+		if (startTime === undefined) {
+			throw new Error('Timer "${name}" is not started')
+		}
+
+		return Math.round(getMillisecond() - startTime!)
+	}
+
+	
+	type resultsHandler<A extends any[], T> = (...args: A) => Promise<T[] | null>
+
+	export function countListReturnedFunctionExecutedTime<A extends any[], T>(fn: resultsHandler<A, T>, type: string): resultsHandler<A, T> {
+		return async (...args: A) => {
+			let startTime = getMillisecond()
+			let list = await fn(...args)
+			let time = Math.round(getMillisecond() - startTime!)
+
+			if (!list || list.length === 0) {
+				console.log(`No ${type} found, ${time} milliseconds spent`)
+			}
+			else if (list.length === 1) {
+				console.log(`1 ${type} found in ${time} milliseconds`)
+			}
+			else {
+				console.log(`${list.length} ${type}s found in ${time} milliseconds`)
+			}
+
+			return list
+		}
+	}
 }

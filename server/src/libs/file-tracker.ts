@@ -11,7 +11,7 @@ import {
 	FileChangeType
 } from 'vscode-languageserver'
 
-import {readText, glob, getStat} from './util'
+import {readText, glob, getStat, timer} from './util'
 import Uri from 'vscode-uri'
 
 
@@ -55,8 +55,8 @@ export class FileTracker {
 	private includeMatcher: minimatch.IMinimatch
 	private excludeMatcher: minimatch.IMinimatch | null
 
-	map: Map<string, TrackMapItem> = new Map()
-	ignoredFilePaths: Set<string> = new Set()
+	private map: Map<string, TrackMapItem> = new Map()
+	private ignoredFilePaths: Set<string> = new Set()
 	private allFresh: boolean
 	private startPathLoaded: boolean
 
@@ -87,15 +87,8 @@ export class FileTracker {
 		options.connection.onDidChangeWatchedFiles(this.onWatchedPathChanged.bind(this))
 	}
 
-	log(msg: string | Error) {
-		let date = new Date()
-		let dateString = String(date.getDate()).padStart(2, '0')
-						+ ':'
-						+  String(date.getMinutes()).padStart(2, '0')
-						+ ':'
-						+  String(date.getSeconds()).padStart(2, '0')
-
-		console.log(dateString + ' ' + msg)
+	has(filePath: string): boolean {
+		return this.map.has(filePath)
 	}
 
 	private async loadStartPath() {
@@ -234,7 +227,7 @@ export class FileTracker {
 		}
 		else {
 			this.allFresh = false
-			this.log(`${filePath} tracked`)
+			console.log(`${filePath} tracked`)
 			this.onTrack(filePath, item)
 		}
 	}
@@ -242,12 +235,16 @@ export class FileTracker {
 	//still keep data for ignored items 
 	ignore(filePath: string) {
 		this.ignoredFilePaths.add(filePath)
-		this.log(`${filePath} ignored`)
+		console.log(`${filePath} ignored`)
 	}
 
 	notIgnore(filePath: string) {
 		this.ignoredFilePaths.delete(filePath)
-		this.log(`${filePath} restored from ignored`)
+		console.log(`${filePath} restored from ignored`)
+	}
+
+	hasIgnored(filePath: string) {
+		return this.ignoredFilePaths.has(filePath)
 	}
 
 	private reTrackFile(filePath: string) {
@@ -277,7 +274,7 @@ export class FileTracker {
 		else {
 			item.fresh = false
 			this.allFresh = false
-			this.log(`${filePath} expired`)
+			console.log(`${filePath} expired`)
 			this.onExpired(filePath, item)
 		}
 	}
@@ -318,7 +315,7 @@ export class FileTracker {
 			item.document = null
 			item.version = 1
 			item.opened = false
-			this.log(`${filePath} closed`)
+			console.log(`${filePath} closed`)
 		}
 	}
 
@@ -328,7 +325,8 @@ export class FileTracker {
 				let item = this.map.get(filePath)
 				if (item) {
 					this.map.delete(filePath)
-					this.log(`${filePath} removed`)
+					this.ignoredFilePaths.delete(filePath)
+					console.log(`${filePath} removed`)
 					this.onUnTrack(filePath, item)
 				}
 			}
@@ -338,30 +336,41 @@ export class FileTracker {
 		this.allFresh = false
 	}
 
-	protected async beFresh() {
+	async beFresh() {
 		if (!this.allFresh) {
+			timer.start('update')
+
 			if (!this.startPathLoaded) {
 				await this.loadStartPath()
 			}
 
-			let promises: Promise<void>[] = []
+			let promises: Promise<boolean>[] = []
 			for (let [filePath, item] of this.map.entries()) {
 				if (!item.fresh) {
 					promises.push(this.doUpdate(filePath, item))
 				}
 			}
 
-			await Promise.all(promises)
+			let updateResults = await Promise.all(promises)
+			let updatedCount = updateResults.reduce((count, value) => count + (value ? 1 : 0), 0)
+
+			if (updatedCount > 0) {
+				console.log(`${updatedCount} files updated in ${timer.end('update')} milliseconds`)
+			}
+
 			this.allFresh = true
 		}
 	}
 
-	private async doUpdate(filePath: string, item: TrackMapItem) {
+	private async doUpdate(filePath: string, item: TrackMapItem): Promise<boolean> {
 		if (!this.ignoredFilePaths.has(filePath)) {
 			item.updatePromise = item.updatePromise || this.getUpdatePromise(filePath, item)
 			await item.updatePromise
 			item.updatePromise = null
+			return true
 		}
+
+		return false
 	}
 
 	private async getUpdatePromise(filePath: string, item: TrackMapItem) {
@@ -377,7 +386,7 @@ export class FileTracker {
 		item.fresh = true
 		await this.onUpdate(filePath, item)
 
-		this.log(`${filePath} loaded from ${hasDocumentBefore ? 'document' : 'file'}`)
+		console.log(`${filePath} loaded from ${hasDocumentBefore ? 'document' : 'file'}`)
 	}
 
 	private async loadDocumentFromFilePath(filePath: string): Promise<TextDocument | null> {
@@ -390,7 +399,7 @@ export class FileTracker {
 			document = TextDocument.create(uri, languageId, 1, text)
 		}
 		catch (err) {
-			this.log(err)
+			console.log(err)
 		}
 
 		return document
