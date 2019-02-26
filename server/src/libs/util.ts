@@ -1,7 +1,7 @@
 import * as fs from 'fs'
+import * as path from 'path'
 import * as rawGlob from 'glob'
-import {Connection, RequestType} from 'vscode-languageserver'
-import {Func} from 'mocha';
+import {Connection} from 'vscode-languageserver'
 
 
 export function readText(fsPath: string): Promise<string> {
@@ -61,6 +61,10 @@ export function generateGlobPatternFromExtensions(extensions: string[]): string 
 	}
 }
 
+export function getExtension(filePath: string): string {
+	return path.extname(filePath).slice(1).toLowerCase()
+}
+
 export function replaceExtension(filePath: string, toExtension: string): string {
 	return filePath.replace(/\.\w+$/, '.' + toExtension)
 }
@@ -69,7 +73,7 @@ export function pipeTimedConsoleToConnection(connection: Connection) {
 	global.console.log = (msg: string | Error) => {
 		let date = new Date()
 		let dateString =
-			String(date.getDate()).padStart(2, '0')
+			String(date.getHours()).padStart(2, '0')
 			+ ':'
 			+  String(date.getMinutes()).padStart(2, '0')
 			+ ':'
@@ -100,23 +104,23 @@ export namespace timer {
 		return Math.round(getMillisecond() - startTime!)
 	}
 
-	
+
 	type resultsHandler<A extends any[], T> = (...args: A) => Promise<T[] | null>
 
-	export function countListReturnedFunctionExecutedTime<A extends any[], T>(fn: resultsHandler<A, T>, type: string): resultsHandler<A, T> {
+	export function logListReturnedFunctionExecutedTime<A extends any[], T>(fn: resultsHandler<A, T>, type: string): resultsHandler<A, T> {
 		return async (...args: A) => {
 			let startTime = getMillisecond()
 			let list = await fn(...args)
 			let time = Math.round(getMillisecond() - startTime!)
 
 			if (!list || list.length === 0) {
-				console.log(`No ${type} found, ${time} milliseconds spent`)
+				console.log(`No ${type} found, ${time} millisecond${time > 1 ? 's' : ''} spent`)
 			}
 			else if (list.length === 1) {
-				console.log(`1 ${type} found in ${time} milliseconds`)
+				console.log(`1 ${type} found, ${time} millisecond${time > 1 ? 's' : ''} spent`)
 			}
 			else {
-				console.log(`${list.length} ${type}s found in ${time} milliseconds`)
+				console.log(`${list.length} ${type}s found, ${time} millisecond${time > 1 ? 's' : ''} spent`)
 			}
 
 			return list

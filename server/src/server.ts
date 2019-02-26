@@ -18,7 +18,7 @@ import {
 
 import {CSSSymbolMap} from './libs/css/css-service'
 import {SimpleSelector, findDefinitionMatchSelectorInInnerStyle} from './libs/html/html-service'
-import {generateGlobPatternFromPatterns, generateGlobPatternFromExtensions, pipeTimedConsoleToConnection, timer} from './libs/util'
+import {generateGlobPatternFromPatterns, generateGlobPatternFromExtensions, getExtension, pipeTimedConsoleToConnection, timer} from './libs/util'
 
 
 process.on('unhandledRejection', function(reason, promise) {
@@ -34,15 +34,17 @@ pipeTimedConsoleToConnection(connection)
 
 interface InitializationOptions {
 	workspaceFolderPath: string
-	configuration: {
-		htmlLanguages: string[]
-		cssFileExtensions: string[]
-		excludeGlobPatterns: string[]
+	configuration: Configuration
+}
 
-		preload: boolean
-		ignoreSameNameCSSFile: boolean
-		ignoreCustomElement: boolean
-	}
+interface Configuration {
+	activeHTMLFileExtensions: string[]
+	activeCSSFileExtensions: string[]
+	excludeGlobPatterns: string[]
+	alsoSearchDefinitionsInStyleTag: boolean
+	preload: boolean
+	ignoreSameNameCSSFile: boolean
+	ignoreCustomElement: boolean
 }
 
 connection.onInitialize((params: InitializeParams) => {
@@ -66,11 +68,11 @@ connection.onInitialize((params: InitializeParams) => {
 })
 
 connection.onInitialized(() => {
-	connection.onDefinition(timer.countListReturnedFunctionExecutedTime(server.findCSSDefinitions.bind(server), 'definition'))
-	connection.onWorkspaceSymbol(timer.countListReturnedFunctionExecutedTime(server.findSymbolsMatchQueryParam.bind(server), 'workplace symbol'))
-	connection.onCompletion(timer.countListReturnedFunctionExecutedTime(server.provideCompletion.bind(server), 'completion'))
+	connection.onDefinition(timer.logListReturnedFunctionExecutedTime(server.findDefinitions.bind(server), 'definition'))
+	connection.onWorkspaceSymbol(timer.logListReturnedFunctionExecutedTime(server.findSymbolsMatchQueryParam.bind(server), 'workplace symbol'))
+	connection.onCompletion(timer.logListReturnedFunctionExecutedTime(server.provideCompletion.bind(server), 'completion'))
 	connection.onCompletionResolve(server.onCompletionResolve.bind(server))
-	connection.onReferences(timer.countListReturnedFunctionExecutedTime(server.findHTMLRefenerces.bind(server), 'reference'))
+	connection.onReferences(timer.logListReturnedFunctionExecutedTime(server.findRefenerces.bind(server), 'reference'))
 })
 
 documents.listen(connection)
@@ -79,30 +81,28 @@ connection.listen()
 
 class CSSNaigationServer {
 
-	private htmlLanguages: string[]
-	private ignoreCustomElement: boolean
+	private options: InitializationOptions
+	private config: Configuration
 	private cssSymbolMap: CSSSymbolMap
 
 	constructor(options: InitializationOptions) {
-		let config = options.configuration
-		this.htmlLanguages = config.htmlLanguages
-		this.ignoreCustomElement = config.ignoreCustomElement
+		this.options = options
+		let config = this.config = options.configuration
 
 		this.cssSymbolMap = new CSSSymbolMap({
 			connection,
 			documents,
-			includeGlobPattern: generateGlobPatternFromExtensions(config.cssFileExtensions)!,
+			includeGlobPattern: generateGlobPatternFromExtensions(config.activeCSSFileExtensions)!,
 			excludeGlobPattern: generateGlobPatternFromPatterns(config.excludeGlobPatterns),
 			updateImmediately: config.preload,
 			startPath: options.workspaceFolderPath,
-
-			ignoreSameNameCSSFile: config.ignoreSameNameCSSFile && config.cssFileExtensions.length > 1 && config.cssFileExtensions.includes('css')
+			ignoreSameNameCSSFile: config.ignoreSameNameCSSFile && config.activeCSSFileExtensions.length > 1 && config.activeCSSFileExtensions.includes('css')
 		})
 
-		console.log(`Server for workspace folder "${path.basename(options.workspaceFolderPath)}" prepared`)
+		console.log(`Server for workspace folder "${path.basename(this.options.workspaceFolderPath)}" prepared`)
 	}
 
-	async findCSSDefinitions(positonParams: TextDocumentPositionParams): Promise<Location[] | null> {
+	async findDefinitions(positonParams: TextDocumentPositionParams): Promise<Location[] | null> {
 		let documentIdentifier = positonParams.textDocument
 		let document = documents.get(documentIdentifier.uri)
 		let position = positonParams.position	
@@ -111,7 +111,7 @@ class CSSNaigationServer {
 			return null
 		}
 		
-		if (!this.htmlLanguages.includes(document.languageId)) {
+		if (!this.config.activeHTMLFileExtensions.includes(getExtension(document.uri))) {
 			return null
 		}
 
@@ -120,11 +120,11 @@ class CSSNaigationServer {
 			return null
 		}
 
-		if (this.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
+		if (this.config.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
 			return null
 		}
 
-		let locationsInHTML = findDefinitionMatchSelectorInInnerStyle(document, selector)
+		let locationsInHTML = this.config.alsoSearchDefinitionsInStyleTag ? findDefinitionMatchSelectorInInnerStyle(document, selector) : []
 		let locations = await this.cssSymbolMap.findDefinitionMatchSelector(selector)
 
 		return [...locationsInHTML, ...locations]
@@ -148,7 +148,7 @@ class CSSNaigationServer {
 			return null
 		}
 
-		if (!this.htmlLanguages.includes(document.languageId)) {
+		if (!this.config.activeHTMLFileExtensions.includes(getExtension(document.uri))) {
 			return null
 		}
 
@@ -157,7 +157,7 @@ class CSSNaigationServer {
 			return null
 		}
 
-		if (this.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
+		if (this.config.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
 			return null
 		}
 
@@ -173,7 +173,7 @@ class CSSNaigationServer {
 		return item
 	}
 
-	async findHTMLRefenerces(params: ReferenceParams): Promise<Location[] | null> {
+	async findRefenerces(params: ReferenceParams): Promise<Location[] | null> {
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
 		let position = params.position

@@ -46,11 +46,13 @@ export class CSSSymbolMap extends FileTracker {
 	protected onUnTrack(filePath: string, item: TrackMapItem) {
 		this.cssSymbolMap.delete(filePath)
 
-		let ext = path.extname(filePath).slice(1).toLowerCase()
-		if (ext !== 'css') {
-			let cssPath = replaceExtension(filePath, 'css')
-			if (this.has(cssPath)) {
-				this.notIgnore(cssPath)
+		if (this.ignoreSameNameCSSFile) {
+			let ext = path.extname(filePath).slice(1).toLowerCase()
+			if (ext !== 'css') {
+				let cssPath = replaceExtension(filePath, 'css')
+				if (this.has(cssPath)) {
+					this.notIgnore(cssPath)
+				}
 			}
 		}
 	}

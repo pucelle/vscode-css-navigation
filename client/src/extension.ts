@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} from 'vscode-languageclient'
-import {getOutmostWorkspaceURI} from './util'
+import {getOutmostWorkspaceURI, getExtension, generateGlobPatternFromExtensions} from './util'
 
 
 process.on('unhandledRejection', function(reason, promise) {
@@ -44,6 +44,21 @@ export function deactivate(): Promise<void> {
 }
 
 
+interface InitializationOptions {
+	workspaceFolderPath: string
+	configuration: Configuration
+}
+
+interface Configuration {
+	activeHTMLFileExtensions: string[]
+	activeCSSFileExtensions: string[]
+	excludeGlobPatterns: string[]
+	alsoSearchDefinitionsInStyleTag: boolean
+	preload: boolean
+	ignoreSameNameCSSFile: boolean
+	ignoreCustomElement: boolean
+}
+
 export class CSSNavigationExtension {
 	
 	channel = vscode.window.createOutputChannel('CSS Navigation')
@@ -62,7 +77,7 @@ export class CSSNavigationExtension {
 	}
 
 	checkClients() {
-		let searchAcrossWorkspaceFolders: boolean = this.config.get('searchAcrossWorkspaceFolders') || false
+		let searchAcrossWorkspaceFolders: boolean = this.config.get('searchAcrossWorkspaceFolders', false)
 
 		if (searchAcrossWorkspaceFolders) {
 			for (let workspaceFolder of vscode.workspace.workspaceFolders || []) {
@@ -99,11 +114,11 @@ export class CSSNavigationExtension {
 			return
 		}
 
-		let htmlLanguages: string[] = this.config.get('htmlLanguages') || []
-		let cssFileExtensions: string[] = this.config.get('cssFileExtensions') || []
+		let activeHTMLFileExtensions: string[] = this.config.get('activeHTMLFileExtensions', [])
+		let activeCSSFileExtensions: string[] = this.config.get('activeCSSFileExtensions', [])
+		let extension = getExtension(document.uri.fsPath)
 		
-		//not a html or html like file
-		if (![...htmlLanguages, ...cssFileExtensions].includes(document.languageId)) {
+		if (!activeHTMLFileExtensions.includes(extension) && !activeCSSFileExtensions.includes(extension)) {
 			return
 		}
 
@@ -118,9 +133,9 @@ export class CSSNavigationExtension {
 
 	private createClientForWorkspaceFolder(workspaceFolder: vscode.WorkspaceFolder) {
 		let workspaceFolderPath = workspaceFolder.uri.fsPath
-		let htmlLanguages: string[] = this.config.get('htmlLanguages') || []
-		let cssFileExtensions: string[] = this.config.get('cssFileExtensions') || []
-		let searchAcrossWorkspaceFolders: boolean = this.config.get('searchAcrossWorkspaceFolders') || false
+		let activeHTMLFileExtensions: string[] = this.config.get('activeHTMLFileExtensions', [])
+		let activeCSSFileExtensions: string[] = this.config.get('activeCSSFileExtensions', [])
+		let searchAcrossWorkspaceFolders: boolean = this.config.get('searchAcrossWorkspaceFolders', false)
 
 		let serverModule = this.context.asAbsolutePath(
 			path.join('server', 'out', 'server.js')
@@ -135,15 +150,14 @@ export class CSSNavigationExtension {
 
 		//to notify open / close / content changed for html & css files in specified range 
 		//and provide language service for them
-		let documentSelector = [...cssFileExtensions, ...htmlLanguages]
-			.map(language => ({
-				scheme: 'file',
-				language,
-				pattern: searchAcrossWorkspaceFolders ? undefined : `${workspaceFolderPath}/**`
-			}))
-		
+		let htmlCSSPattern = generateGlobPatternFromExtensions([...activeHTMLFileExtensions, ...activeCSSFileExtensions])
+
 		let clientOptions: LanguageClientOptions = {
-			documentSelector,
+			documentSelector: [{
+				scheme: 'file',
+				//language: 'plaintext', //plaintext is not work, just ignore it if match all plaintext files
+				pattern: searchAcrossWorkspaceFolders ? htmlCSSPattern : `${workspaceFolderPath}/${htmlCSSPattern}`
+			}],
 
 			//connection.console will use this channel as output
 			outputChannel: this.channel,
@@ -159,16 +173,9 @@ export class CSSNavigationExtension {
 				fileEvents: vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(workspaceFolderPath, `**`))
 			},
 
-			initializationOptions: {
+			initializationOptions: <InitializationOptions>{
 				workspaceFolderPath,
-				configuration: {
-					htmlLanguages,
-					cssFileExtensions,
-					excludeGlobPatterns: this.config.get('excludeGlobPatterns') || [],
-					preload: this.config.get('preload') || false,
-					ignoreSameNameCSSFile: this.config.get('ignoreSameNameCSSFile') || true,
-					ignoreCustomElement: this.config.get('ignoreCustomElement') || false
-				}
+				configuration: this.getConfigObject()
 			}
 		}
 
@@ -177,6 +184,20 @@ export class CSSNavigationExtension {
 		this.clients.set(workspaceFolder.uri.toString(), client)
 
 		this.showChannelMessage(`Client for workspace folder "${workspaceFolder.name}" prepared`)
+	}
+
+	private getConfigObject(): Configuration {
+		let config = this.config
+
+		return {
+			activeHTMLFileExtensions: <string[]>config.get('activeHTMLFileExtensions', []),
+			activeCSSFileExtensions: <string[]>config.get('activeCSSFileExtensions', []),
+			excludeGlobPatterns: <string[]>config.get('excludeGlobPatterns') || [],
+			alsoSearchDefinitionsInStyleTag: config.get('alsoSearchDefinitionsInStyleTag', false),
+			preload: config.get('preload', false),
+			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
+			ignoreCustomElement: config.get('ignoreCustomElement', false)
+		}
 	}
 
 	private showChannelMessage(message: string) {
@@ -203,8 +224,10 @@ export class CSSNavigationExtension {
 			promises.push(client.stop())
 		}
 		await Promise.all(promises)
-
 		this.clients.clear()
-		this.showChannelMessage(`All clients stopped`)
+		
+		if (promises.length > 0) {
+			this.showChannelMessage(`All clients stopped`)
+		}
 	}
 }

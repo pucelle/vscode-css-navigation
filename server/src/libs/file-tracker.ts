@@ -244,7 +244,7 @@ export class FileTracker {
 	}
 
 	hasIgnored(filePath: string) {
-		return this.ignoredFilePaths.has(filePath)
+		return this.ignoredFilePaths.size > 0 && this.ignoredFilePaths.has(filePath)
 	}
 
 	private reTrackFile(filePath: string) {
@@ -325,7 +325,11 @@ export class FileTracker {
 				let item = this.map.get(filePath)
 				if (item) {
 					this.map.delete(filePath)
-					this.ignoredFilePaths.delete(filePath)
+					
+					if (this.ignoredFilePaths.size > 0) {
+						this.ignoredFilePaths.delete(filePath)
+					}
+					
 					console.log(`${filePath} removed`)
 					this.onUnTrack(filePath, item)
 				}
@@ -363,7 +367,7 @@ export class FileTracker {
 	}
 
 	private async doUpdate(filePath: string, item: TrackMapItem): Promise<boolean> {
-		if (!this.ignoredFilePaths.has(filePath)) {
+		if (!this.hasIgnored(filePath)) {
 			item.updatePromise = item.updatePromise || this.getUpdatePromise(filePath, item)
 			await item.updatePromise
 			item.updatePromise = null

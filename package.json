@@ -33,7 +33,7 @@
 			"type": "object",
 			"title": "CSS Navigation",
 			"properties": {
-				"CSSNavigation.htmlLanguages": {
+				"CSSNavigation.activeHTMLFileExtensions": {
 					"type": "array",
 					"default": [
 						"html",
@@ -41,17 +41,17 @@
 						"erb",
 						"php",
 						"hbs",
-						"javascript",
-						"typescript",
-						"javascriptreact",
-						"typescriptreact"
+						"js",
+						"ts",
+						"jsx",
+						"tsx"
 					],
 					"items": {
 						"type": "string"
 					},
-					"description": "The languages of the html files, in where you can `go to definition`. View <https://code.visualstudio.com/docs/languages/identifiers> for more languages."
+					"description": "The extensions of the HTML files, in where you can `go to definition`."
 				},
-				"CSSNavigation.cssFileExtensions": {
+				"CSSNavigation.activeCSSFileExtensions": {
 					"type": "array",
 					"default": [
 						"css",
@@ -61,7 +61,7 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "The extensions of the css files, only the matched files you can `go to` and `peek`."
+					"description": "The extensions of the CSS files, only the matched files you can `go to` and `peek`."
 				},
 				"CSSNavigation.excludeGlobPatterns": {
 					"type": "array",
@@ -73,6 +73,11 @@
 						"type": "string"
 					},
 					"description": "A glob pattern, defines paths to exclude from when searching for CSS definitions."
+				},
+				"CSSNavigation.alsoSearchDefinitionsInStyleTag": {
+					"type": "boolean",
+					"default": false,
+					"description": "When set to `true`, also search CSS definitions in <style>."
 				},
 				"CSSNavigation.searchAcrossWorkspaceFolders": {
 					"type": "boolean",
