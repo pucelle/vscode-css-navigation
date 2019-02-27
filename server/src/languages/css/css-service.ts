@@ -1,25 +1,21 @@
-import {TextDocument, Range, SymbolInformation, SymbolKind, Location} from 'vscode-languageserver'
-import {SimpleSelector} from '../html/html-service'
-import {CSSSymbolParser} from './css-symbol-parser'
+import {TextDocument, SymbolInformation, SymbolKind, Location, Position} from 'vscode-languageserver'
+import {SimpleSelector} from '../common/simple-selector'
+import {NamedRange, CSSRangeParser} from './css-range-parser'
+import {CSSSimpleSelectorScanner} from './css-scanner'
 
 
-export interface NamedRange {
-	names: {full: string, main: string}[]
-	range: Range
-}
+//it doesn't keep document
+export class CSSService {
 
-export class CSSSymbol {
-
-	private languageId: string
 	private uri: string
 	private ranges: NamedRange[]
 
-	static create(document: TextDocument): CSSSymbol {
-		return new CSSSymbolParser(document).parse()
+	static create(document: TextDocument): CSSService {
+		let ranges = new CSSRangeParser(document).parse()
+		return new CSSService(document, ranges)
 	}
 
 	constructor(document: TextDocument, ranges: NamedRange[]) {
-		this.languageId = document.languageId
 		this.uri = document.uri
 		this.ranges = ranges
 	}
@@ -108,12 +104,25 @@ export class CSSSymbol {
 		for (let range of this.ranges) {
 			for (let {main} of range.names) {
 				if (main.startsWith(selectorRaw)) {
-					let label = selector.value + main.slice(selectorRaw.length)
+					let label = main.slice(1)	//only id or class selector, no tag selector provided
 					labelSet.add(label)
 				}
 			}
 		}
 
 		return [...labelSet.values()]
+	}
+}
+
+
+export namespace CSSService {
+	export function isLanguageSupportsNesting(languageId: string): boolean {
+		let supportedNestingLanguages = ['less', 'scss']
+		return supportedNestingLanguages.includes(languageId)
+	}
+
+	export function getSimpleSelectorAt(document: TextDocument, positionOrOffset: Position | number): SimpleSelector[] | null {
+		let offset = typeof positionOrOffset === 'number' ? positionOrOffset : document.offsetAt(positionOrOffset)
+		return new CSSSimpleSelectorScanner(document, offset).scan()
 	}
 }

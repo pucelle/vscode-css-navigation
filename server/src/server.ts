@@ -13,23 +13,25 @@ import {
 	Connection,
 	CompletionItem,
 	CompletionItemKind,
-	ReferenceParams
+	ReferenceParams,
+	Files
 } from 'vscode-languageserver'
 
-import {CSSSymbolMap} from './libs/css/css-service'
-import {SimpleSelector, findDefinitionMatchSelectorInInnerStyle} from './libs/html/html-service'
-import {generateGlobPatternFromPatterns, generateGlobPatternFromExtensions, getExtension, pipeTimedConsoleToConnection, timer} from './libs/util'
+import {SimpleSelector} from './languages/common/simple-selector'
+import {HTMLService, HTMLServiceMap} from './languages/html'
+import {CSSService, CSSServiceMap} from './languages/css'
+import {file, timer} from './libs'
 
 
 process.on('unhandledRejection', function(reason, promise) {
-    console.log("Unhandled Rejection: ", reason)
+    timer.log("Unhandled Rejection: " + reason)
 })
 
 
 let connection: Connection = createConnection(ProposedFeatures.all)
 let documents: TextDocuments = new TextDocuments()
 let server: CSSNaigationServer
-pipeTimedConsoleToConnection(connection)
+timer.pipeTo(connection)
 
 
 interface InitializationOptions {
@@ -69,7 +71,7 @@ connection.onInitialize((params: InitializeParams) => {
 
 connection.onInitialized(() => {
 	connection.onDefinition(timer.logListReturnedFunctionExecutedTime(server.findDefinitions.bind(server), 'definition'))
-	connection.onWorkspaceSymbol(timer.logListReturnedFunctionExecutedTime(server.findSymbolsMatchQueryParam.bind(server), 'workplace symbol'))
+	connection.onWorkspaceSymbol(timer.logListReturnedFunctionExecutedTime(server.findSymbolsMatchQueryParam.bind(server), 'workspace symbol'))
 	connection.onCompletion(timer.logListReturnedFunctionExecutedTime(server.provideCompletion.bind(server), 'completion'))
 	connection.onCompletionResolve(server.onCompletionResolve.bind(server))
 	connection.onReferences(timer.logListReturnedFunctionExecutedTime(server.findRefenerces.bind(server), 'reference'))
@@ -83,23 +85,33 @@ class CSSNaigationServer {
 
 	private options: InitializationOptions
 	private config: Configuration
-	private cssSymbolMap: CSSSymbolMap
+	private cssServiceMap: CSSServiceMap
+	private htmlServiceMap: HTMLServiceMap
 
 	constructor(options: InitializationOptions) {
 		this.options = options
 		let config = this.config = options.configuration
 
-		this.cssSymbolMap = new CSSSymbolMap({
+		this.cssServiceMap = new CSSServiceMap({
 			connection,
 			documents,
-			includeGlobPattern: generateGlobPatternFromExtensions(config.activeCSSFileExtensions)!,
-			excludeGlobPattern: generateGlobPatternFromPatterns(config.excludeGlobPatterns),
+			includeGlobPattern: file.generateGlobPatternFromExtensions(config.activeCSSFileExtensions)!,
+			excludeGlobPattern: file.generateGlobPatternFromPatterns(config.excludeGlobPatterns),
 			updateImmediately: config.preload,
 			startPath: options.workspaceFolderPath,
 			ignoreSameNameCSSFile: config.ignoreSameNameCSSFile && config.activeCSSFileExtensions.length > 1 && config.activeCSSFileExtensions.includes('css')
 		})
 
-		console.log(`Server for workspace folder "${path.basename(this.options.workspaceFolderPath)}" prepared`)
+		this.htmlServiceMap = new HTMLServiceMap({
+			connection,
+			documents,
+			includeGlobPattern: file.generateGlobPatternFromExtensions(config.activeHTMLFileExtensions)!,
+			excludeGlobPattern: file.generateGlobPatternFromPatterns(config.excludeGlobPatterns),
+			updateImmediately: config.preload,
+			startPath: options.workspaceFolderPath
+		})
+
+		timer.log(`Server for workspace folder "${path.basename(this.options.workspaceFolderPath)}" prepared`)
 	}
 
 	async findDefinitions(positonParams: TextDocumentPositionParams): Promise<Location[] | null> {
@@ -111,11 +123,11 @@ class CSSNaigationServer {
 			return null
 		}
 		
-		if (!this.config.activeHTMLFileExtensions.includes(getExtension(document.uri))) {
+		if (!this.config.activeHTMLFileExtensions.includes(file.getExtension(document.uri))) {
 			return null
 		}
 
-		let selector = SimpleSelector.getAtPosition(document, position)
+		let selector = HTMLService.getSimpleSelectorAt(document, position)
 		if (!selector) {
 			return null
 		}
@@ -124,10 +136,13 @@ class CSSNaigationServer {
 			return null
 		}
 
-		let locationsInHTML = this.config.alsoSearchDefinitionsInStyleTag ? findDefinitionMatchSelectorInInnerStyle(document, selector) : []
-		let locations = await this.cssSymbolMap.findDefinitionMatchSelector(selector)
+		let locations = await this.cssServiceMap.findDefinitionMatchSelector(selector)
 
-		return [...locationsInHTML, ...locations]
+		if (this.config.alsoSearchDefinitionsInStyleTag) {
+			locations.unshift(...HTMLService.findDefinitionsInInnerStyle(document, selector))
+		}
+
+		return locations
 	}
 
 	async findSymbolsMatchQueryParam(symbol: WorkspaceSymbolParams): Promise<SymbolInformation[] | null> {
@@ -136,7 +151,7 @@ class CSSNaigationServer {
 			return null
 		}
 
-		return await this.cssSymbolMap.findSymbolsMatchQuery(query)
+		return await this.cssServiceMap.findSymbolsMatchQuery(query)
 	}
 
 	async provideCompletion(params: TextDocumentPositionParams): Promise<CompletionItem[] | null> {
@@ -148,20 +163,16 @@ class CSSNaigationServer {
 			return null
 		}
 
-		if (!this.config.activeHTMLFileExtensions.includes(getExtension(document.uri))) {
+		if (!this.config.activeHTMLFileExtensions.includes(file.getExtension(document.uri))) {
 			return null
 		}
 
-		let selector = SimpleSelector.getAtPosition(document, position)
-		if (!selector) {
+		let selector = HTMLService.getSimpleSelectorAt(document, position)
+		if (!selector || selector.type === SimpleSelector.Type.Tag) {
 			return null
 		}
 
-		if (this.config.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
-			return null
-		}
-
-		let labels = await this.cssSymbolMap.findCompletionMatchSelector(selector)
+		let labels = await this.cssServiceMap.findCompletionMatchSelector(selector)
 		return labels.map(label => {
 			let item = CompletionItem.create(label)
 			item.kind = CompletionItemKind.Class
@@ -178,7 +189,34 @@ class CSSNaigationServer {
 		let document = documents.get(documentIdentifier.uri)
 		let position = params.position
 
-		return []
+		if (!document) {
+			return null
+		}
+
+		let extension = file.getExtension(document.uri)
+		if (this.config.activeHTMLFileExtensions.includes(extension)) {
+			if (this.config.alsoSearchDefinitionsInStyleTag) {
+				let filePath = Files.uriToFilePath(document.uri)
+				let htmlService = this.htmlServiceMap.get(filePath!) || HTMLService.create(document)
+				return HTMLService.findReferencesInInner(document, position, htmlService)
+			}
+			return null
+		}
+
+		if (!this.config.activeCSSFileExtensions.includes(extension)) {
+			return null
+		}
+
+		let selectors = CSSService.getSimpleSelectorAt(document, position)
+		let locations: Location[] = []
+
+		if (selectors) {
+			for (let selector of selectors) {
+				locations.push(...await this.htmlServiceMap.findReferencesMatchSelector(selector))
+			}
+		}
+
+		return locations
 	}
 }
 

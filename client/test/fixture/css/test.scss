@@ -105,12 +105,30 @@ custom-element{
 	color: red;
 }
 
-.class-completion{
-	color: red;
+.class-sub-not-match{
+	&:hover{
+		color: red;
+	}
+
+	&[name=value]{
+		color: red;
+	}
+
+	&.class-any{
+		color: red;
+	}
+
+	&::before{
+		color: red;
+	}
 }
 
 
 @keyframes tag-not-match1{
 	start{color:red}
 	end{color:red}
+}
+
+body tagnotmatch{
+	color: red;
 }

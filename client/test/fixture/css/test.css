@@ -69,8 +69,23 @@ custom-element {
 .class-not-match4-suffix {
   color: red; }
 
+.class-sub-not-match:hover {
+  color: red; }
+
+.class-sub-not-match[name=value] {
+  color: red; }
+
+.class-sub-not-match.class-any {
+  color: red; }
+
+.class-sub-not-match::before {
+  color: red; }
+
 @keyframes tag-not-match1 {
   start {
     color: red; }
   end {
     color: red; } }
+
+body tagnotmatch {
+  color: red; }

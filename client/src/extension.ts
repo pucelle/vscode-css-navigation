@@ -204,12 +204,13 @@ export class CSSNavigationExtension {
 		this.channel.appendLine(message)
 	}
 	
-	onWorkspaceRemoved(folder: vscode.WorkspaceFolder) {
-		let uri = folder.uri.toString()
+	onWorkspaceRemoved(workspaceFolder: vscode.WorkspaceFolder) {
+		let uri = workspaceFolder.uri.toString()
 		let client = this.clients.get(uri)
 		if (client) {
 			this.clients.delete(uri)
 			client.stop()
+			this.showChannelMessage(`Client for workspace folder "${workspaceFolder.name}" stopped`)
 		}
 	}
 
