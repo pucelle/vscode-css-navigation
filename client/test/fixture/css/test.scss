@@ -132,3 +132,13 @@ custom-element{
 body tagnotmatch{
 	color: red;
 }
+
+body{
+	tagnotmatch{
+		color: red;
+	}
+
+	@at-root a, b{
+		color: red;
+	}
+}

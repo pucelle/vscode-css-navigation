@@ -66,7 +66,7 @@ export class CSSService {
 	}
 
 	
-	//have match when left word boundary match
+	//match when left word boundary match
 	isMatchQuery(selector: string, query: string): boolean {
 		let lowerSelector = selector.toLowerCase()
 		let index = lowerSelector.indexOf(query)
@@ -75,16 +75,24 @@ export class CSSService {
 			return false
 		}
 
+		//match at start position
 		if (index === 0) {
 			return true
 		}
 
-		//@abc match query ab
+		//if search only 1 character, must match at start word boundary
+		if (query.length === 1) {
+			let charactersBeforeMatch = selector.slice(0, index)
+			let hasNoWordCharacterBeforeMatch = !/[a-z]/.test(charactersBeforeMatch)
+			return hasNoWordCharacterBeforeMatch
+		}
+
+		//starts with a not word characters
 		if (!/[a-z]/.test(query[0])) {
 			return true
 		}
 
-		//abc not match query bc, but ab-bc does
+		//'abc' not match query 'bc', but 'ab-bc' matches
 		while (/[a-z]/.test(lowerSelector[index - 1])) {
 			lowerSelector = lowerSelector.slice(index + query.length)
 			index = lowerSelector.indexOf(query)

@@ -151,6 +151,11 @@ class CSSNaigationServer {
 			return null
 		}
 
+		//should have at least one word character
+		if (!/[a-z]/i.test(query)) {
+			return null
+		}
+
 		return await this.cssServiceMap.findSymbolsMatchQuery(query)
 	}
 

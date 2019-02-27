@@ -89,3 +89,9 @@ custom-element {
 
 body tagnotmatch {
   color: red; }
+
+body tagnotmatch {
+  color: red; }
+
+a, b {
+  color: red; }

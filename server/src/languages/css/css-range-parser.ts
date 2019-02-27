@@ -8,7 +8,7 @@ interface Name {
 	main: string
 }
 
-interface NamedOffset {
+interface TreeRange {
 	names: Name[]
 	start: number
 	end: number
@@ -24,6 +24,7 @@ export class CSSRangeParser {
 	private supportedLanguages = ['css', 'less', 'scss']
 	private supportsNesting: boolean
 	private document: TextDocument
+	private languageId: string
 
 	constructor(document: TextDocument) {
 		//here mixed language and file extension, must makesure all languages supported are sames as file extensions
@@ -34,15 +35,16 @@ export class CSSRangeParser {
 			timer.log(`Language "${languageId}" is not a declared css language, using css language instead.`)
 		}
 
+		this.languageId = languageId
 		this.supportsNesting = CSSService.isLanguageSupportsNesting(languageId)
 		this.document = document
 	}
 
 	parse(): NamedRange[] {
 		let text = this.document.getText()
-		let stack: NamedOffset[] = []
-		let offsets: NamedOffset[] = []
-		let current: NamedOffset | undefined
+		let ranges: TreeRange[] = []
+		let current: TreeRange | undefined
+		let stack: TreeRange[] = []
 
 		let re = /\s*(?:\/\/.+|\/\*[\s\S]*?\*\/|((?:".*?"|'.*?'|[\s\S])*?)([;{}]))/g
 		/*
@@ -70,19 +72,19 @@ export class CSSRangeParser {
 			let endChar = match[2]
 
 			if (endChar === '{') {
-				let rawNames: string[] = this.parseSelectorToNames(content)
+				let rawNames = this.parseToNames(content)
 				let names: Name[]
 				let start = re.lastIndex - content.length - 1
-
+				
 				if (this.supportsNesting && current) {
-					names = this.fixNestingSelectors(rawNames, current.names)
 					stack.push(current)
+					names = this.combineNestingSelectors(rawNames, current.names)
 				}
 				else {
 					names = rawNames.map(name => {
 						return {
 							full: name,
-							main: this.getMainSelector(name)
+							main: this.shouldBeSelector(name) ? this.getMainSelector(name) : ''
 						}
 					})
 				}
@@ -92,13 +94,15 @@ export class CSSRangeParser {
 					start,
 					end: 0
 				}
-
-				offsets.push(current)
+				ranges.push(current)
 			}
 			else if (endChar === '}') {
 				if (current) {
 					current.end = re.lastIndex
-					current = stack.pop()
+
+					if (this.supportsNesting) {
+						current = stack.pop()
+					}
 				}
 			}
 		}
@@ -109,7 +113,7 @@ export class CSSRangeParser {
 			}
 		}
 
-		let ranges: NamedRange[] = offsets.map(({names, start, end}) => {
+		let namedRanges = ranges.map(({names, start, end}) => {
 			return {
 				names,
 				//positionAt use a binary search algorithm, it should be fast enough, no need to count lines here, although faster
@@ -117,7 +121,91 @@ export class CSSRangeParser {
 			}
 		})
 
-		return ranges
+		return namedRanges
+	}
+
+	//may selectors like this: '[attr="]"]', but we are not high strictly parser
+	//if want to handle it, use /((?:\[(?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\]|\((?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\)|[\s\S])+?)(?:,|$)/g
+	private parseToNames(multiSelectors: string): string[] {
+		let match = multiSelectors.match(/^@[\w-]+/)
+		let names: string[] = []
+		if (match) {
+			let command = match[0]
+			if (this.languageId === 'scss' && command === '@at-root') {
+				names.push(command)
+				multiSelectors = multiSelectors.slice(command.length).trimLeft()
+			}
+			else {
+				command = multiSelectors
+				names.push(command)
+				return names
+			}
+		}
+
+		let re = /((?:\[.*?\]|\(.*?\)|.)+?)(?:,|$)/gs
+		/*
+			(?:
+				\[.*?\] - match [...]
+				|
+				\(.*?\) - match (...)
+				|
+				. - match other characters
+			)
+			+?
+			(?:,|$) - if match ',' or '$', end
+		*/
+
+		while (match = re.exec(multiSelectors)) {
+			let name = match[1].trim()
+			if (name) {
+				names.push(name)
+			}
+		}
+
+		return names
+	}
+
+	private combineNestingSelectors(rawNames: string[], parentNames: Name[]): Name[] {
+		let re = /(?<=^|[\s+>~])&/g
+		let names: Name[] = []
+
+		for (let rawName of rawNames) {
+			if (!this.shouldBeSelector(rawName)) {
+				names.push({
+					full: rawName,
+					main: ''
+				})
+				continue
+			}
+
+			let willCombine = re.test(rawName)
+			if (willCombine) {
+				//only handle the first '&', not handle cross multiply when several '&' exist
+				//if is selectors like '&:...', ignore main
+				let shouldHaveMain = !this.hasSingleReferenceInRightMostDescendant(rawName)
+
+				//get full name, but ignore @command
+				let parentFullNames = parentNames.map(({full}) => full).filter(this.shouldBeSelector)
+				for (let parentFullName of parentFullNames) {
+					let full = rawName.replace(re, parentFullName)
+					let main = shouldHaveMain ? this.getMainSelector(full) : ''
+					names.push({full, main})
+				}
+			}
+			else {
+				let full = rawName
+				let main = this.getMainSelector(full)
+				names.push({full, main})
+			}
+		}
+
+		return names
+	}
+
+	//like '&:hover', 'a &:hover'
+	private hasSingleReferenceInRightMostDescendant(selector: string): boolean {
+		let rightMost = this.getRightMostDescendant(selector)
+		return !/^&[\w-]/.test(rightMost)
 	}
 
 	/*
@@ -131,10 +219,6 @@ export class CSSRangeParser {
 	otherwise, if main is a tag name, it must be at start, e.g., 'body > div' or 'body div' should not matc
 	*/
 	private getMainSelector(selector: string): string {
-		if (!this.isSelector(selector)) {
-			return ''
-		}
-
 		let rightMost = this.getRightMostDescendant(selector)
 		if (!rightMost) {
 			return ''
@@ -154,13 +238,14 @@ export class CSSRangeParser {
 	}
 
 	//avoid parsing @keyframes anim-name as tag name
-	private isSelector(selector: string): boolean {
-		return selector[0] !== '@'
+	private shouldBeSelector(selector: string): boolean {
+		return Boolean(selector && selector[0] !== '@')
 	}
 
-	//the descendant combinator used to split ancestor and descendant: space > + ~ >> ||
+	//the descendant combinator used to split ancestor and descendant: space > + ~
+	//it's not a strict regexp, if want so, use /(?:\[(?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[^\]])*?+?\]|\((?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[^)])*?+?\)|[^\s>+~|])+?$/
 	private getRightMostDescendant(selector: string): string {
-		let descendantRE = /(?:\[[^\]]+?\]|\([^)]+?\)|[^\s>+~|])+?$/
+		let descendantRE = /(?:\[[^\]]*?\]|\([^)]*?\)|[^\s+>~])+?$/
 		/*
 			(?:
 				\[[^\]]+?\] - [...]
@@ -174,64 +259,5 @@ export class CSSRangeParser {
 
 		let match = selector.match(descendantRE)
 		return match ? match[0] : ''
-	}
-
-	//may selectors like this: '[attr="]"]', but its not being required as high strict parser, so just ok
-	//if want to handle it, replace '[\s\S]' to (?:".*?"|'.*?'|[\s\S])
-	private parseSelectorToNames(multiSelector: string): string[] {
-		let re = /((?:\[[\s\S]*?\]|\([\s\S]*?\)|[\s\S])+?)(?:,|$)/g
-		/*
-			(?:
-				\[[\s\S]*?\] - match [...]
-				|
-				\([\s\S]*?\) - match (...)
-				|
-				[\s\S] - match other characters
-			)
-			+?
-			(?:,|$) - if match ',' or '$', end
-		*/
-
-		let match: RegExpExecArray | null
-		let selectors: string[] = []
-
-		while (match = re.exec(multiSelector)) {
-			let selector = match[1].trim()
-			if (selector) {
-				selectors.push(selector)
-			}
-		}
-
-		return selectors
-	}
-
-	private fixNestingSelectors(rawNames: string[], parentNames: Name[]): Name[] {
-		let names: Name[] = []
-
-		for (let rawName of rawNames) {
-			if (rawName.includes('&')) {
-				//only handle the first '&', not handle cross multiply when several '&' exist
-				let hasMain = !this.hasSingleReferenceInRightMostDescendant(rawName)
-				for (let {full: parentName} of parentNames) {
-					let full = rawName.replace(/&/g, parentName)
-					let main = hasMain ? this.getMainSelector(full) : ''
-					names.push({full, main})
-				}
-			}
-			else {
-				names.push({
-					full: rawName,
-					main: this.getMainSelector(rawName)
-				})
-			}
-		}
-
-		return names
-	}
-
-	//like '&:hover', 'a &:hover'
-	private hasSingleReferenceInRightMostDescendant(selector: string): boolean {
-		let rightMost = this.getRightMostDescendant(selector)
-		return /^&(?:[^\w-]|$)/.test(rightMost)
 	}
 }
