@@ -13,14 +13,14 @@ Only within `<html-tag>`, `class="class-name"`, `id="id-name"`, you can `Go to d
 
 Nesting reference names in Scss or Less are automatically combined:
 
-[nesting](images/nesting.gif)
+![nesting](images/nesting.gif)
 
 
 ### Workspace symbols
 
 Allow to search workspace symbols in CSS files across all activated workspace folders.
 
-[workspace-symbol](images/workspace-symbol.gif)
+![workspace-symbol](images/workspace-symbol.gif)
 
 
 ### Class Name and ID Completion
@@ -29,7 +29,7 @@ Provide class name and id completion for your HTML files.
 
 It doesn't follow the `<link>` tag in your HTML file to limit the completion results, but list all the available completion labels in your workspace folder.
 
-[completion](images/completion.gif)
+![completion](images/completion.gif)
 
 
 ### Find All References and Peek References
@@ -38,7 +38,7 @@ Supports looking for CSS selector references in your HTML files.
 
 This functionality should not be very usefull, and it needs to load and parse all the files configured in `activeHTMLFileExtensions` additionally. but if you love examining and refactoring CSS codes, at least it's much better than searching them in folders.
 
-[reference](images/reference.gif)
+![reference](images/reference.gif)
 
 
 ## Performance
