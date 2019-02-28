@@ -81,11 +81,14 @@ export class FileTracker {
 
 		options.documents.onDidChangeContent(this.onDocumentOpenOrContentChanged.bind(this))
 
-		//seems onDidSave not work
-		options.documents.onDidSave(this.onDocumentSaved.bind(this))
+		//seems onDidSave not work, handle this logic on reTrackFile
+		//options.documents.onDidSave(this.onDocumentSaved.bind(this))
 
 		options.documents.onDidClose(this.onDocumentClosed.bind(this))
-		options.connection.onDidChangeWatchedFiles(this.onWatchedPathChanged.bind(this))
+
+		//there is one interesting bug here, onDidChangeWatchedFiles can't been registered for twice, or the first one will not work
+		//handle it in top server
+		//options.connection.onDidChangeWatchedFiles(this.onWatchedPathChanged.bind(this))
 	}
 
 	has(filePath: string): boolean {
@@ -130,16 +133,16 @@ export class FileTracker {
 		return true
 	}
 
-	private onDocumentSaved(event: TextDocumentChangeEvent) {
-		let document = event.document
-		let filePath = Files.uriToFilePath(document.uri)
-		let item = this.map.get(filePath!)
+	// private onDocumentSaved(event: TextDocumentChangeEvent) {
+	// 	let document = event.document
+	// 	let filePath = Files.uriToFilePath(document.uri)
+	// 	let item = this.map.get(filePath!)
 
-		//since onDidChangeWatchedFiles event was triggered so frequently, we only do updating after saving
-		if (item && !item.fresh && this.updateImmediately) {
-			this.doUpdate(filePath!, item)
-		}
-	}
+	// 	//since onDidChangeWatchedFiles event was triggered so frequently, we only do updating after saved
+	// 	if (item && !item.fresh && this.updateImmediately) {
+	// 		this.doUpdate(filePath!, item)
+	// 	}
+	// }
 
 	private onDocumentClosed(event: TextDocumentChangeEvent) {
 		let document = event.document
@@ -148,7 +151,11 @@ export class FileTracker {
 	}
 
 	//no need to handle file changes making by vscode when document is opening, and document version > 1 at this time
-	private async onWatchedPathChanged(params: DidChangeWatchedFilesParams) {
+	async onWatchedPathChanged(params: DidChangeWatchedFilesParams) {
+		if (!this.startPathLoaded) {
+			return
+		}
+		
 		for (let change of params.changes) {
 			let uri = change.uri
 			let fileOrFolderPath = Files.uriToFilePath(uri)
@@ -230,7 +237,7 @@ export class FileTracker {
 		}
 		else {
 			this.allFresh = false
-			//timer.log(`${filePath} tracked`)
+			timer.log(`${filePath} tracked`)
 			this.onTrack(filePath, item)
 		}
 	}
@@ -238,7 +245,7 @@ export class FileTracker {
 	//still keep data for ignored items 
 	ignore(filePath: string) {
 		this.ignoredFilePaths.add(filePath)
-		//timer.log(`${filePath} ignored`)
+		timer.log(`${filePath} ignored`)
 	}
 
 	notIgnore(filePath: string) {
@@ -318,7 +325,7 @@ export class FileTracker {
 			item.document = null
 			item.version = 1
 			item.opened = false
-			//timer.log(`${filePath} closed`)
+			timer.log(`${filePath} closed`)
 		}
 	}
 

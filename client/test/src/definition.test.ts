@@ -1,22 +1,36 @@
 import * as assert from 'assert'
-import {sleep, prepare, searchSymbolNames as gs} from './helper'
+import {prepare, searchSymbolNames as gs} from './helper'
 
 
 describe('Test CSS Definition', () => {
 	before(prepare)
 
+	it('Should ignore css file when same name scss file exists', async () => {
+		assert.deepEqual(await gs(['<', 'html', '>']), ['html'])
+	})
+
+	it('Should ignore custom element definition by default', async () => {
+		assert.deepEqual(await gs(['<', 'custom-element', '>']), [])	//ignore custom element by default
+	})
+	
+	it('Should exclude commands start with "@"', async () => {
+		assert.deepEqual(await gs(['<', 'tag-not-match', '>']), [])
+	})
+
+	it('Should ignore tag definition when its not the start of selector combination', async () => {
+		assert.deepEqual(await gs(['<', 'tagnotmatch', '>']), [])
+	})
+
+	it('Should not parse contents inside "@keyframes" as selectors', async () => {
+		assert.deepEqual(await gs(['<', 'start', '>']), [])
+	})
+
 	it('Should find right tag definition', async () => {
 		assert.deepEqual(await gs(['<', 'html', '>']), ['html'])
-		assert.deepEqual(await gs(['<', 'body', '>']), ['body'])
-		//assert.deepEqual(await gs(['<', 'custom-element', '>']), ['custom-element'])	//ignore custom element by default
 	})
 
 	it('Should find right id definition even whthin sass nesting', async () => {
 		assert.deepEqual(await gs(['id="', 'id', '"']), ['#id'])
-	})
-
-	it('Should ignore css file when same name scss file exists', async () => {
-		assert.deepEqual(await gs(['class="', 'class1', '"']), ['.class1'])
 	})
 
 	it('Should find right class definition even whthin sass nesting', async () => {
@@ -36,6 +50,10 @@ describe('Test CSS Definition', () => {
 		assert.deepEqual(await gs(['class="', 'class4-sub-sub', '"']), ['&-sub'])
 		assert.deepEqual(await gs(['class="', 'class4-sub-tail', '"']), ['&-tail'])
 		assert.deepEqual(await gs(['class="', 'class4-sub-sub-tail', '"']), ['&-tail'])
+	})
+
+	it('Should combine sass reference symbol "&" across non-selector commands', async () => {
+		assert.deepEqual(await gs(['class="', 'class5-sub', '"']), ['&-sub'])
 	})
 
 	it('Should find right class definition as start part', async () => {
@@ -59,11 +77,11 @@ describe('Test CSS Definition', () => {
 		assert.deepEqual(await gs(['class="', 'class-not-match4', '"']), [])
 	})
 
-	it('Should exclude symbols start with @', async () => {
-		assert.deepEqual(await gs(['<', 'tag-not-match1', '>']), [])
+	it('Should ignore definition when it use reference symbol "&" as single part, like "&:hover""', async () => {
+		assert.deepEqual(await gs(['class="', 'class-sub-not-match', '"']), ['.class-sub-not-match'])
 	})
 
-	it('Should find definition inside <style> tag', async () => {
+	it('Should find definition inside <style> tag, be aware this is not available by default', async () => {
 		assert.deepEqual(await gs(['class="', 'css-class-in-style', '"']), ['.css-class-in-style'])
 		assert.deepEqual(await gs(['class="', 'scss-class-in-style', '"']), ['&-in-style'])
 	})

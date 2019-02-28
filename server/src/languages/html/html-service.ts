@@ -91,7 +91,7 @@ export namespace HTMLService {
 
 			if (offset >= styleStartIndex && offset < styleEndIndex) {
 				let cssDocument = TextDocument.create('untitled.' + languageId , languageId, 0, cssText)
-				let selectors = CSSService.getSimpleSelectorAt(cssDocument, offset - styleStartIndex)
+				let selectors = CSSService.getSimpleSelectorAt(cssDocument, cssDocument.positionAt(offset - styleStartIndex))
 				if (selectors) {
 					for (let selector of selectors) {
 						locations.push(...htmlService.findLocationsMatchSelector(selector))

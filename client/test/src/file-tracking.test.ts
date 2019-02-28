@@ -18,7 +18,7 @@ describe('Test CSS File Tracking', () => {
 			edit.insert(cssDocument.positionAt(0), insertedText)
 		})
 		await sleep(1000)
-		let err: Error | undefined
+		let err
 		try{
 			assert.deepEqual(await gs(['class="', 'class-inserted-from-vscode', '"']), ['.class-inserted-from-vscode'])
 		}
@@ -37,7 +37,7 @@ describe('Test CSS File Tracking', () => {
 		let text = rawText + insertedText
 		fs.writeFileSync(scssURI.fsPath, text, 'utf8')
 		await sleep(1000)
-		let err: Error | undefined
+		let err
 		try{
 			assert.deepEqual(await gs(['class="', 'class-inserted-on-disk', '"']), ['.class-inserted-on-disk'])
 		}
@@ -54,9 +54,9 @@ describe('Test CSS File Tracking', () => {
 		let scssText = fs.readFileSync(scssURI.fsPath, 'utf8')
 		fs.unlinkSync(scssURI.fsPath)
 		await sleep(1000)
-		let err: Error | undefined
+		let err
 		try{
-			assert.deepEqual(await gs(['class="', 'class1', '"']), ['.class1'])
+			assert.deepEqual(await gs(['<', 'html', '>']), ['html'])
 		}
 		catch (e) {
 			err = e
@@ -64,20 +64,20 @@ describe('Test CSS File Tracking', () => {
 		let cssText = fs.readFileSync(cssURI.fsPath, 'utf8')
 		fs.unlinkSync(cssURI.fsPath)
 		await sleep(1000)
-		let err2: Error | undefined
+		let err2
 		try{
-			assert.deepEqual(await gs(['class="', 'class1', '"']), [])
+			assert.deepEqual(await gs(['<', 'html', '>']), [])
 		}
 		catch (e) {
 			err2 = e
 		}
+		fs.writeFileSync(scssURI.fsPath, scssText, 'utf8')
+		fs.writeFileSync(cssURI.fsPath, cssText, 'utf8')
 		if (err || err2) {
 			throw err || err2
 		}
-		fs.writeFileSync(scssURI.fsPath, scssText, 'utf8')
-		fs.writeFileSync(cssURI.fsPath, cssText, 'utf8')
 		await sleep(1000)
-		assert.deepEqual(await gs(['class="', 'class1', '"']), ['.class1'])
+		assert.deepEqual(await gs(['<', 'html', '>']), ['html'])
 	})
 
 	it('Should track folder renaming on disk, and should ignore node_modules', async () => {
@@ -85,9 +85,9 @@ describe('Test CSS File Tracking', () => {
 		let renameTo = path.dirname(dirName) + '/node_modules'
 		fs.renameSync(dirName, renameTo)
 		await sleep(1000)
-		let err: Error | undefined
+		let err
 		try{
-			assert.deepEqual(await gs(['class="', 'class1', '"']), [])
+			assert.deepEqual(await gs(['<', 'html', '>']), [])
 		}
 		catch (e) {
 			err = e
@@ -97,6 +97,6 @@ describe('Test CSS File Tracking', () => {
 			throw err
 		}
 		await sleep(1000)
-		assert.deepEqual(await gs(['class="', 'class1', '"']), ['.class1'])
+		assert.deepEqual(await gs(['<', 'html', '>']), ['html'])
 	})
 })

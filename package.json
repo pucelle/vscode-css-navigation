@@ -84,7 +84,7 @@
 					"default": false,
 					"description": "When `false` by default, Only search CSS definition in current workspace folder. If one workspace folder requires css references from another workspace folder, you should set this to `true`."
 				},
-				"CSSNavigation.preload": {
+				"CSSNavigation.preloadCSSFiles": {
 					"type": "boolean",
 					"default": false,
 					"description": "When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you change and save it or project startup. If you are a heavy user in CSS definition searching, just check it."

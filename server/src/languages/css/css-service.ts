@@ -129,8 +129,8 @@ export namespace CSSService {
 		return supportedNestingLanguages.includes(languageId)
 	}
 
-	export function getSimpleSelectorAt(document: TextDocument, positionOrOffset: Position | number): SimpleSelector[] | null {
-		let offset = typeof positionOrOffset === 'number' ? positionOrOffset : document.offsetAt(positionOrOffset)
+	export function getSimpleSelectorAt(document: TextDocument, position: Position): SimpleSelector[] | null {
+		let offset = document.offsetAt(position)
 		return new CSSSimpleSelectorScanner(document, offset).scan()
 	}
 }

@@ -44,7 +44,7 @@ interface Configuration {
 	activeCSSFileExtensions: string[]
 	excludeGlobPatterns: string[]
 	alsoSearchDefinitionsInStyleTag: boolean
-	preload: boolean
+	preloadCSSFiles: boolean
 	ignoreSameNameCSSFile: boolean
 	ignoreCustomElement: boolean
 }
@@ -86,7 +86,7 @@ class CSSNaigationServer {
 	private options: InitializationOptions
 	private config: Configuration
 	private cssServiceMap: CSSServiceMap
-	private htmlServiceMap: HTMLServiceMap
+	private htmlServiceMap: HTMLServiceMap | null = null
 
 	constructor(options: InitializationOptions) {
 		this.options = options
@@ -97,18 +97,17 @@ class CSSNaigationServer {
 			documents,
 			includeGlobPattern: file.generateGlobPatternFromExtensions(config.activeCSSFileExtensions)!,
 			excludeGlobPattern: file.generateGlobPatternFromPatterns(config.excludeGlobPatterns),
-			updateImmediately: config.preload,
+			updateImmediately: config.preloadCSSFiles,
 			startPath: options.workspaceFolderPath,
 			ignoreSameNameCSSFile: config.ignoreSameNameCSSFile && config.activeCSSFileExtensions.length > 1 && config.activeCSSFileExtensions.includes('css')
 		})
 
-		this.htmlServiceMap = new HTMLServiceMap({
-			connection,
-			documents,
-			includeGlobPattern: file.generateGlobPatternFromExtensions(config.activeHTMLFileExtensions)!,
-			excludeGlobPattern: file.generateGlobPatternFromPatterns(config.excludeGlobPatterns),
-			updateImmediately: config.preload,
-			startPath: options.workspaceFolderPath
+		//onDidChangeWatchedFiles can't been registered for twice, or the first one will not work, so handle it here, not on service map
+		connection.onDidChangeWatchedFiles((params: any) => {
+			this.cssServiceMap.onWatchedPathChanged(params)
+			if (this.htmlServiceMap) {
+				this.htmlServiceMap.onWatchedPathChanged(params)
+			}
 		})
 
 		timer.log(`Server for workspace folder "${path.basename(this.options.workspaceFolderPath)}" prepared`)
@@ -190,6 +189,8 @@ class CSSNaigationServer {
 	}
 
 	async findRefenerces(params: ReferenceParams): Promise<Location[] | null> {
+		this.ensureHTMLService()
+
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
 		let position = params.position
@@ -202,7 +203,7 @@ class CSSNaigationServer {
 		if (this.config.activeHTMLFileExtensions.includes(extension)) {
 			if (this.config.alsoSearchDefinitionsInStyleTag) {
 				let filePath = Files.uriToFilePath(document.uri)
-				let htmlService = this.htmlServiceMap.get(filePath!) || HTMLService.create(document)
+				let htmlService = this.htmlServiceMap!.get(filePath!) || HTMLService.create(document)
 				return HTMLService.findReferencesInInner(document, position, htmlService)
 			}
 			return null
@@ -217,11 +218,24 @@ class CSSNaigationServer {
 
 		if (selectors) {
 			for (let selector of selectors) {
-				locations.push(...await this.htmlServiceMap.findReferencesMatchSelector(selector))
+				locations.push(...await this.htmlServiceMap!.findReferencesMatchSelector(selector))
 			}
 		}
 
 		return locations
+	}
+
+	ensureHTMLService() {
+		let {config, options} = this
+
+		this.htmlServiceMap = this.htmlServiceMap || new HTMLServiceMap({
+			connection,
+			documents,
+			includeGlobPattern: file.generateGlobPatternFromExtensions(config.activeHTMLFileExtensions)!,
+			excludeGlobPattern: file.generateGlobPatternFromPatterns(config.excludeGlobPatterns),
+			updateImmediately: false,
+			startPath: options.workspaceFolderPath
+		})
 	}
 }
 

@@ -10,26 +10,28 @@ custom-element{
 	color: red;
 }
 
+@keyframes tag-not-match{
+	start{color:red}
+	end{color:red}
+}
+
+body{
+	tagnotmatch{
+		color: red;
+	}
+}
+
+body tagnotmatch{
+	color: red;
+}
 
 #id{
 	color: red;
-
-	&-subid{
-		color: red;
-
-		&-subid2{
-			color: red
-		}
-	}
 }
 
 
 .class1{
-	color: red;
-
 	&-sub{
-		color: red;
-
 		&-tail{
 			color: red
 		}
@@ -37,24 +39,27 @@ custom-element{
 }
 
 .class2, .class3{
-	color: red;
-
 	&-sub{
 		color: red;
 	}
 }
 
 .class4, .class4-sub{
-	color: red;
-
 	&-sub{
-		color: red;
-
 		&-tail{
 			color: red;
 		}
 	}
 }
+
+.class5{
+	@media screen {
+		&-sub{
+			color: red;
+		}
+	}
+}
+
 
 .class-match1:hover{
 	color: red;
@@ -119,26 +124,6 @@ custom-element{
 	}
 
 	&::before{
-		color: red;
-	}
-}
-
-
-@keyframes tag-not-match1{
-	start{color:red}
-	end{color:red}
-}
-
-body tagnotmatch{
-	color: red;
-}
-
-body{
-	tagnotmatch{
-		color: red;
-	}
-
-	@at-root a, b{
 		color: red;
 	}
 }

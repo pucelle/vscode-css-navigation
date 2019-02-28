@@ -1,6 +1,3 @@
-import * as fs from 'fs'
-import * as path from 'path'
-import * as vscode from 'vscode'
 import * as assert from 'assert'
 import {prepare, searchWorkspaceSymbolNames as gws} from './helper'
 
@@ -28,6 +25,14 @@ describe('Test Workspace Symbol', () => {
 		assert.deepEqual(await gws('.class1-sub'), ['.class1-sub', '.class1-sub-tail'])
 		assert.deepEqual(await gws('.class1-sub-tail'), ['.class1-sub-tail'])
 		assert.deepEqual(await gws('.class4-sub'), ['.class4-sub', '.class4-sub', '.class4-sub-sub', '.class4-sub-tail', '.class4-sub-sub-tail'])
+	})
+
+	it('Should find command starts with "@"', async () => {
+		assert.ok((await gws('@keyframes tag-not-match')).length > 0)
+	})
+
+	it('Should always combine selectors with space when eliminating sass nesting', async () => {
+		assert.deepEqual(await gws('tagnotmatch'), ['body tagnotmatch', 'body tagnotmatch'])
 	})
 })
 

@@ -54,7 +54,7 @@ interface Configuration {
 	activeCSSFileExtensions: string[]
 	excludeGlobPatterns: string[]
 	alsoSearchDefinitionsInStyleTag: boolean
-	preload: boolean
+	preloadCSSFiles: boolean
 	ignoreSameNameCSSFile: boolean
 	ignoreCustomElement: boolean
 }
@@ -194,7 +194,7 @@ export class CSSNavigationExtension {
 			activeCSSFileExtensions: <string[]>config.get('activeCSSFileExtensions', []),
 			excludeGlobPatterns: <string[]>config.get('excludeGlobPatterns') || [],
 			alsoSearchDefinitionsInStyleTag: config.get('alsoSearchDefinitionsInStyleTag', false),
-			preload: config.get('preload', false),
+			preloadCSSFiles: config.get('preloadCSSFiles', false),
 			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
 			ignoreCustomElement: config.get('ignoreCustomElement', false)
 		}
