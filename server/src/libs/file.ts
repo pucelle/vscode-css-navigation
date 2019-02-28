@@ -16,11 +16,11 @@ export function readText(fsPath: string): Promise<string> {
 	})
 }
 
-export function getStat(fsPath: string): Promise<fs.Stats> {
+export function stat(fsPath: string): Promise<fs.Stats | null> {
 	return new Promise((resolve, reject) => {
 		fs.stat(fsPath, (err, stat) => {
 			if (err) {
-				reject(err)
+				resolve(null)
 			}
 			else {
 				resolve(stat)

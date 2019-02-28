@@ -13,7 +13,13 @@ custom-element {
   end {
     color: red; } }
 
-#id {
+body tagnotmatch {
+  color: red; }
+
+body tagnotmatch {
+  color: red; }
+
+#id1 {
   color: red; }
 
 .class1-sub-tail {

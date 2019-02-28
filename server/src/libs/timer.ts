@@ -64,15 +64,17 @@ export function logListReturnedFunctionExecutedTime<A extends any[], T>(fn: Resu
 		let startTime = getMillisecond()
 		let list = await fn(...args)
 		let time = Math.round(getMillisecond() - startTime!)
-
-		if (!list || list.length === 0) {
-			log(`No ${type} found, ${time} millisecond${time > 1 ? 's' : ''} spent`)
-		}
-		else if (list.length === 1) {
-			log(`1 ${type} found, ${time} millisecond${time > 1 ? 's' : ''} spent`)
-		}
-		else {
-			log(`${list.length} ${type}s found, ${time} millisecond${time > 1 ? 's' : ''} spent`)
+		
+		if (list) {
+			if (list.length === 0) {
+				log(`No ${type} found, ${time} millisecond${time > 1 ? 's' : ''} spent`)
+			}
+			else if (list.length === 1) {
+				log(`1 ${type} found, ${time} millisecond${time > 1 ? 's' : ''} spent`)
+			}
+			else {
+				log(`${list.length} ${type}s found, ${time} millisecond${time > 1 ? 's' : ''} spent`)
+			}
 		}
 
 		return list

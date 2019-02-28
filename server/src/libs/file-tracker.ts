@@ -168,8 +168,8 @@ export class FileTracker {
 				this.trackPath(fileOrFolderPath)
 			}
 			else if (change.type === FileChangeType.Changed) {
-				let stat = await file.getStat(fileOrFolderPath)
-				if (stat.isFile()) {
+				let stat = await file.stat(fileOrFolderPath)
+				if (stat && stat.isFile()) {
 					let filePath = fileOrFolderPath
 					if (this.canTrackFilePath(filePath)) {
 						this.reTrackFile(filePath)
@@ -187,11 +187,11 @@ export class FileTracker {
 			return
 		}
 
-		let stat = await file.getStat(fileOrFolderPath)
-		if (stat.isDirectory()) {
+		let stat = await file.stat(fileOrFolderPath)
+		if (stat && stat.isDirectory()) {
 			await this.trackFolder(fileOrFolderPath)
 		}
-		else if (stat.isFile()) {
+		else if (stat && stat.isFile()) {
 			let filePath = fileOrFolderPath
 			if (this.canTrackFilePath(filePath)) {
 				await this.trackFile(filePath)

@@ -30,7 +30,7 @@ describe('Test CSS Definition', () => {
 	})
 
 	it('Should find right id definition even whthin sass nesting', async () => {
-		assert.deepEqual(await gs(['id="', 'id', '"']), ['#id'])
+		assert.deepEqual(await gs(['id="', 'id1', '"']), ['#id1'])
 	})
 
 	it('Should find right class definition even whthin sass nesting', async () => {

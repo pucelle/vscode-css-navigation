@@ -1,7 +1,7 @@
 {
 	"name": "vscode-css-navigation",
 	"displayName": "CSS Navigation",
-	"description": "Peek definition from HTML document, into a CSS / LESS / SCSS documents.",
+	"description": "Peek definition from HTML document, into a CSS / Less / Scss documents.",
 	"icon": "images/logo.png",
 	"version": "1.0.0",
 	"license": "MIT",
@@ -61,7 +61,7 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "The extensions of the CSS files, only the matched files you can `go to` and `peek`."
+					"description": "The extensions of the CSS files, where you can `go to` and `peek`."
 				},
 				"CSSNavigation.excludeGlobPatterns": {
 					"type": "array",
@@ -72,32 +72,32 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "A glob pattern, defines paths to exclude from when searching for CSS definitions."
+					"description": "A glob pattern, defines paths to exclude when searching for CSS definitions."
 				},
 				"CSSNavigation.alsoSearchDefinitionsInStyleTag": {
 					"type": "boolean",
 					"default": false,
-					"description": "When set to `true`, also search CSS definitions in <style>."
+					"description": "When set to `true`, also search CSS definitions in <style> tag for current document."
 				},
 				"CSSNavigation.searchAcrossWorkspaceFolders": {
 					"type": "boolean",
 					"default": false,
-					"description": "When `false` by default, Only search CSS definition in current workspace folder. If one workspace folder requires css references from another workspace folder, you should set this to `true`."
+					"description": "When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current worksapce, you should set this to `true`."
 				},
 				"CSSNavigation.preloadCSSFiles": {
 					"type": "boolean",
 					"default": false,
-					"description": "When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you change and save it or project startup. If you are a heavy user in CSS definition searching, just check it."
+					"description": "When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you save or project startup. If you are a heavy user in CSS definition searching, just check it."
 				},
 				"CSSNavigation.ignoreSameNameCSSFile": {
 					"type": "boolean",
 					"default": true,
-					"description": "When `true` by default, e.g.: If 'any-name.scss and 'any-name.css' exist in the same directory, the CSS file will be skipped. If you prefer compiling SCSS or LESS file to the same name CSS file, ignore the CSS files would be helpful."
+					"description": "When `true` by default, e.g.: If 'the-name.scss and 'the-name.css', which share the same basename, are exist in the same directory, the 'the-name.css' will be skipped. If you prefer compiling Scss or Less file to the same name CSS file, this would be very helpful."
 				},
 				"CSSNavigation.ignoreCustomElement": {
 					"type": "boolean",
 					"default": true,
-					"description": "Set to `true` to ignore custom element definition searching, such that it will not disturb going to it's defined place."
+					"description": "When `true` by default, custom element definitions in CSS will be ignored, such that it will go to it's defined place directly."
 				}
 			}
 		}

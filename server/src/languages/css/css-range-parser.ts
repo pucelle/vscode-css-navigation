@@ -82,12 +82,14 @@ export class CSSRangeParser {
 			let endChar = match[2]
 
 			if (endChar === '{' && selector) {
+				let startIndex = re.lastIndex - selector.length - 1
 				selector = selector.trimRight().replace(/\s+/g, ' ')
+
 				if (this.ignoreDeep > 0 || this.shouldIgnoreDeeply(selector)) {
 					this.ignoreDeep++
 				}
 				
-				this.current = this.newLeafRange(selector, re.lastIndex - selector.length - 1)
+				this.current = this.newLeafRange(selector, startIndex)
 				ranges.push(this.current!)
 			}
 			else if (endChar === '}') {

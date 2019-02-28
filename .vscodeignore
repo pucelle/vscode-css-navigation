@@ -6,6 +6,7 @@
 **/tsconfig.base.json
 contributing.md
 .travis.yml
+client/test/**
 client/node_modules/**
 !client/node_modules/vscode-jsonrpc/**
 !client/node_modules/vscode-languageclient/**

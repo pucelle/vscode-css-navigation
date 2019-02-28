@@ -11,7 +11,7 @@ describe('Test Reference', () => {
 	})
 
 	it('Should find reference for id selectors', async () => {
-		assert.deepEqual(await sr('#id'), ['<div id="id">'])
+		assert.deepEqual(await sr('#id1'), ['<div id="id1">'])
 	})
 
 	it('Should find reference for class selectors even within nesting', async () => {

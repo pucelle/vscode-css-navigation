@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as assert from 'assert'
 import * as vscode from 'vscode'
-import {CSSNavigationExtension} from '../../out/extension';
+import {CSSNavigationExtension} from '../../out/extension'
 
 export async function sleep(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms))
@@ -52,18 +52,18 @@ export async function searchSymbolNames ([start, selector, end]: [string, string
 		return null
 	}
 
-	let symbolNamesOfStart = await getSymbolNamesAtPosition(ranges.in.start)
-	let symbolNamesOfEnd = await getSymbolNamesAtPosition(ranges.in.end)
+	let namesOfStart = await getSymbolNamesAtPosition(ranges.in.start)
+	let namesOfEnd = await getSymbolNamesAtPosition(ranges.in.end)
 
-	assert.deepEqual(symbolNamesOfStart, symbolNamesOfEnd, 'Can find same definition from start and end position')
+	assert.deepEqual(namesOfStart, namesOfEnd, 'Can find same definition from start and end position')
 
-	let symbolNamesOutOfStart = await getSymbolNamesAtPosition(ranges.out.start)
-	let symbolNamesOutOfEnd = await getSymbolNamesAtPosition(ranges.out.end)
+	let namesOutOfStart = await getSymbolNamesAtPosition(ranges.out.start)
+	let namesOutOfEnd = await getSymbolNamesAtPosition(ranges.out.end)
 
-	assert.ok(symbolNamesOutOfStart.length === 0, `Can't find definition from out of left range`)
-	assert.ok(symbolNamesOutOfEnd.length === 0, `Can't find definition from out of left range`)
+	assert.ok(namesOutOfStart.length === 0, `Can't find definition from out of left range`)
+	assert.ok(namesOutOfEnd.length === 0, `Can't find definition from out of left range`)
 
-	return symbolNamesOfStart
+	return namesOfStart
 }
 
 function searchHTMLDocumentForSelector([start, selector, end]: [string, string, string]): {in: vscode.Range, out: vscode.Range} | null {
@@ -134,18 +134,18 @@ export async function searchReferences (searchWord: string, inHTML: boolean = fa
 		return null
 	}
 
-	let symbolNamesOfStart = await getReferenceNamesAtPosition(ranges.in.start, document)
-	let symbolNamesOfEnd = await getReferenceNamesAtPosition(ranges.in.end, document)
+	let namesOfStart = await getReferenceNamesAtPosition(ranges.in.start, document)
+	let namesOfEnd = await getReferenceNamesAtPosition(ranges.in.end, document)
 
-	assert.deepEqual(symbolNamesOfStart, symbolNamesOfEnd, 'Can find same references from start and end position')
+	assert.deepEqual(namesOfStart, namesOfEnd, 'Can find same references from start and end position')
 
-	let symbolNamesOutOfStart = await getReferenceNamesAtPosition(ranges.out.start, document)
-	let symbolNamesOutOfEnd = await getReferenceNamesAtPosition(ranges.out.end, document)
+	let namesOutOfStart = await getReferenceNamesAtPosition(ranges.out.start, document)
+	let namesOutOfEnd = await getReferenceNamesAtPosition(ranges.out.end, document)
 
-	assert.ok(symbolNamesOutOfStart.length === 0, `Can't find reference from out of left range`)
-	assert.ok(symbolNamesOutOfEnd.length === 0, `Can't find reference from out of left range`)
+	assert.ok(namesOutOfStart.length === 0, `Can't find reference from out of left range`)
+	assert.ok(namesOutOfEnd.length === 0, `Can't find reference from out of left range`)
 
-	return symbolNamesOfStart
+	return namesOfStart
 }
 
 function searchWordInDocument(searchWord: string, document: vscode.TextDocument): {in: vscode.Range, out: vscode.Range} | null {
@@ -189,4 +189,28 @@ async function getReferenceNamesAtPosition(position: vscode.Position, document: 
 	}
 
 	return referenceNames
+}
+
+
+
+export async function searchCompletion (searchWord: string): Promise<string[] | null> {
+	let ranges = searchWordInDocument(searchWord, htmlDocument)
+	if (!ranges) {
+		assert.fail(`Can't find "${searchWord}" in ${path.basename(htmlDocument.uri.toString())}`)
+		return null
+	}
+
+	let namesOfEnd = await getCompletionNamesAtPosition(ranges.in.end)
+	return namesOfEnd
+}
+
+async function getCompletionNamesAtPosition(position: vscode.Position): Promise<string[]> {
+	let list = <vscode.CompletionList>await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', htmlDocument.uri, position)
+	let completionNames = []
+
+	for (let item of list.items) {
+		completionNames.push(item.label)
+	}
+
+	return completionNames
 }
