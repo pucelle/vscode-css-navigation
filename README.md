@@ -45,18 +45,27 @@ This functionality should not be very usefull, and it needs to load and parse al
 
 At beginning, this project is a fork from [vscode-css-peek](https://github.com/pranaygp/vscode-css-peek/tree/master/client), and fixed Scss nesting reference problem.
 
-But then I found it eats so much CPU & memory: One of my project have about 10 MB css files, on my MacBook Pro V2014, it needs 6s to load (about 1s to search files and 5s to parse) and uses 700 MB memory. 
+But then I found it eats so much CPU & memory: e.g.: One of my project has about 280 CSS files out of 5500 total files, includes about 6 MB css codes. On my MacBook Pro, it needs 7s to load (about 1.3s to search files and 6s to parse) and uses 700 MB memory. 
 
-Finally I decided to implement a new css parser, which also supports Scss & Less. It's a very simple parser and not 100% strict, but it's fast enough. Now it cost about 0.8s to search files, and about 0.2s to parse them. After releasing all the unnecessary resource, the memory usage in caching parsed results is even smaller than the total file size.
+Finally I decided to implement a new css parser, which also supports Scss & Less. It's a very simple parser and not 100% strict, but it's fast enough. Now it costs about 0.8s to search files, and about 0.5s to parse them. Memory usage in caching parsed results is about 3x~10x to file size.
+
+After files loaded, The extension will track file and directory changes automatically, and reload them if needed.
 
 Otherwise, all the things will be started only when required by default, so CSS files are loaded only when you begin to search definitions, completion, or workspace symbols. You may change this behavior by specify `preloadCSSFiles` option.
 
 
+## Stress Test
+
+I loaded 100 MB (0.9M declarations, 2.8 M lines) CSS files for stress test, it took 8s to parse them, and used about 850 MB memory. After 1 minute, the memory usage fell back to 550 MB. Searching definitions cost about 50ms, Searching workspace symbols cost about 500ms, Searching completions cost about 230ms.
+
+My environment is Win10, MacBook Pro 2014 version (I love MacBook so much, until they removed the function keys😢), with power on.
+
+
 ## Configuration
 
- - `activeHTMLFileExtensions`: The languages of the html files, in where you can `go to definition`. View <https://code.visualstudio.com/docs/languages/identifiers> for more languages. Default value is `[ "html", "ejs", "erb", "php", "hbs", "js", "ts", "jsx", "tsx"	]`.
+ - `activeHTMLFileExtensions`: The languages of the html files, in where you can `go to definition`. View <https://code.visualstudio.com/docs/languages/identifiers> for more languages. Default value is `["html", "ejs", "erb", "php", "hbs", "js", "ts", "jsx", "tsx"]`.
  - `activeCSSFileExtensions`: The extensions of the css files, only the matched files you can `go to` and `peek`. Default value is `["css", "less", "scss"]`. Currently not support other languages, you can specify more extensions, but the related files will be parsed as CSS.
- - `excludeGlobPatterns`: A glob pattern, defines paths to exclude from when searching for CSS definitions. Default value is `[ "**/node_modules/**", "**/bower_components/**" ]`.
+ - `excludeGlobPatterns`: A glob pattern, defines paths to exclude from when searching for CSS definitions. Default value is `["**/node_modules/**", "**/bower_components/**"]`.
  - `alsoSearchDefinitionsInStyleTag`: Is `false` by default. When set to `true`, will also search CSS definitions in `<style>` tag for current document.
  - `searchAcrossWorkspaceFolders`: When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current worksapce, you should set this to `true`.
 - `preloadCSSFiles`: When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you change and save it or VSCode startup. If you are a heavy user in CSS definition searching, just check it.
@@ -76,7 +85,7 @@ No, VSCode always sort the definition results, seems in name order. If you don't
 Everything work on lazy mode by default, so it will not take up CPU and memory early. Set `preloadCSSFiles` to `true` will cause CSS files are loaded before your need it, So you will get results immediately even for the first time.
 
 
-## Can't search across all workspace folders
+### Can't search across all workspace folders
 
 By default, definition searching is **limited in the same workspace folder**, that means when you choose `Go to definition` in a html file, the definitions you got are always come from the same workspace folder where the html file in.
 
