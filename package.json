@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Peek definition from HTML document, into a CSS / Less / Scss documents.",
 	"icon": "images/logo.png",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
