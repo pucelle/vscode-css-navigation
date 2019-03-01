@@ -1,7 +1,6 @@
-import * as path from 'path'
-import {Position, TextDocument, Location, Range} from 'vscode-languageserver'
+import {Location} from 'vscode-languageserver'
 import {HTMLService} from './html-service'
-import {FileTracker, FileTrackerItem, file} from '../../libs'
+import {FileTracker, FileTrackerItem} from '../../libs'
 import {SimpleSelector} from '../common/simple-selector'
 
 

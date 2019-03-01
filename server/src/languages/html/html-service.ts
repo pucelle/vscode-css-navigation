@@ -1,4 +1,4 @@
-import {TextDocument, SymbolInformation, SymbolKind, Location, Position, Range} from 'vscode-languageserver'
+import {TextDocument, Location, Position, Range} from 'vscode-languageserver'
 import {SimpleSelector} from '../common/simple-selector'
 import {NamedRange, HTMLRangeParser} from './html-range-parser'
 import {HTMLSimpleSelectorScanner} from './html-scanner'
