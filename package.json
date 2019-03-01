@@ -1,7 +1,7 @@
 {
 	"name": "vscode-css-navigation",
 	"displayName": "CSS Navigation",
-	"description": "Peek definition from HTML document, into a CSS / Less / Scss documents.",
+	"description": "Go to Definition from HTML to CSS, Class Name & ID Completion, Searching Workspace Symbols, and Find References from CSS to HTML.",
 	"icon": "images/logo.png",
 	"version": "1.0.1",
 	"license": "MIT",
@@ -21,8 +21,11 @@
 		"Programming Languages"
 	],
 	"keywords": [
-		"Goto CSS Definition",
-		"Peek CSS Definition"
+		"CSS Go to Definition",
+		"CSS Peek Definition",
+		"CSS Completion",
+		"CSS Workspace Symbol",
+		"Sass, Less"
 	],
 	"activationEvents": [
 		"onLanguage:plaintext"

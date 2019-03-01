@@ -3,7 +3,7 @@
     CSS Navigation - VSCode Extension
 </h1>
 
-Allowing **Go to definition** from HTML to CSS, or **Find References** from CSS to HTML.
+Allowing **Go to Definition** from HTML to CSS, Class Name & ID **Completion**, Searching **Workspace Symbols**, and **Find References** from CSS to HTML.
 
 
 ## Features
