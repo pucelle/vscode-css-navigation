@@ -1,5 +1,5 @@
 <h1 align="left">
-    <img src="https://github.com/pucelle/vscode-css-navigation/raw/master/images/logo.png" width="30" height="30" alt="a save logo" />
+    <img src="https://github.com/pucelle/vscode-css-navigation/raw/master/images/logo.png" width="32" height="32" alt="Using magnifying class to view CSS" />
     CSS Navigation - VSCode Extension
 </h1>
 
