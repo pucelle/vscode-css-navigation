@@ -29,7 +29,7 @@ describe('Test CSS Definition', () => {
 		assert.deepEqual(await gs(['<', 'html', '>']), ['html'])
 	})
 
-	it('Should find right id definition even whthin sass nesting', async () => {
+	it('Should find right id definition', async () => {
 		assert.deepEqual(await gs(['id="', 'id1', '"']), ['#id1'])
 	})
 
@@ -44,7 +44,7 @@ describe('Test CSS Definition', () => {
 		assert.deepEqual(await gs(['class="', 'class3-sub', '"']), ['&-sub'])
 	})
 
-	it('Should merge and multiple all sass nestings, so one symbol may match multiple selectors', async () => {
+	it('Should combine multiple sass nestings, so one symbol may match multiple selectors', async () => {
 		assert.deepEqual(await gs(['class="', 'class4', '"']), ['.class4, .class4-sub'])
 		assert.deepEqual(await gs(['class="', 'class4-sub', '"']), ['.class4, .class4-sub', '&-sub'])
 		assert.deepEqual(await gs(['class="', 'class4-sub-sub', '"']), ['&-sub'])
@@ -77,7 +77,7 @@ describe('Test CSS Definition', () => {
 		assert.deepEqual(await gs(['class="', 'class-not-match4', '"']), [])
 	})
 
-	it('Should ignore definition when it use reference symbol "&" as single part, like "&:hover""', async () => {
+	it('Should ignore definition when it use reference symbol "&" as single part, like "&:hover"', async () => {
 		assert.deepEqual(await gs(['class="', 'class-sub-not-match', '"']), ['.class-sub-not-match'])
 	})
 
