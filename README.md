@@ -1,4 +1,7 @@
-# CSS Navigation - VSCode Extension
+<h1 align="left">
+    <img src="https://github.com/pucelle/vscode-css-navigation/raw/master/images/logo.png" width="30" height="30" alt="a save logo" />
+    CSS Navigation - VSCode Extension
+</h1>
 
 Allowing **Go to definition** from HTML to CSS, or **Find References** from CSS to HTML.
 
@@ -45,9 +48,9 @@ This functionality should not be very usefull, and it needs to load and parse al
 
 At beginning, this project is a fork from [vscode-css-peek](https://github.com/pranaygp/vscode-css-peek/tree/master/client), and fixed Scss nesting reference problem.
 
-But then I found it eats so much CPU & memory: e.g.: One of my project has about 280 CSS files out of 5500 total files, includes about 6 MB css codes. On my MacBook Pro, it needs 7s to load (about 1.3s to search files and 6s to parse) and uses 700 MB memory. 
+But then I found it eats so much CPU & memory. E.g., one of my project has 280 CSS files out of 5500 files, includes 6 MB of css codes. On my MacBook Pro, it needs 7s to load (1.3s to search files and 6s to parse) and uses 700 MB memory. 
 
-Finally I decided to implement a new css parser, which also supports Scss & Less. It's a very simple parser and not 100% strict, but it's fast enough. Now it costs about 0.8s to search files, and about 0.5s to parse them. Memory usage in caching parsed results is about 3x~10x to file size.
+So I decided to implement a new css parser, which also supports Scss & Less. It's a very simple parser and not 100% strict, but it's fast. Now it costs about 0.8s to search files, and 0.5s to parse them. Memory usage in caching parsed results is about 3x~10x to file size.
 
 After files loaded, The extension will track file and directory changes automatically, and reload them if needed.
 
@@ -56,7 +59,7 @@ Otherwise, all the things will be started only when required by default, so CSS 
 
 ## Stress Test
 
-I loaded 100 MB (0.9M declarations, 2.8 M lines) CSS files for stress test, it took 8s to parse them, and used about 850 MB memory. After 1 minute, the memory usage fell back to 550 MB. Searching definitions cost about 50ms, Searching workspace symbols cost about 500ms, Searching completions cost about 230ms.
+I loaded 100 MB (0.9 M declarations, 2.8 M lines) CSS files for stress test, it took 8s to parse them, and used about 850 MB memory. After 1 minute, the memory usage fell back to 550 MB. Searching definitions cost about 50ms, Searching workspace symbols cost about 500ms, Searching completions cost about 230ms.
 
 My environment is Win10, MacBook Pro 2014 version (I love MacBook so much, until they removed the function keys😢), with power on.
 
@@ -85,7 +88,7 @@ No, VSCode always sort the definition results, seems in name order. If you don't
 Everything work on lazy mode by default, so it will not take up CPU and memory early. Set `preloadCSSFiles` to `true` will cause CSS files are loaded before your need it, So you will get results immediately even for the first time.
 
 
-### Can't search across all workspace folders
+### Can't search across all workspace folders.
 
 By default, definition searching is **limited in the same workspace folder**, that means when you choose `Go to definition` in a html file, the definitions you got are always come from the same workspace folder where the html file in.
 
@@ -95,6 +98,24 @@ Workspace symbols results are always come from multiple workspace folders, but f
 
 If you have more than one folders in your workspace, and you definitely need to find definitions across them, set `searchAcrossWorkspaceFolders` to `true`. This option will also activate services for all workspace folders as soon as possibile.
 
+
+### So many duplicate definotions got. Can you limit the results to only in files specified by `<link>` tags, or check context to ensure the whole selector match?
+
+Currently this extension only compare the last part of selector, the parts are defined by spliting selector by space or several other characters like `>`, `+`, '~'.
+
+When you trying to find definitions for `class="class1"`, these selectors will match: `p .class1`, `.class1.class2`, `.class1:hover`. 
+
+Otherwise, `.class2.class1` will not match, `.class1` must be in the front of the last part.
+
+Searching tag definition is a little different, it must be the unique part of the selector, which means `p` will not match `div p`, but matches `p:hover`.
+
+Back to the question, it sounds like a good idea. For a complete static site, It should be very easy to follow `<link>` tags. matching whole selector is much harder, but it can also be done.
+
+But the Web architecture is extremely complex today, all you got in your hand may be just a piece of html codes, an unique class name, that cause we can't get enough infomation about the context.
+
+My suggestion is using unique class name, avoid nesting, which would be also helpful for the code quality of you project.
+
+If you prefer scoped style, and write html and css codes in the same file, searching definitions should be less important for you. but when your file size grows, checking option `alsoSearchDefinitionsInStyleTag` will help you to search css definitions in your current document.
 
 
 ## License
