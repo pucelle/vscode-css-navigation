@@ -20,6 +20,12 @@ describe('Test Reference', () => {
 		assert.deepEqual(await sr('&-tail'), ['<div class="class1-sub-tail">'])
 	})
 
+	it('Should find references for class selectors which are splited by "@at-root" or "@media" command', async () => {
+		assert.deepEqual(await sr('&-sub5'), ['<div class="class5-sub5">'])
+		assert.deepEqual(await sr('&-sub6'), ['<div class="class6-sub6">'])
+		assert.deepEqual(await sr('.class7-sub7'), ['<div class="class7-sub7">'])
+	})
+
 	it('Should find reference in current HTML document, be aware this is not available by default', async () => {
 		assert.ok(
 			(await sr('.css-class-in-style', true))!.includes('<div class="css-class-in-style">')

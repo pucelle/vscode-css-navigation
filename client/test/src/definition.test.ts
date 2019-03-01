@@ -53,8 +53,9 @@ describe('Test CSS Definition', () => {
 	})
 
 	it('Should combine sass reference symbol "&" across non-selector commands', async () => {
-		assert.deepEqual(await gs(['class="', 'class5-sub', '"']), ['&-sub'])
-		assert.deepEqual(await gs(['class="', 'class6-sub', '"']), ['@at-root &-sub, .class6-child'])
+		assert.deepEqual(await gs(['class="', 'class5-sub5', '"']), ['&-sub5'])
+		assert.deepEqual(await gs(['class="', 'class6-sub6', '"']), ['@at-root &-sub6'])
+		assert.deepEqual(await gs(['class="', 'class7-sub7', '"']), ['@at-root .class7-sub7'])
 	})
 
 	it('Should find right class definition as start part', async () => {

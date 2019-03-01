@@ -9,11 +9,13 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 
 	private document: TextDocument
 	private supportsNesting: boolean
+	private startOffset: number
 
 	constructor(document: TextDocument, offset: number) {
 		super(document.getText(), offset)
 		this.document = document
 		this.supportsNesting = CSSService.isLanguageSupportsNesting(document.languageId)
+		this.startOffset = offset
 	}
 
 	public scan(): SimpleSelector[] | null {
@@ -45,7 +47,7 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 		let parser = new CSSRangeParser(this.document)
 		let ranges = parser.parse()
 		let currentRange: NamedRange | undefined
-		let parentRange: NamedRange | undefined
+		let selectorIncludedParentRange: NamedRange | undefined
 
 		//binary searching should be a little better, but not help much
 		for (let i = 0; i < ranges.length; i++) {
@@ -53,23 +55,25 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 			let start = this.document.offsetAt(range.range.start)
 			let end = this.document.offsetAt(range.range.end)
 			
-			//is ancestor
-			if (this.offset >= start && this.offset < end) {
-				currentRange = ranges[i]
-				parentRange = currentRange
+			//is ancestor and has selector
+			if (this.startOffset >= start && this.startOffset < end) {
+				if (currentRange && this.isRangeHaveSelector(currentRange)) {
+					selectorIncludedParentRange = currentRange
+				}
+				currentRange = range
 			}
 
-			if (this.offset < start) {
+			if (this.startOffset < start) {
 				break
 			}
 		}
 
-		if (!parentRange) {
+		if (!selectorIncludedParentRange) {
 			return null
 		}
 
 		let selectors = []
-		for (let {full} of parentRange.names) {
+		for (let {full} of selectorIncludedParentRange.names) {
 			if (full[0] === '.' || full[0] === '#') {
 				let selector = SimpleSelector.create(full + word)
 				if (selector) {
@@ -79,5 +83,9 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 		}
 
 		return selectors
+	}
+
+	isRangeHaveSelector(range: NamedRange): boolean {
+		return range.names.some(({main}) => !!main)
 	}
 }

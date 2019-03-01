@@ -35,8 +35,9 @@ describe('Test Workspace Symbol', () => {
 		assert.deepEqual(await gws('tagnotmatch'), ['body tagnotmatch', 'body tagnotmatch'])
 	})
 
-	it('Should not combine with parent selectors when inside @at-root', async () => {
-		assert.deepEqual(await gws('.class6-child'), ['.class6-child'])
+	it('Should not combine with parent selectors with space when inside "@at-root", but still need to combine when starts with "&"', async () => {
+		assert.deepEqual(await gws('.class6-sub6'), ['.class6-sub6'])
+		assert.deepEqual(await gws('.class7-sub7'), ['.class7-sub7'])
 	})
 })
 

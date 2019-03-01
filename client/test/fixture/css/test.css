@@ -32,10 +32,13 @@ body tagnotmatch {
   color: red; }
 
 @media screen {
-  .class5-sub {
+  .class5-sub5 {
     color: red; } }
 
-.class6-sub, .class6-child {
+.class6-sub6 {
+  color: red; }
+
+.class7-sub7 {
   color: red; }
 
 .class-match1:hover {

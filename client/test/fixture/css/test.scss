@@ -55,14 +55,20 @@ body tagnotmatch{
 
 .class5{
 	@media screen {
-		&-sub{
+		&-sub5{
 			color: red;
 		}
 	}
 }
 
 .class6{
-	@at-root &-sub, .class6-child{
+	@at-root &-sub6{
+		color: red;
+	}
+}
+
+.class7{
+	@at-root .class7-sub7{
 		color: red;
 	}
 }
