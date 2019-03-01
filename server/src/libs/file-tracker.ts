@@ -98,7 +98,7 @@ export class FileTracker {
 	private async loadStartPath() {
 		timer.start('track')
 		await this.trackPath(this.startPath!)
-		timer.log(`${this.map.size} files tracked in ${timer.end('track')} milliseconds`)
+		timer.log(`${this.map.size} files tracked in ${timer.end('track')}ms`)
 		this.startPathLoaded = true
 	}
 
@@ -369,7 +369,7 @@ export class FileTracker {
 			let updatedCount = updateResults.reduce((count, value) => count + (value ? 1 : 0), 0)
 
 			if (updatedCount > 0) {
-				timer.log(`${updatedCount} files loaded in ${timer.end('update')} milliseconds`)
+				timer.log(`${updatedCount} files loaded in ${timer.end('update')}ms`)
 			}
 
 			this.allFresh = true

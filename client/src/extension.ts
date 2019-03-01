@@ -29,9 +29,10 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 		vscode.workspace.onDidChangeWorkspaceFolders(event => {
 			//since one 
 			for (let folder of event.removed) {
-				extension.onWorkspaceRemoved(folder)
+				extension.stopClientFor(folder)
 			}
 
+			//even only remove some, may still need to start servers for the folders contained in current removed folder
 			extension.checkClients()
 		})
 	)
@@ -98,13 +99,13 @@ export class CSSNavigationExtension {
 
 		//was covered by another folder, stop it
 		if (outmostWorkspaceURI && workspaceURI !== outmostWorkspaceURI && this.clients.has(workspaceURI)) {
-			this.clients.get(workspaceURI)!.stop()
+			this.stopClientFor(workspaceFolder)
 		}
 		
 		if (outmostWorkspaceURI && !this.clients.has(outmostWorkspaceURI)) {
 			let workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(outmostWorkspaceURI))
 			if (workspaceFolder) {
-				this.createClientForWorkspaceFolder(workspaceFolder)
+				this.startClientFor(workspaceFolder)
 			}
 		}
 	}
@@ -131,7 +132,7 @@ export class CSSNavigationExtension {
 		this.checkClientForworkspace(workspaceFolder)
 	}
 
-	private createClientForWorkspaceFolder(workspaceFolder: vscode.WorkspaceFolder) {
+	private startClientFor(workspaceFolder: vscode.WorkspaceFolder) {
 		let workspaceFolderPath = workspaceFolder.uri.fsPath
 		let activeHTMLFileExtensions: string[] = this.config.get('activeHTMLFileExtensions', [])
 		let activeCSSFileExtensions: string[] = this.config.get('activeCSSFileExtensions', [])
@@ -183,7 +184,7 @@ export class CSSNavigationExtension {
 		client.start()
 		this.clients.set(workspaceFolder.uri.toString(), client)
 
-		this.showChannelMessage(`Client for workspace folder "${workspaceFolder.name}" prepared`)
+		this.showChannelMessage(`Client for workspace folder "${workspaceFolder.name}" started`)
 	}
 
 	private getConfigObject(): Configuration {
@@ -204,7 +205,7 @@ export class CSSNavigationExtension {
 		this.channel.appendLine(message)
 	}
 	
-	onWorkspaceRemoved(workspaceFolder: vscode.WorkspaceFolder) {
+	stopClientFor(workspaceFolder: vscode.WorkspaceFolder) {
 		let uri = workspaceFolder.uri.toString()
 		let client = this.clients.get(uri)
 		if (client) {

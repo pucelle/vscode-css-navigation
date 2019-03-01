@@ -110,7 +110,7 @@ class CSSNaigationServer {
 			}
 		})
 
-		timer.log(`Server for workspace folder "${path.basename(this.options.workspaceFolderPath)}" prepared`)
+		timer.log(`Server for workspace folder "${path.basename(this.options.workspaceFolderPath)}" started`)
 	}
 
 	async findDefinitions(positonParams: TextDocumentPositionParams): Promise<Location[] | null> {
