@@ -3,10 +3,18 @@ import {timer} from '../../libs'
 import {CSSService} from './css-service'
 
 
+enum NameType{
+	Selector,
+	Keyframes,
+	AtRoot,
+	Command,	//means other command, in fact
+	Others
+}
+
 interface LeafName {
 	raw: string
 	full: string
-	isSelector: boolean
+	type: NameType
 }
 
 interface LeafRange {
@@ -84,12 +92,17 @@ export class CSSRangeParser {
 			if (endChar === '{' && selector) {
 				let startIndex = re.lastIndex - selector.length - 1
 				selector = selector.trimRight().replace(/\s+/g, ' ')
+				let names = this.parseToNames(selector)
 
-				if (this.ignoreDeep > 0 || this.shouldIgnoreDeeply(selector)) {
+				if (names.length === 0) {
+					continue
+				}
+
+				if (this.ignoreDeep > 0 || names[0].type === NameType.Keyframes) {
 					this.ignoreDeep++
 				}
-				
-				this.current = this.newLeafRange(selector, startIndex)
+
+				this.current = this.newLeafRange(names, startIndex)
 				ranges.push(this.current!)
 			}
 			else if (endChar === '}') {
@@ -116,30 +129,6 @@ export class CSSRangeParser {
 		return this.formatToNamedRanges(ranges)
 	}
 
-	private newLeafRange(selector: string, start: number): LeafRange {
-		let names = this.parseToNames(selector)
-
-		if (this.supportsNesting && this.ignoreDeep === 0 && this.current) {
-			names = this.combineNestingNames(names)
-		}
-
-		let parent = this.current
-		if (this.supportsNesting && parent) {
-			this.stack.push(parent)
-		}
-
-		return {
-			names,
-			start,
-			end: 0,
-			parent
-		}
-	}
-
-	private shouldIgnoreDeeply(declaration: string) {
-		return declaration.startsWith('@keyframes')
-	}
-
 	//may selectors like this: '[attr="]"]', but we are not high strictly parser
 	//if want to handle it, use /((?:\[(?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\]|\((?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\)|[\s\S])+?)(?:,|$)/g
 	private parseToNames(selectors: string): LeafName[] {
@@ -147,22 +136,24 @@ export class CSSRangeParser {
 		let names: LeafName[] = []
 		if (match) {
 			let command = match[0]
-			
-			if (this.languageId === 'scss' && command === '@at-root') {
+			let type = this.getCommandType(command)
+
+			//@at-root still follows selectors
+			if (type === NameType.AtRoot) {	//should only work on scss
 				names.push({
 					raw: command,
 					full: command,
-					isSelector: false
+					type
 				})
 				selectors = selectors.slice(command.length).trimLeft()
 			}
 
+			//other command take place whole line
 			else {
-				command = selectors
 				names.push({
-					raw: command,
-					full: command,
-					isSelector: false
+					raw: selectors,
+					full: selectors,
+					type
 				})
 				return names
 			}
@@ -187,7 +178,7 @@ export class CSSRangeParser {
 				names.push({
 					raw: name,
 					full: name,
-					isSelector: this.ignoreDeep === 0
+					type: this.ignoreDeep === 0 ? NameType.Selector : NameType.Others
 				})
 			}
 		}
@@ -195,26 +186,65 @@ export class CSSRangeParser {
 		return names
 	}
 
+	private getCommandType(command: string): NameType {
+		switch (command) {
+			case '@at-root':
+				return NameType.AtRoot
+
+			case '@keyframes':
+				return NameType.Keyframes
+			
+			default:
+			return NameType.Command
+		}
+	}
+
+	private newLeafRange(names: LeafName[], start: number): LeafRange {
+		if (this.supportsNesting && this.ignoreDeep === 0 && this.current && this.haveSelectorInNames(names)) {
+			names = this.combineNestingNames(names)
+		}
+
+		let parent = this.current
+		if (this.supportsNesting && parent) {
+			this.stack.push(parent)
+		}
+
+		return {
+			names,
+			start,
+			end: 0,
+			parent
+		}
+	}
+
+	private haveSelectorInNames(names: LeafName[]): boolean {
+		return names.length > 1 || names[0].type === NameType.Selector
+	}
+
 	private combineNestingNames(oldNames: LeafName[]): LeafName[] {
 		let re = /(?<=^|[\s+>~])&/g	//has sass reference '&' if match
 		let names:  LeafName[] = []
-		let parentFullNames = this.getClosestSelectorTypeFullNames()
+		let parentFullNames = this.getClosestSelectorFullNames()
+		let currentCommandType: NameType | undefined
 
 		for (let oldName of oldNames) {
-			if (!oldName.isSelector) {
+			//copy non selector one
+			if (oldName.type !== NameType.Selector) {
 				names.push(oldName)
+				currentCommandType = oldName.type
 			}
-			//not handle cross multiply when several '&' exist
+			//'a{&-b' -> 'a-b', not handle cross multiply when several '&' exist
 			else if (parentFullNames && re.test(oldName.full)) {
 				for (let parentFullName of parentFullNames) {
 					let full = oldName.full.replace(re, parentFullName)
-					names.push({full, raw: oldName.raw, isSelector: true})
+					names.push({full, raw: oldName.raw, type: NameType.Selector})
 				}
 			}
-			else if (parentFullNames) {
+			//'a{b}' -> 'a b', but not handle '@at-root a{b}'
+			else if (currentCommandType !== NameType.AtRoot && parentFullNames) {
 				for (let parentFullName of parentFullNames) {
 					let full = parentFullName + ' ' + oldName.full
-					names.push({full, raw: oldName.raw, isSelector: true})
+					names.push({full, raw: oldName.raw, type: NameType.Selector})
 				}
 			}
 			else {
@@ -225,10 +255,10 @@ export class CSSRangeParser {
 		return names
 	}
 
-	private getClosestSelectorTypeFullNames(): string[] | null {
+	private getClosestSelectorFullNames(): string[] | null {
 		let parent = this.current
 		while (parent) {
-			if (parent.names.length > 1 || parent.names[0] && parent.names[0].isSelector) {
+			if (this.haveSelectorInNames(parent.names)) {
 				break
 			}
 			parent = parent.parent
@@ -239,7 +269,7 @@ export class CSSRangeParser {
 		
 		let fullNames: string[] = []
 		for (let name of parent.names) {
-			if (name.isSelector) {
+			if (name.type === NameType.Selector) {
 				fullNames.push(name.full)
 			}
 		}
@@ -260,8 +290,8 @@ export class CSSRangeParser {
 		return ranges
 	}
 
-	private formatLeafNameToFullMainName({raw, full, isSelector}: LeafName): FullMainName {
-		if (!isSelector) {
+	private formatLeafNameToFullMainName({raw, full, type}: LeafName): FullMainName {
+		if (type !== NameType.Selector) {
 			return {
 				full,
 				main: ''

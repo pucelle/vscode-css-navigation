@@ -124,6 +124,7 @@ export class CSSService {
 
 
 export namespace CSSService {
+	
 	export function isLanguageSupportsNesting(languageId: string): boolean {
 		let supportedNestingLanguages = ['less', 'scss']
 		return supportedNestingLanguages.includes(languageId)

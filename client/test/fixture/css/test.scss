@@ -61,6 +61,12 @@ body tagnotmatch{
 	}
 }
 
+.class6{
+	@at-root &-sub, .class6-child{
+		color: red;
+	}
+}
+
 
 .class-match1:hover{
 	color: red;

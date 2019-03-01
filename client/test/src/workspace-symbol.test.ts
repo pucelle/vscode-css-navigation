@@ -34,5 +34,9 @@ describe('Test Workspace Symbol', () => {
 	it('Should combine selectors with spaces after eliminating sass nesting', async () => {
 		assert.deepEqual(await gws('tagnotmatch'), ['body tagnotmatch', 'body tagnotmatch'])
 	})
+
+	it('Should not combine with parent selectors when inside @at-root', async () => {
+		assert.deepEqual(await gws('.class6-child'), ['.class6-child'])
+	})
 })
 

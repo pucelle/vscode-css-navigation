@@ -35,6 +35,9 @@ body tagnotmatch {
   .class5-sub {
     color: red; } }
 
+.class6-sub, .class6-child {
+  color: red; }
+
 .class-match1:hover {
   color: red; }
 

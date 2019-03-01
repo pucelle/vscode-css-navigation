@@ -48,6 +48,7 @@ export class HTMLSimpleSelectorScanner extends ForwardScanner {
 			class="a b
 			class="a" b
 		have a very low possibility to meet '<tag a="class=" b', ignore it
+		the good part is it can get selectors in any place, no matter what's the code format
 		*/
 		if (this.peek() === '\\') {
 			this.forward()
