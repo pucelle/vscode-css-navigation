@@ -17,7 +17,7 @@ describe('Test CSS Definition', () => {
 		assert.deepEqual(await gs(['<', 'tag-not-match', '>']), [])
 	})
 
-	it('Should ignore tag definition when its not the start of selector combination', async () => {
+	it('Should ignore tag definition when its not the unique part splited by space', async () => {
 		assert.deepEqual(await gs(['<', 'tagnotmatch', '>']), [])
 	})
 
@@ -39,7 +39,7 @@ describe('Test CSS Definition', () => {
 		assert.deepEqual(await gs(['class="', 'class1-sub-tail', '"']), ['&-tail'])
 	})
 
-	it('Should find right class definition whthin sass nesting and have multiple parent selectors', async () => {
+	it('Should find right class definition whthin sass nesting when have multiple parent selectors', async () => {
 		assert.deepEqual(await gs(['class="', 'class2-sub', '"']), ['&-sub'])
 		assert.deepEqual(await gs(['class="', 'class3-sub', '"']), ['&-sub'])
 	})
@@ -52,13 +52,16 @@ describe('Test CSS Definition', () => {
 		assert.deepEqual(await gs(['class="', 'class4-sub-sub-tail', '"']), ['&-tail'])
 	})
 
-	it('Should combine sass reference symbol "&" across non-selector commands', async () => {
+	it('Should combine to eliminate "&" when parts splited by commands', async () => {
 		assert.deepEqual(await gs(['class="', 'class5-sub5', '"']), ['&-sub5'])
 		assert.deepEqual(await gs(['class="', 'class6-sub6', '"']), ['@at-root &-sub6'])
+	})
+
+	it('Should not combine with space when splited by "@at-root"', async () => {
 		assert.deepEqual(await gs(['class="', 'class7-sub7', '"']), ['@at-root .class7-sub7'])
 	})
 
-	it('Should find right class definition as start part', async () => {
+	it('Should find right class definition when it\'s start part', async () => {
 		assert.deepEqual(await gs(['class="', 'class-match1', '"']), ['.class-match1:hover'])
 		assert.deepEqual(await gs(['class="', 'class-match2', '"']), ['.class-match2::before'])
 		assert.deepEqual(await gs(['class="', 'class-match3', '"']), ['.class-match3[name=value]'])
@@ -79,7 +82,7 @@ describe('Test CSS Definition', () => {
 		assert.deepEqual(await gs(['class="', 'class-not-match4', '"']), [])
 	})
 
-	it('Should ignore definition when it use reference symbol "&" as single part, like "&:hover"', async () => {
+	it('Should not find definition when it use "&" as single part, without more words joined, like "&:hover"', async () => {
 		assert.deepEqual(await gs(['class="', 'class-sub-not-match', '"']), ['.class-sub-not-match'])
 	})
 

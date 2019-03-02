@@ -21,7 +21,7 @@ describe('Test Workspace Symbol', () => {
 		assert.ok((await gws('-sub')).length > 0)
 	})
 
-	it('Should fix nested symbol names which starts with "&"', async () => {
+	it('Should fix nested symbol names which start with "&"', async () => {
 		assert.deepEqual(await gws('.class1-sub'), ['.class1-sub', '.class1-sub-tail'])
 		assert.deepEqual(await gws('.class1-sub-tail'), ['.class1-sub-tail'])
 		assert.deepEqual(await gws('.class4-sub'), ['.class4-sub', '.class4-sub', '.class4-sub-sub', '.class4-sub-tail', '.class4-sub-sub-tail'])

@@ -189,8 +189,6 @@ class CSSNaigationServer {
 	}
 
 	async findRefenerces(params: ReferenceParams): Promise<Location[] | null> {
-		this.ensureHTMLService()
-
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
 		let position = params.position
@@ -203,7 +201,12 @@ class CSSNaigationServer {
 		if (this.config.activeHTMLFileExtensions.includes(extension)) {
 			if (this.config.alsoSearchDefinitionsInStyleTag) {
 				let filePath = Files.uriToFilePath(document.uri)
-				let htmlService = this.htmlServiceMap!.get(filePath!) || HTMLService.create(document)
+
+				let htmlService = this.htmlServiceMap ? this.htmlServiceMap.get(filePath!) : undefined
+				if (!htmlService) {
+					htmlService = HTMLService.create(document)
+				}
+
 				return HTMLService.findReferencesInInner(document, position, htmlService)
 			}
 			return null
@@ -215,6 +218,8 @@ class CSSNaigationServer {
 
 		let selectors = CSSService.getSimpleSelectorAt(document, position)
 		let locations: Location[] = []
+
+		this.ensureHTMLService()
 
 		if (selectors) {
 			for (let selector of selectors) {
