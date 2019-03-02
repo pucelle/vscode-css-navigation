@@ -12,7 +12,7 @@ Allowing **Go to Definition** from HTML to CSS, Class Name & ID **Completion**, 
 
 In a HTML document, or document whose extension is specified by `activeHTMLFileExtensions`, choose `Go to definition` or `Peek definition`, the extension will search related css selectors as definitions. Available CSS file extensions can also be specified by `activeCSSFileExtensions` option.
 
-Only within `<html-tag>`, `class="class-name"`, `id="id-name"`, you can `Go to definition` or `Peek definition`.
+Only within the word boundary of `<html-tag>`, `class="class-name"`, `id="id-name"`, you can `Go to definition` or `Peek definition`.
 
 Nesting reference names in Scss or Less are automatically combined:
 
@@ -44,24 +44,38 @@ This functionality should not be very usefull, and it needs to load and parse al
 ![reference](images/reference.gif)
 
 
-## Performance
+## Why started this project
 
-At beginning, this project is a fork from [vscode-css-peek](https://github.com/pranaygp/vscode-css-peek/tree/master/client), and fixed Scss nesting reference problem.
+At beginning, this project is a fork from [vscode-css-peek](https://github.com/pranaygp/vscode-css-peek/tree/master/client), which uses [vscode-css-languageservice](https://github.com/Microsoft/vscode-css-languageservice) as CSS parser. I just fixed some Scss nesting reference issues. I was inspired much by this project.
 
 But then I found it eats so much CPU & memory. E.g., one of my project has 280 CSS files out of 5500 files, includes 6 MB of css codes. On my MacBook Pro, it needs 7s to load (1.3s to search files and 6s to parse) and uses 700 MB memory. 
 
-So I decided to implement a new css parser, which also supports Scss & Less. It's a very simple parser and not 100% strict, but it's fast. Now it costs about 0.8s to search files, and 0.5s to parse them. Memory usage in caching parsed results is about 3x~10x to file size.
+Otherwise it keep parsing files every time you input a character, Let's assume you can input 10 characters in 1 second, since it's parse speed is about 1 MB/s, then if your document is more than 100 KB, your CPU usage will keep high.
 
-After files loaded, The extension will track file and directory changes automatically, and reload them if needed.
+So I decided to implement a new css parser and a new extension, which also supports Scss & Less naturally. It's a very simple parser and not 100% strict, but it's fast and very easy to extand. Now it costs about 0.8s to search files, and 0.5s to parse them. Memory usage in caching parsed results is about 3x~10x to file size, not 100x.
 
-Otherwise, all the things will be started only when required by default, so CSS files are loaded only when you begin to search definitions, completion, or workspace symbols. You may change this behavior by specify `preloadCSSFiles` option.
+All the things will be started only when required by default, so CSS files are loaded only when you begin to search definitions or others. You may change this behavior by specify `preloadCSSFiles` option.
+
+After files loaded, The extension will track file and directory changes, creations, removals automatically, and reload them if needed.
+
+Further more, I found the extension can support class name and id completion by the same core, so I do it with very few codes.
+
+Finding references uses another core, I implement it because my work have a heavy CSS part, and I love refactoring CSS codes. I believe few people will use it.
+
 
 
 ## Stress Test
 
-I loaded 100 MB (0.9 M declarations, 2.8 M lines) CSS files for stress test, it took 8s to parse them, and used about 850 MB memory. After 1 minute, the memory usage fell back to 550 MB. Searching definitions cost about 50ms, Searching workspace symbols cost about 500ms, Searching completions cost about 230ms.
+I loaded 100 MB (0.9 M declarations, 2.8 M lines) CSS files for stress test, it took 8s to parse them, and used about 850 MB memory. After 1 minute, the memory usage fell back to 550 MB. Searching definitions across all 0.9 M declarations cost about 50ms, Searching workspace symbols cost about 500ms, Searching completions cost about 230ms.
 
 My environment is Win10, MacBook Pro 2014 version (I love MacBook so much, until they removed the function keys😢), with power on.
+
+
+## Plans and More
+
+This should be the first time I write a vscode extension (although I had wrote another very simple one). I'm keep trying to make it have well-structured codes, and full test cases.
+
+I have plans to make this extension grow, but I need more feedbacks. Thanks.
 
 
 ## Configuration
@@ -71,7 +85,7 @@ My environment is Win10, MacBook Pro 2014 version (I love MacBook so much, until
  - `excludeGlobPatterns`: A glob pattern, defines paths to exclude from when searching for CSS definitions. Default value is `["**/node_modules/**", "**/bower_components/**"]`.
  - `alsoSearchDefinitionsInStyleTag`: Is `false` by default. When set to `true`, will also search CSS definitions in `<style>` tag for current document.
  - `searchAcrossWorkspaceFolders`: When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current worksapce, you should set this to `true`.
-- `preloadCSSFiles`: When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you change and save it or VSCode startup. If you are a heavy user in CSS definition searching, just check it.
+ - `preloadCSSFiles`: When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you change and save it or VSCode startup. If you are a heavy user in CSS definition searching, just check it.
  - `ignoreSameNameCSSFile`: When `true` by default, e.g.: If 'the-name.scss and 'the-name.css', which share the same basename, are exist in the same directory, the 'the-name.css' will be skipped. If you prefer compiling Scss or Less file to the same name CSS file, this would be very helpful.
  - `ignoreCustomElement`: "When `true` by default, custom element definitions in CSS will be ignored, such that it will go to it's defined place directly.
 
