@@ -1,9 +1,9 @@
 {
 	"name": "vscode-css-navigation",
 	"displayName": "CSS Navigation",
-	"description": "Allows Go to Definition from HTML to CSS, provide Completion and Workspace Symbols for dlass & id name, and supports Find References from CSS to HTML.",
+	"description": "Allows Go to Definition from HTML to CSS, provides Completion and Workspace Symbols for class & id name, and supports Finding References from CSS to HTML.",
 	"icon": "images/logo.png",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -70,7 +70,9 @@
 					"type": "array",
 					"default": [
 						"**/node_modules/**",
-						"**/bower_components/**"
+						"**/bower_components/**",
+						"**/vendor/**",
+						"**/coverage/**"
 					],
 					"items": {
 						"type": "string"
