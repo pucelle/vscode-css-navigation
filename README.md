@@ -10,27 +10,31 @@ Allows **Go to Definition** from HTML to CSS, provides **Completion** and **Work
 
 ### Go to Definition and Peek Definition
 
-In a HTML document, or a HTML like document whose extension is specified by `activeHTMLFileExtensions`, choose `Go to definition` or `Peek definition`, the extension will search related CSS & Scss & Less selectors in current workspace folder as definitions.
+In a HTML document, choose `Go to definition` or `Peek definition`, the extension will search related CSS & Scss & Less selectors in current workspace folder.
 
-Only within the word boundary of `<html-tag>`, `class="class-name"`, `id="id-name"`, you can `Go to definition` or `Peek definition`.
+Nesting reference "&" in Scss or Less is automatically combined.
 
-Nesting reference "&" in Scss or Less is automatically combined:
+The places you can find definitions:
+
+ - HTML (or files whose extension specified by `activeHTMLFileExtensions` option): `<html-tag>`, `class="class-name"`, `id="id-name"`.
+ - JSX & TSX: `className="class-name"`, `className={'class-name'}`.
+
 
 ![nesting](images/nesting.gif)
 
 
 ### Workspace symbols
 
-Allow to search workspace symbols in CSS & Scss & Less files across all activated workspace folders.
+Allows to search workspace symbols in CSS & Scss & Less files across all activated workspace folders.
 
 ![workspace-symbol](images/workspace-symbol.gif)
 
 
 ### Class Name and ID Completion
 
-Provide class name and id completion for your HTML files.
+Provides class name and id completion for your HTML files.
 
-It doesn't support remote sources, and doesn't follow the `<link>` tags in your HTML file to limit the completion results, but lists all the defined class & id name in CSS & Scss & Less files of your workspace folders.
+Not that the extension doesn't support remote sources, and doesn't follow the `<link>` tags in your HTML file to limit the completion results, it just lists all the defined class & id name in CSS & Scss & Less files in your workspace folders.
 
 ![completion](images/completion.gif)
 
@@ -46,20 +50,19 @@ This functionality should not be very usefull, and it needs to load and parse al
 
 ## Why started this project
 
-At beginning, this project is a fork from [vscode-css-peek](https://github.com/pranaygp/vscode-css-peek/tree/master/client), which uses [vscode-css-languageservice](https://github.com/Microsoft/vscode-css-languageservice) as CSS parser. I just fixed some Scss nesting reference issues. I was inspired much by this project.
+At beginning, this project is a fork from [vscode-css-peek](https://github.com/pranaygp/vscode-css-peek/tree/master/client), which uses [vscode-css-languageservice](https://github.com/Microsoft/vscode-css-languageservice) as CSS parser. I fixed some Scss nesting reference issues. I was inspired much by this project.
 
-But then I found it eats so much CPU & memory. E.g., one of my project has 280 CSS files out of 5500 files, includes 6 MB of css codes. On my MacBook Pro, it needs 7s to load (1.3s to search files and 6s to parse) and uses 700 MB memory. Otherwise it keep parsing files every time you input a character, Let's assume you can input 10 characters in 1 second, since it's parse speed is about 1 MB/s, then if your document is more than 100 KB, your CPU usage will keep high.
+Then I found it eats so much CPU & memory. E.g., one of my project has 280 CSS files out of 5500 files, includes 6 MB css codes. On my MacBook Pro, it needs 7s to load (1.3s to search files in folder and 6s to parse), and uses 700 MB memory. Otherwise it keep parsing files every time you input a character, Assume that you can input 10 characters in 1 second, since it's parse speed is about 1 MB/s, so if your document is more than 100 KB, your CPU usage will keep high.
 
-So I decided to implement a new css parser, which also supports Scss & Less naturally, and then created a new extension. The CSS parser is very simple and not 100% strict, but it's fast and very easy to extand. Now it costs about 0.8s to search files, and 0.5s to parse them. Memory usage in caching parsed results is only about 3x~10x to file size.
+Finally I decided to implement a new css parser, which also supports Scss & Less naturally, as a result I created a new extension. The CSS parser is very simple and not 100% strict, but it's fast and very easy to extand. Now it costs about 0.8s to search files, and 0.5s to parse them. Memory usage in caching parsed results is only about 3x~10x to file size.
 
-Otherwise, all the things will be started only when required by default, so CSS files are loaded only when you begin to search definitions or others. You may change this behavior by specify `preloadCSSFiles` option.
+Otherwise, all the functionality will be started only when required by default, so CSS files are loaded only when you begin to search definitions or others. You may change this behavior by specify `preloadCSSFiles` option.
 
 After files loaded, The extension will track file and directory changes, creations, removals automatically, and reload them if needed.
 
 Further more, I found the extension can support class name and id completion by the same core, so I do it with very few codes.
 
 Finding references uses another core, I implement it because my work have a heavy CSS part, and I love refactoring CSS codes. I believe few people will need it.
-
 
 
 ## Stress Test & Performance
