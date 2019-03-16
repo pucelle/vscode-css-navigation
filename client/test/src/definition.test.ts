@@ -1,8 +1,8 @@
 import * as assert from 'assert'
-import {prepare, searchSymbolNames as gs} from './helper'
+import {prepare, searchSymbolNames as gs, jsxDocument} from './helper'
 
 
-describe('Test CSS Definition', () => {
+describe('Test Finding Definition from HTML', () => {
 	before(prepare)
 
 	it('Should ignore css file when same name scss file exists', async () => {
@@ -89,5 +89,27 @@ describe('Test CSS Definition', () => {
 	it('Should find definition inside <style> tag, be aware this is not available by default', async () => {
 		assert.deepEqual(await gs(['class="', 'css-class-in-style', '"']), ['.css-class-in-style'])
 		assert.deepEqual(await gs(['class="', 'scss-class-in-style', '"']), ['&-in-style'])
+	})
+})
+
+
+describe('Test Finding Definition from JSX', () => {
+	before(prepare)
+
+	it('Should find right id definition', async () => {
+		assert.deepEqual(await gs(['"', 'id1', '"'], jsxDocument), ['#id1'])
+	})
+
+	it('Should find right class definition', async () => {
+		assert.deepEqual(await gs(['"', 'class1', '"'], jsxDocument), ['.class1'])
+	})
+
+	it('Should find right class definition within expression', async () => {
+		assert.deepEqual(await gs(['', 'class2', ''], jsxDocument), ['.class2, .class3'])
+		assert.deepEqual(await gs(['', 'class3', ''], jsxDocument), ['.class2, .class3'])
+	})
+
+	it('Should not find class definition when cross expressions', async () => {
+		assert.deepEqual(await gs(['', 'react-class-not-match', ''], jsxDocument), [])
 	})
 })

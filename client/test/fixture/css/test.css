@@ -88,3 +88,6 @@ body tagnotmatch {
 
 .class-sub-not-match::before {
   color: red; }
+
+.react-class-not-match {
+  color: red; }

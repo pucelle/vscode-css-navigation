@@ -2,6 +2,7 @@ import {TextDocument, Location, Position, Range} from 'vscode-languageserver'
 import {SimpleSelector} from '../common/simple-selector'
 import {NamedRange, HTMLRangeParser} from './html-range-parser'
 import {HTMLSimpleSelectorScanner} from './html-scanner'
+import {JSXSimpleSelectorScanner} from './jsx-scanner'
 import {CSSService} from '../css/css-service'
 
 
@@ -41,8 +42,13 @@ export namespace HTMLService {
 	export function getSimpleSelectorAt(document: TextDocument, position: Position): SimpleSelector | null {
 		let text = document.getText()
 		let offset = document.offsetAt(position)
-		
-		return new HTMLSimpleSelectorScanner(text, offset).scan()
+
+		if (document.languageId === 'javascriptreact' || document.languageId === 'typescriptreact') {
+			return new JSXSimpleSelectorScanner(text, offset).scan()
+		}
+		else {
+			return new HTMLSimpleSelectorScanner(text, offset).scan()
+		}
 	}
 
 	export function findDefinitionsInInnerStyle(document: TextDocument, select: SimpleSelector): Location[] {
