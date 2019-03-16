@@ -19,12 +19,14 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 			return null
 		}
 
+		this.skipWhiteSpaces()
+		
 		if (this.peek() === '{') {
 			inExpression = true
 			this.forward()
+			this.skipWhiteSpaces()
 		}
-
-		this.skipWhiteSpaces()
+		
 		if (this.read() !== '=') {
 			return null
 		}
