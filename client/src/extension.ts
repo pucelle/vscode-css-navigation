@@ -4,7 +4,7 @@ import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} fro
 import {getOutmostWorkspaceURI, getExtension, generateGlobPatternFromExtensions, getTimeMarker} from './util'
 
 
-process.on('unhandledRejection', function(reason, promise) {
+process.on('unhandledRejection', function(reason) {
     console.log("Unhandled Rejection: ", reason)
 })
 

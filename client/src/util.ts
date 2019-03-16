@@ -20,6 +20,8 @@ export function generateGlobPatternFromExtensions(extensions: string[]): string 
 	else if (extensions.length === 1) {
 		return '**/*.' + extensions[0]
 	}
+
+	return undefined
 }
 
 export function getTimeMarker() {
