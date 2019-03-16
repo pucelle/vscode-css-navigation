@@ -1,8 +1,13 @@
 # ChangeLog
 
+## [1.1.0]
+
+ - Supports finding references in `JSX` language.
+
+
 ## [1.0.3]
 
- - Skip `coverage` directory.
+ - Skips `coverage` directory.
 
 
 ## [1.0.2]
