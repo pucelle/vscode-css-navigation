@@ -1,5 +1,5 @@
 import * as assert from 'assert'
-import {prepare, searchReferences as sr} from './helper'
+import {prepare, searchReferences as sr, htmlDocument} from './helper'
 
 
 describe('Test Reference', () => {
@@ -28,10 +28,10 @@ describe('Test Reference', () => {
 
 	it('Should find reference in current HTML document, be aware this is not available by default', async () => {
 		assert.ok(
-			(await sr('.css-class-in-style', true))!.includes('<div class="css-class-in-style">')
+			(await sr('.css-class-in-style', htmlDocument))!.includes('<div class="css-class-in-style">')
 		)
 		assert.ok(
-			(await sr('&-in-style', true))!.includes('<div class="scss-class-in-style">')
+			(await sr('&-in-style', htmlDocument))!.includes('<div class="scss-class-in-style">')
 		)
 	})
 })

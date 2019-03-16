@@ -67,13 +67,13 @@ export function logListReturnedFunctionExecutedTime<A extends any[], T>(fn: Resu
 		
 		if (list) {
 			if (list.length === 0) {
-				log(`No ${type} found, ${time}ms cost`)
+				log(`No ${type} found, ${time} ms cost`)
 			}
 			else if (list.length === 1) {
-				log(`1 ${type} found, ${time}ms cost`)
+				log(`1 ${type} found, ${time} ms cost`)
 			}
 			else {
-				log(`${list.length} ${type}s found, ${time}ms cost`)
+				log(`${list.length} ${type}s found, ${time} ms cost`)
 			}
 		}
 

@@ -3,12 +3,15 @@ import * as assert from 'assert'
 import * as vscode from 'vscode'
 import {CSSNavigationExtension} from '../../out/extension'
 
-export async function sleep(ms: number) {
+
+export function sleep(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-let htmlDocument: vscode.TextDocument
-let cssDocument: vscode.TextDocument
+export let htmlDocument: vscode.TextDocument
+export let cssDocument: vscode.TextDocument
+export let jsxDocument: vscode.TextDocument
+
 export async function prepare() {
 	if (htmlDocument) {
 		return htmlDocument
@@ -20,6 +23,10 @@ export async function prepare() {
 	extension.channel.show()
 
 	htmlDocument = await vscode.workspace.openTextDocument(getFixtureFileUri('index.html'))
+	await vscode.window.showTextDocument(htmlDocument)
+	await vscode.commands.executeCommand('workbench.action.keepEditor')
+
+	jsxDocument = await vscode.workspace.openTextDocument(getFixtureFileUri('index.jsx'))
 	await vscode.window.showTextDocument(htmlDocument)
 	await vscode.commands.executeCommand('workbench.action.keepEditor')
 
@@ -43,8 +50,8 @@ async function getExtensionExport(): Promise<CSSNavigationExtension> {
 
 
 
-export async function searchSymbolNames ([start, selector, end]: [string, string, string]): Promise<string[] | null> {
-	let ranges = searchHTMLDocumentForSelector([start, selector, end])
+export async function searchSymbolNames([start, selector, end]: [string, string, string], document: vscode.TextDocument = htmlDocument): Promise<string[] | null> {
+	let ranges = searchDocumentForSelector([start, selector, end], document)
 	let searchWord = start + selector + end
 
 	if (!ranges) {
@@ -52,13 +59,13 @@ export async function searchSymbolNames ([start, selector, end]: [string, string
 		return null
 	}
 
-	let namesOfStart = await getSymbolNamesAtPosition(ranges.in.start)
-	let namesOfEnd = await getSymbolNamesAtPosition(ranges.in.end)
+	let namesOfStart = await getSymbolNamesAtPosition(ranges.in.start, document)
+	let namesOfEnd = await getSymbolNamesAtPosition(ranges.in.end, document)
 
 	assert.deepEqual(namesOfStart, namesOfEnd, 'Can find same definition from start and end position')
 
-	let namesOutOfStart = await getSymbolNamesAtPosition(ranges.out.start)
-	let namesOutOfEnd = await getSymbolNamesAtPosition(ranges.out.end)
+	let namesOutOfStart = await getSymbolNamesAtPosition(ranges.out.start, document)
+	let namesOutOfEnd = await getSymbolNamesAtPosition(ranges.out.end, document)
 
 	assert.ok(namesOutOfStart.length === 0, `Can't find definition from out of left range`)
 	assert.ok(namesOutOfEnd.length === 0, `Can't find definition from out of left range`)
@@ -66,13 +73,13 @@ export async function searchSymbolNames ([start, selector, end]: [string, string
 	return namesOfStart
 }
 
-function searchHTMLDocumentForSelector([start, selector, end]: [string, string, string]): {in: vscode.Range, out: vscode.Range} | null {
+function searchDocumentForSelector([start, selector, end]: [string, string, string], document: vscode.TextDocument): {in: vscode.Range, out: vscode.Range} | null {
 	let searchWord = start + selector + end
 	let matchRange: any
 	let outerRange: any
 
-	for (let i = 0; i < htmlDocument.lineCount; i++) {
-		let line = htmlDocument.lineAt(i)
+	for (let i = 0; i < document.lineCount; i++) {
+		let line = document.lineAt(i)
 		let index = line.text.indexOf(searchWord)
 		if (index > -1) {
 			matchRange = new vscode.Range(
@@ -97,8 +104,8 @@ function searchHTMLDocumentForSelector([start, selector, end]: [string, string, 
 	}
 }
 
-async function getSymbolNamesAtPosition(position: vscode.Position): Promise<string[]> {
-	let locations = <vscode.Location[]>await vscode.commands.executeCommand('vscode.executeDefinitionProvider', htmlDocument.uri, position)
+async function getSymbolNamesAtPosition(position: vscode.Position, document: vscode.TextDocument): Promise<string[]> {
+	let locations = <vscode.Location[]>await vscode.commands.executeCommand('vscode.executeDefinitionProvider', document.uri, position)
 	let symbolNames = []
 
 	for (let location of locations) {
@@ -109,11 +116,10 @@ async function getSymbolNamesAtPosition(position: vscode.Position): Promise<stri
 }
 
 async function getCodePieceFromLocation(location: vscode.Location): Promise<string> {
-	let cssDocument = await vscode.workspace.openTextDocument(location.uri)
-	let text = cssDocument.getText()
- 	return text.slice(cssDocument.offsetAt(location.range.start), cssDocument.offsetAt(location.range.end)).replace(/\s*\{[\s\S]+/, '')
+	let document = await vscode.workspace.openTextDocument(location.uri)
+	let text = document.getText()
+ 	return text.slice(document.offsetAt(location.range.start), document.offsetAt(location.range.end)).replace(/\s*\{[\s\S]+/, '')
 }
-
 
 
 
@@ -126,8 +132,7 @@ export async function searchWorkspaceSymbolNames(query: string): Promise<string[
 
 
 
-export async function searchReferences (searchWord: string, inHTML: boolean = false): Promise<string[] | null> {
-	let document = inHTML ? htmlDocument : cssDocument
+export async function searchReferences (searchWord: string, document: vscode.TextDocument = cssDocument): Promise<string[] | null> {
 	let ranges = searchWordInDocument(searchWord, document)
 	if (!ranges) {
 		assert.fail(`Can't find "${searchWord}" in ${path.basename(document.uri.toString())}`)
@@ -184,7 +189,10 @@ async function getReferenceNamesAtPosition(position: vscode.Position, document: 
 
 	for (let location of locations) {
 		if (location.uri.toString().endsWith('.html')) {
-			referenceNames.push(await getCodePieceFromLocation(location))
+			let codePiece = await getCodePieceFromLocation(location)
+			if (codePiece.startsWith('<')) {
+				referenceNames.push(codePiece)
+			}
 		}
 	}
 
