@@ -21,3 +21,15 @@ export function generateGlobPatternFromExtensions(extensions: string[]): string 
 		return '**/*.' + extensions[0]
 	}
 }
+
+export function getTimeMarker() {
+	let date = new Date()
+	
+	return '['
+		+ String(date.getHours())
+		+ ':'
+		+ String(date.getMinutes()).padStart(2, '0')
+		+ ':'
+		+ String(date.getSeconds()).padStart(2, '0')
+		+ '] '
+}

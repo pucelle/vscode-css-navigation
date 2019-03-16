@@ -7,7 +7,7 @@ export function pipeTo(connection: Connection) {
 	scopedConsole = connection.console
 }
 
-function getTimeString() {
+function getTimeMarker() {
 	let date = new Date()
 	
 	return '['
@@ -20,19 +20,19 @@ function getTimeString() {
 }
 
 export function log(msg: string) {
-	scopedConsole.log(getTimeString() + msg)
+	scopedConsole.log(getTimeMarker() + msg)
 }
 
 export function info(msg: string) {
-	scopedConsole.info(getTimeString() + msg)
+	scopedConsole.info(getTimeMarker() + msg)
 }
 
 export function warn(msg: string) {
-	scopedConsole.warn(getTimeString() + msg)
+	scopedConsole.warn(getTimeMarker() + msg)
 }
 
 export function error(msg: string | Error) {
-	scopedConsole.error(getTimeString() + msg)
+	scopedConsole.error(getTimeMarker() + msg)
 }
 
 

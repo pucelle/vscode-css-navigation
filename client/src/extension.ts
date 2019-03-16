@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} from 'vscode-languageclient'
-import {getOutmostWorkspaceURI, getExtension, generateGlobPatternFromExtensions} from './util'
+import {getOutmostWorkspaceURI, getExtension, generateGlobPatternFromExtensions, getTimeMarker} from './util'
 
 
 process.on('unhandledRejection', function(reason, promise) {
@@ -184,7 +184,7 @@ export class CSSNavigationExtension {
 		client.start()
 		this.clients.set(workspaceFolder.uri.toString(), client)
 
-		this.showChannelMessage(`Client for workspace folder "${workspaceFolder.name}" started`)
+		this.showChannelMessage(getTimeMarker() + `Client for workspace folder "${workspaceFolder.name}" started`)
 	}
 
 	private getConfigObject(): Configuration {
