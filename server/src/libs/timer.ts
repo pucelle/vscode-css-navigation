@@ -7,6 +7,7 @@ export function pipeTo(connection: Connection) {
 	scopedConsole = connection.console
 }
 
+
 function getTimeMarker() {
 	let date = new Date()
 	
@@ -38,7 +39,7 @@ export function error(msg: string | Error) {
 
 let startTimeMap: Map<string, number> = new Map()
 
-export function getMillisecond(): number {
+function getMillisecond(): number {
 	let time = process.hrtime()
 	return time[0] * 1000 + time[1] / 1000000
 }
