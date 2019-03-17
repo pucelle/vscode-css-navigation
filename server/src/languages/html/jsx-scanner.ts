@@ -14,23 +14,28 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		
 		//Should ignore <ComponentName>, it's not a truly exist elemenet which may have selector match.
 
-		let [untilChar, readChars] = this.readUntil(['<', '\'', '"', '`'], 1024)
+		let [untilChar] = this.readUntil(['<', '\'', '"', '`'], 1024)
 		if (!untilChar || untilChar === '<') {
 			return null
 		}
 
 		this.skipWhiteSpaces()
-		
-		if (this.peek() === '{') {
+
+		if (this.peek() !== '=') {
+			//assume it's in 'className={...[HERE]...}'
+			[untilChar] = this.readUntil(['<', '{', '}'], 1024)
+			if (!untilChar || untilChar !== '{') {
+				return null
+			}
+
 			inExpression = true
-			this.forward()
-			this.skipWhiteSpaces()
 		}
-		
+
+		this.skipWhiteSpaces()
 		if (this.read() !== '=') {
 			return null
 		}
-
+		
 		this.skipWhiteSpaces()
 		let attribute = this.readWord()
 
