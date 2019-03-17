@@ -73,6 +73,8 @@ describe('Test Finding Definition from HTML', () => {
 		assert.deepEqual(await gs(['class="', 'class-match6', '"']), ['.class-any > .class-match6'])
 		assert.deepEqual(await gs(['class="', 'class-match7', '"']), ['.class-any + .class-match7'])
 		assert.deepEqual(await gs(['class="', 'class-match8', '"']), ['.class-any ~ .class-match8'])
+		assert.deepEqual(await gs(['class="', 'class-match9', '"']), ['.class-any.class-match9'])
+		assert.deepEqual(await gs(['class="', 'class-match10', '"']), ['div.class-match10'])
 	})
 
 	it('Should not find definition when not been start of right most descendant part', async () => {
@@ -107,9 +109,6 @@ describe('Test Finding Definition from JSX', () => {
 	it('Should find right class definition within expression', async () => {
 		assert.deepEqual(await gs(['', 'class2', ''], jsxDocument), ['.class2, .class3'])
 		assert.deepEqual(await gs(['', 'class3', ''], jsxDocument), ['.class2, .class3'])
-	})
-
-	it('Should not find class definition when cross expressions', async () => {
-		assert.deepEqual(await gs(['', 'react-class-not-match', ''], jsxDocument), [])
+		assert.deepEqual(await gs(['', 'class4', ''], jsxDocument), ['.class4, .class4-sub'])
 	})
 })

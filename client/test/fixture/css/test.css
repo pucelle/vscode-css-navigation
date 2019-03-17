@@ -65,10 +65,16 @@ body tagnotmatch {
 .class-any ~ .class-match8 {
   color: red; }
 
-.class-any.class-not-match1 {
+.class-any.class-match9 {
   color: red; }
 
-.class-any:matches(.class-not-match2) {
+div.class-match10 {
+  color: red; }
+
+.class-any:matches(.class-not-match1) {
+  color: red; }
+
+.class-any:not(.class-not-match2) {
   color: red; }
 
 .class-not-match3 .class-any {
@@ -87,7 +93,4 @@ body tagnotmatch {
   color: red; }
 
 .class-sub-not-match::before {
-  color: red; }
-
-.react-class-not-match {
   color: red; }

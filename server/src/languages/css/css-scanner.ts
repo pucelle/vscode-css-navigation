@@ -86,6 +86,6 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 	}
 
 	isRangeHaveSelector(range: NamedRange): boolean {
-		return range.names.some(({main}) => !!main)
+		return range.names.some(({mains}) => mains !== null)
 	}
 }

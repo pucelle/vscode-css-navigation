@@ -36,7 +36,7 @@ export class HTMLSimpleSelectorScanner extends ForwardScanner {
 			return SimpleSelector.create(word)
 		}
 
-		let [untilChar, readChars] = this.readUntil(['<', '\'', '"'], 1024)
+		let [untilChar] = this.readUntil(['<', '\'', '"'], 1024)
 		if (!untilChar || untilChar === '<') {
 			return null
 		}

@@ -25,8 +25,8 @@ export class CSSService {
 		let selectorRaw = selector.raw
 
 		for (let range of this.ranges) {
-			let isMatch = range.names.some(({main}) => {
-				return main === selectorRaw
+			let isMatch = range.names.some(({mains}) => {
+				return mains !== null && mains.includes(selectorRaw)
 			})
 
 			if (isMatch) {
@@ -110,8 +110,13 @@ export class CSSService {
 		let selectorRaw = selector.raw
 
 		for (let range of this.ranges) {
-			for (let {main} of range.names) {
-				if (main.startsWith(selectorRaw)) {
+			for (let {mains} of range.names) {
+				if (mains === null) {
+					continue
+				}
+
+				let main = mains.find(main => main.startsWith(selectorRaw))
+				if (main) {
 					let label = main.slice(1)	//only id or class selector, no tag selector provided
 					labelSet.add(label)
 				}

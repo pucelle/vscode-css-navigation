@@ -7,7 +7,7 @@ enum NameType{
 	Selector,
 	Keyframes,
 	AtRoot,
-	Command,	//means other command, in fact
+	OtherCommand,
 	Others
 }
 
@@ -26,7 +26,7 @@ interface LeafRange {
 
 interface FullMainName {
 	full: string
-	main: string
+	mains: string[] | null
 }
 
 export interface NamedRange {
@@ -39,7 +39,6 @@ export class CSSRangeParser {
 	private supportedLanguages = ['css', 'less', 'scss']
 	private supportsNesting: boolean
 	private document: TextDocument
-	private languageId: string
 
 	private stack: LeafRange[] = []
 	private current: LeafRange | undefined
@@ -54,7 +53,6 @@ export class CSSRangeParser {
 			timer.log(`Language "${languageId}" is not a declared css language, using css language instead.`)
 		}
 
-		this.languageId = languageId
 		this.supportsNesting = CSSService.isLanguageSupportsNesting(languageId)
 		this.document = document
 	}
@@ -195,7 +193,7 @@ export class CSSRangeParser {
 				return NameType.Keyframes
 			
 			default:
-			return NameType.Command
+			return NameType.OtherCommand
 		}
 	}
 
@@ -281,7 +279,7 @@ export class CSSRangeParser {
 
 		for (let {names, start, end} of leafRanges) {
 			ranges.push({
-				names: names.map(name => this.formatLeafNameToFullMainName(name)),
+				names: names.map(leafName => this.formatLeafNameToFullMainName(leafName)),
 				//positionAt use a binary search algorithm, it should be fast enough, no need to count lines here, although faster
 				range: Range.create(this.document.positionAt(start), this.document.positionAt(end))
 			})
@@ -294,16 +292,23 @@ export class CSSRangeParser {
 		if (type !== NameType.Selector) {
 			return {
 				full,
-				main: ''
+				mains: null
 			}
 		}
 
-		//if raw selector is like '&:...', ignore the main
+		//if raw selector is like '&:...', ignore processing the main
 		let shouldHaveMain = !this.hasSingleReferenceInRightMostDescendant(raw)
-		
+		if (!shouldHaveMain) {
+			return {
+				full,
+				mains: null
+			}
+		}
+
+		let mains = this.getMainSelectors(full)
 		return {
 			full,
-			main: shouldHaveMain ? this.getMainSelector(full) : ''
+			mains
 		}
 	}
 
@@ -321,24 +326,29 @@ export class CSSRangeParser {
 		.a::before
 		.a.b
 	*/
-	private getMainSelector(selector: string): string {
+	private getMainSelectors(selector: string): string[] | null {
 		let rightMost = this.getRightMostDescendant(selector)
 		if (!rightMost) {
-			return ''
+			return null
+		}
+		
+		let match = rightMost.match(/^\w[\w-]*/)
+		if (match) {
+			//if main is a tag selector, it must be the only
+			if (match[0].length === selector.length) {
+				return match
+			}
+			rightMost = rightMost.slice(match[0].length)
+		}
+		
+		//class and id selectors must followed each other
+		let mains: string[] = []
+		while (match = rightMost.match(/^[#.]\w[\w-]*/)) {
+			mains.push(match[0])
+			rightMost = rightMost.slice(match[0].length)
 		}
 
-		let match = rightMost.match(/^[#.]?\w[\w-]*/)
-		if (!match) {
-			return ''
-		}
-
-		let main = match[0]
-		//if main is a tag selector, it must be at the start position
-		if (/^[\w]/.test(main) && rightMost.length < selector.length) {
-			return ''
-		}
-
-		return main
+		return mains.length > 0 ? mains : null
 	}
 
 	//the descendant combinator used to split ancestor and descendant: space > + ~
