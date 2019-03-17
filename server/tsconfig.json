@@ -1,23 +1,23 @@
 {
-  "compilerOptions": {
-    "target": "esnext",
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "sourceMap": true,
-    "outDir": "out",
-    "rootDir": "src",
-    "lib": ["esnext"],
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": true,
-    "noImplicitThis": true
-  },
-  "include": ["src"],
-  "exclude": [
-    "node_modules", 
-    ".vscode-test"
-  ]
+	"compilerOptions": {
+		"target": "esnext",
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"sourceMap": true,
+		"outDir": "out",
+		"rootDir": "src",
+		"lib": ["esnext"],
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitAny": true,
+		"noImplicitThis": true
+	},
+	"include": ["src"],
+	"exclude": [
+		"node_modules", 
+		".vscode-test"
+	]
 }

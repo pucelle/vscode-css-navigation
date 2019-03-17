@@ -7,7 +7,8 @@
 			"group": "build",
 			"presentation": {
 				"panel": "dedicated",
-				"reveal": "never"
+				"reveal": "silent",
+				"clear": true
 			},
 			"problemMatcher": [
 				"$tsc"
@@ -23,7 +24,8 @@
 			},
 			"presentation": {
 				"panel": "dedicated",
-				"reveal": "never"
+				"reveal": "silent",
+				"clear": true
 			},
 			"problemMatcher": [
 				"$tsc-watch"
