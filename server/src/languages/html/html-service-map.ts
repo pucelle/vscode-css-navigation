@@ -8,13 +8,13 @@ export class HTMLServiceMap extends FileTracker {
 
 	private serviceMap: Map<string, HTMLService> = new Map()
 
-	protected onTrack(filePath: string, item: FileTrackerItem) {}
+	protected onTrack() {}
 
-	protected onExpired(filePath: string, item: FileTrackerItem) {
+	protected onExpired(filePath: string) {
 		this.serviceMap.delete(filePath)
 	}
 
-	protected onUnTrack(filePath: string, item: FileTrackerItem) {
+	protected onUnTrack(filePath: string) {
 		this.serviceMap.delete(filePath)
 	}
 

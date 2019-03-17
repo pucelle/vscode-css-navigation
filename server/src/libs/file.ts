@@ -17,7 +17,7 @@ export function readText(fsPath: string): Promise<string> {
 }
 
 export function stat(fsPath: string): Promise<fs.Stats | null> {
-	return new Promise((resolve, reject) => {
+	return new Promise((resolve) => {
 		fs.stat(fsPath, (err, stat) => {
 			if (err) {
 				resolve(null)
@@ -49,6 +49,7 @@ export function generateGlobPatternFromPatterns(patterns: string[]): string | un
 	else if (patterns.length === 1) {
 		return patterns[0]
 	}
+	return undefined
 }
 
 export function generateGlobPatternFromExtensions(extensions: string[]): string | undefined {
@@ -58,6 +59,7 @@ export function generateGlobPatternFromExtensions(extensions: string[]): string 
 	else if (extensions.length === 1) {
 		return '**/*.' + extensions[0]
 	}
+	return undefined
 }
 
 export function getExtension(filePath: string): string {

@@ -19,7 +19,7 @@ export class CSSServiceMap extends FileTracker {
 		this.ignoreSameNameCSSFile = options.ignoreSameNameCSSFile
 	}
 
-	protected onTrack(filePath: string, item: FileTrackerItem) {
+	protected onTrack(filePath: string) {
 		if (this.ignoreSameNameCSSFile) {
 			let ext = path.extname(filePath).slice(1).toLowerCase()
 			if (ext === 'css') {
@@ -37,11 +37,11 @@ export class CSSServiceMap extends FileTracker {
 		}
 	}
 
-	protected onExpired(filePath: string, item: FileTrackerItem) {
+	protected onExpired(filePath: string) {
 		this.serviceMap.delete(filePath)
 	}
 
-	protected onUnTrack(filePath: string, item: FileTrackerItem) {
+	protected onUnTrack(filePath: string) {
 		this.serviceMap.delete(filePath)
 
 		if (this.ignoreSameNameCSSFile) {

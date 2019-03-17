@@ -421,8 +421,8 @@ export class FileTracker {
 		return document
 	}
 
-	protected onTrack(filePath: string, item: FileTrackerItem) {}
-	protected onExpired(filePath: string, item: FileTrackerItem) {}
-	protected async onUpdate(filePath: string, item: FileTrackerItem) {}
-	protected onUnTrack(filePath: string, item: FileTrackerItem) {}
+	protected onTrack(_filePath: string, _item: FileTrackerItem) {}
+	protected onExpired(_filePath: string, _item: FileTrackerItem) {}
+	protected async onUpdate(_filePath: string, _item: FileTrackerItem) {}
+	protected onUnTrack(_filePath: string, _item: FileTrackerItem) {}
 }

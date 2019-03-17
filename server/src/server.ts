@@ -23,7 +23,7 @@ import {CSSService, CSSServiceMap} from './languages/css'
 import {file, timer} from './libs'
 
 
-process.on('unhandledRejection', function(reason, promise) {
+process.on('unhandledRejection', function(reason) {
     timer.log("Unhandled Rejection: " + reason)
 })
 
@@ -60,7 +60,7 @@ connection.onInitialize((params: InitializeParams) => {
 				change: TextDocumentSyncKind.Full
 			},
 			completionProvider: {
-				resolveProvider: true
+				resolveProvider: false
 			},
 			definitionProvider: true,
 			referencesProvider: true,
@@ -73,7 +73,6 @@ connection.onInitialized(() => {
 	connection.onDefinition(timer.logListReturnedFunctionExecutedTime(server.findDefinitions.bind(server), 'definition'))
 	connection.onWorkspaceSymbol(timer.logListReturnedFunctionExecutedTime(server.findSymbolsMatchQueryParam.bind(server), 'workspace symbol'))
 	connection.onCompletion(timer.logListReturnedFunctionExecutedTime(server.provideCompletion.bind(server), 'completion'))
-	connection.onCompletionResolve(server.onCompletionResolve.bind(server))
 	connection.onReferences(timer.logListReturnedFunctionExecutedTime(server.findRefenerces.bind(server), 'reference'))
 })
 
@@ -182,10 +181,6 @@ class CSSNaigationServer {
 			item.kind = CompletionItemKind.Class
 			return item
 		})
-	}
-
-	onCompletionResolve(item: CompletionItem): CompletionItem {
-		return item
 	}
 
 	async findRefenerces(params: ReferenceParams): Promise<Location[] | null> {
