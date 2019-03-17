@@ -1,6 +1,5 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import * as rawGlob from 'glob'
 
 
 export function readText(fsPath: string): Promise<string> {
@@ -29,18 +28,6 @@ export function stat(fsPath: string): Promise<fs.Stats | null> {
 	})
 }
 
-export function glob(pattern: string, options: rawGlob.IOptions = {}): Promise<string[]> {
-	return new Promise((resolve, reject) => {
-		rawGlob(pattern, options, (err, paths) => {
-			if (err) {
-				reject(err)
-			}
-			else {
-				resolve(paths)
-			}
-		})
-	})
-}
 
 export function generateGlobPatternFromPatterns(patterns: string[]): string | undefined {
 	if (patterns.length > 1) {
@@ -61,6 +48,7 @@ export function generateGlobPatternFromExtensions(extensions: string[]): string 
 	}
 	return undefined
 }
+
 
 export function getExtension(filePath: string): string {
 	return path.extname(filePath).slice(1).toLowerCase()
