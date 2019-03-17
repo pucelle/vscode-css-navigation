@@ -1,5 +1,9 @@
 # ChangeLog
 
+## [1.2.0]
+
+ - Now `.any-class.class1` and `p.class1` will match definition for `.class1`.
+
 ## [1.1.0]
 
  - Supports finding references in `JSX` language.
