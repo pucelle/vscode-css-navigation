@@ -1,128 +1,133 @@
 {
-  "name": "vscode-css-navigation",
-  "displayName": "CSS Navigation",
-  "description": "Allows Go to Definition from HTML to CSS, provides Completion and Workspace Symbols for class & id name, and supports Finding References from CSS to HTML.",
-  "icon": "images/logo.png",
-  "version": "1.2.0",
-  "license": "MIT",
-  "publisher": "pucelle",
-  "homepage": "https://github.com/pucelle/vscode-css-navigation",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/pucelle/vscode-css-navigation.git"
-  },
-  "bugs": {
-    "url": "https://github.com/pucelle/vscode-navigation/issues"
-  },
-  "engines": {
-    "vscode": "^1.31.1"
-  },
-  "categories": [
-    "Programming Languages"
-  ],
-  "keywords": [
-    "CSS Go to Definition",
-    "CSS Peek Definition",
-    "CSS Completion",
-    "CSS Workspace Symbol",
-    "Sass, Less"
-  ],
-  "activationEvents": [
-    "onLanguage:plaintext"
-  ],
-  "main": "./client/out/extension",
-  "contributes": {
-    "configuration": {
-      "type": "object",
-      "title": "CSS Navigation",
-      "properties": {
-        "CSSNavigation.activeHTMLFileExtensions": {
-          "type": "array",
-          "default": [
-            "html",
-            "ejs",
-            "erb",
-            "php",
-            "hbs",
-            "js",
-            "ts",
-            "jsx",
-            "tsx"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "description": "The extensions of the HTML files, in where you can `go to definition`."
-        },
-        "CSSNavigation.activeCSSFileExtensions": {
-          "type": "array",
-          "default": [
-            "css",
-            "scss",
-            "less"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "description": "The extensions of the CSS files, where you can `go to` and `peek`."
-        },
-        "CSSNavigation.excludeGlobPatterns": {
-          "type": "array",
-          "default": [
-            "**/node_modules/**",
-            "**/bower_components/**",
-            "**/vendor/**",
-            "**/coverage/**"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "description": "A glob pattern, defines paths to exclude when searching for CSS definitions."
-        },
-        "CSSNavigation.alsoSearchDefinitionsInStyleTag": {
-          "type": "boolean",
-          "default": false,
-          "description": "When set to `true`, also search CSS definitions in <style> tag for current document."
-        },
-        "CSSNavigation.searchAcrossWorkspaceFolders": {
-          "type": "boolean",
-          "default": false,
-          "description": "When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current worksapce, you should set this to `true`."
-        },
-        "CSSNavigation.preloadCSSFiles": {
-          "type": "boolean",
-          "default": false,
-          "description": "When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you save or project startup. If you are a heavy user in CSS definition searching, just check it."
-        },
-        "CSSNavigation.ignoreSameNameCSSFile": {
-          "type": "boolean",
-          "default": true,
-          "description": "When `true` by default, e.g.: If 'the-name.scss and 'the-name.css', which share the same basename, are exist in the same directory, the 'the-name.css' will be skipped. If you prefer compiling Scss or Less file to the same name CSS file, this would be very helpful."
-        },
-        "CSSNavigation.ignoreCustomElement": {
-          "type": "boolean",
-          "default": true,
-          "description": "When `true` by default, custom element definitions in CSS will be ignored, such that it will go to it's defined place directly."
-        }
-      }
-    }
-  },
-  "scripts": {
-    "vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
-    "compile": "tsc -b",
-    "watch": "tsc -b -w",
-    "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-    "test": "sh ./client/test/scripts/e2e.sh"
-  },
-  "devDependencies": {
-    "@types/glob": "^7.1.1",
-    "@types/minimatch": "^3.0.3",
-    "@types/mocha": "^5.2.5",
-    "@types/node": "^8.10.40",
-    "typescript": "^3.3.3"
-  },
-  "dependencies": {
-    "glob": "^7.1.3",
-    "minimatch": "^3.0.4"
-  }
+	"name": "vscode-css-navigation",
+	"displayName": "CSS Navigation",
+	"description": "Allows Go to Definition from HTML to CSS, provides Completion and Workspace Symbols for class & id name, and supports Finding References from CSS to HTML.",
+	"icon": "images/logo.png",
+	"version": "1.3.0",
+	"license": "MIT",
+	"publisher": "pucelle",
+	"homepage": "https://github.com/pucelle/vscode-css-navigation",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/pucelle/vscode-css-navigation.git"
+	},
+	"bugs": {
+		"url": "https://github.com/pucelle/vscode-navigation/issues"
+	},
+	"engines": {
+		"vscode": "^1.31.1"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"keywords": [
+		"CSS Go to Definition",
+		"CSS Peek Definition",
+		"CSS Completion",
+		"CSS Workspace Symbol",
+		"Sass, Less"
+	],
+	"activationEvents": [
+		"onLanguage:plaintext"
+	],
+	"main": "./client/out/extension",
+	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "CSS Navigation",
+			"properties": {
+				"CSSNavigation.activeHTMLFileExtensions": {
+					"type": "array",
+					"default": [
+						"html",
+						"ejs",
+						"erb",
+						"php",
+						"hbs",
+						"js",
+						"ts",
+						"jsx",
+						"tsx"
+					],
+					"items": {
+						"type": "string"
+					},
+					"description": "The extensions of the HTML files, in where you can `go to definition`."
+				},
+				"CSSNavigation.activeCSSFileExtensions": {
+					"type": "array",
+					"default": [
+						"css",
+						"scss",
+						"less"
+					],
+					"items": {
+						"type": "string"
+					},
+					"description": "The extensions of the CSS files, where you can `go to` and `peek`."
+				},
+				"CSSNavigation.excludeGlobPatterns": {
+					"type": "array",
+					"default": [
+						"**/node_modules/**",
+						"**/bower_components/**",
+						"**/vendor/**",
+						"**/coverage/**"
+					],
+					"items": {
+						"type": "string"
+					},
+					"description": "A glob pattern, defines paths to exclude when searching for CSS definitions."
+				},
+				"CSSNavigation.alsoSearchDefinitionsInStyleTag": {
+					"type": "boolean",
+					"default": false,
+					"description": "When set to `true`, also search CSS definitions in <style> tag for current document."
+				},
+				"CSSNavigation.searchAcrossWorkspaceFolders": {
+					"type": "boolean",
+					"default": false,
+					"description": "When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current worksapce, you should set this to `true`."
+				},
+				"CSSNavigation.preloadCSSFiles": {
+					"type": "boolean",
+					"default": false,
+					"description": "When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you save or project startup. If you are a heavy user in CSS definition searching, just check it."
+				},
+				"CSSNavigation.ignoreSameNameCSSFile": {
+					"type": "boolean",
+					"default": true,
+					"description": "When `true` by default, e.g.: If 'the-name.scss and 'the-name.css', which share the same basename, are exist in the same directory, the 'the-name.css' will be skipped. If you prefer compiling Scss or Less file to the same name CSS file, this would be very helpful."
+				},
+				"CSSNavigation.ignoreCustomElement": {
+					"type": "boolean",
+					"default": true,
+					"description": "When `true` by default, custom element definitions in CSS will be ignored, such that it will go to it's defined place directly."
+				},
+				"CSSNavigation.ignoreFilesInGitIgnore": {
+					"type": "boolean",
+					"default": true,
+					"description": "When `true` by default, finding references will ignore the files and directories list in `.gitignore`."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
+		"compile": "tsc -b",
+		"watch": "tsc -b -w",
+		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
+		"test": "sh ./client/test/scripts/e2e.sh"
+	},
+	"devDependencies": {
+		"@types/glob": "^7.1.1",
+		"@types/minimatch": "^3.0.3",
+		"@types/mocha": "^5.2.5",
+		"@types/node": "^8.10.40",
+		"typescript": "^3.3.3"
+	},
+	"dependencies": {
+		"glob": "^7.1.3",
+		"minimatch": "^3.0.4"
+	}
 }

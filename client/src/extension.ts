@@ -1,7 +1,8 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} from 'vscode-languageclient'
-import {getOutmostWorkspaceURI, getExtension, generateGlobPatternFromExtensions, getTimeMarker} from './util'
+import {getOutmostWorkspaceURI, getExtension, generateGlobPatternFromExtensions, getTimeMarker, unique} from './util'
+import {getGitIgnoreGlobPatterns} from './gitignore-parser'
 
 
 process.on('unhandledRejection', function(reason) {
@@ -66,6 +67,7 @@ export class CSSNavigationExtension {
 	private context: vscode.ExtensionContext
 	private config!: vscode.WorkspaceConfiguration
 	private clients: Map<string, LanguageClient> = new Map()	//one client for each workspace folder
+	private gitIgnoreWatcher: vscode.FileSystemWatcher | null = null
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context
@@ -75,6 +77,20 @@ export class CSSNavigationExtension {
 
 	loadConfig() {
 		this.config = vscode.workspace.getConfiguration('CSSNavigation')
+	}
+
+	private getConfigObject(): Configuration {
+		let config = this.config
+
+		return {
+			activeHTMLFileExtensions: <string[]>config.get('activeHTMLFileExtensions', []),
+			activeCSSFileExtensions: <string[]>config.get('activeCSSFileExtensions', []),
+			excludeGlobPatterns: <string[]>config.get('excludeGlobPatterns') || [],
+			alsoSearchDefinitionsInStyleTag: config.get('alsoSearchDefinitionsInStyleTag', false),
+			preloadCSSFiles: config.get('preloadCSSFiles', false),
+			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
+			ignoreCustomElement: config.get('ignoreCustomElement', false)
+		}
 	}
 
 	checkClients() {
@@ -132,7 +148,7 @@ export class CSSNavigationExtension {
 		this.checkClientForworkspace(workspaceFolder)
 	}
 
-	private startClientFor(workspaceFolder: vscode.WorkspaceFolder) {
+	private async startClientFor(workspaceFolder: vscode.WorkspaceFolder) {
 		let workspaceFolderPath = workspaceFolder.uri.fsPath
 		let activeHTMLFileExtensions: string[] = this.config.get('activeHTMLFileExtensions', [])
 		let activeCSSFileExtensions: string[] = this.config.get('activeCSSFileExtensions', [])
@@ -152,6 +168,12 @@ export class CSSNavigationExtension {
 		//to notify open / close / content changed for html & css files in specified range 
 		//and provide language service for them
 		let htmlCSSPattern = generateGlobPatternFromExtensions([...activeHTMLFileExtensions, ...activeCSSFileExtensions])
+		let ignoreGlobPatterns = await this.checkAndGetGitIgnoreGlobPatterns(workspaceFolder)
+		let configuration = this.getConfigObject()
+
+		if (ignoreGlobPatterns) {
+			configuration.excludeGlobPatterns = unique([...configuration.excludeGlobPatterns, ...ignoreGlobPatterns])
+		}
 
 		let clientOptions: LanguageClientOptions = {
 			documentSelector: [{
@@ -176,7 +198,7 @@ export class CSSNavigationExtension {
 
 			initializationOptions: <InitializationOptions>{
 				workspaceFolderPath,
-				configuration: this.getConfigObject()
+				configuration
 			}
 		}
 
@@ -187,24 +209,41 @@ export class CSSNavigationExtension {
 		this.showChannelMessage(getTimeMarker() + `Client for workspace folder "${workspaceFolder.name}" started`)
 	}
 
-	private getConfigObject(): Configuration {
-		let config = this.config
-
-		return {
-			activeHTMLFileExtensions: <string[]>config.get('activeHTMLFileExtensions', []),
-			activeCSSFileExtensions: <string[]>config.get('activeCSSFileExtensions', []),
-			excludeGlobPatterns: <string[]>config.get('excludeGlobPatterns') || [],
-			alsoSearchDefinitionsInStyleTag: config.get('alsoSearchDefinitionsInStyleTag', false),
-			preloadCSSFiles: config.get('preloadCSSFiles', false),
-			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
-			ignoreCustomElement: config.get('ignoreCustomElement', false)
+	private async checkAndGetGitIgnoreGlobPatterns(workspaceFolder: vscode.WorkspaceFolder): Promise<string[] | null> {
+		if (this.config.get('ignoreFilesInGitIgnore', true)) {
+			this.watchGitIgnore(workspaceFolder)
+			return await getGitIgnoreGlobPatterns(workspaceFolder)
+		}
+		else {
+			this.unwatchGitIgnore()
+			return null
 		}
 	}
 
-	private showChannelMessage(message: string) {
-		this.channel.appendLine(message)
+	private watchGitIgnore(workspaceFolder: vscode.WorkspaceFolder) {
+		this.unwatchGitIgnore()
+		this.gitIgnoreWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(workspaceFolder.uri.fsPath, `.gitignore`))
+
+		let onGitIgnoreChange = () => {
+			this.onGitIgnoreChange(workspaceFolder)
+		}
+
+		this.gitIgnoreWatcher.onDidCreate(onGitIgnoreChange)
+		this.gitIgnoreWatcher.onDidDelete(onGitIgnoreChange)
+		this.gitIgnoreWatcher.onDidChange(onGitIgnoreChange)
 	}
-	
+
+	private unwatchGitIgnore() {
+		if (this.gitIgnoreWatcher) {
+			this.gitIgnoreWatcher.dispose()
+		}
+	}
+
+	private onGitIgnoreChange(workspaceFolder: vscode.WorkspaceFolder) {
+		this.stopClientFor(workspaceFolder)
+		this.checkClients()
+	}
+
 	stopClientFor(workspaceFolder: vscode.WorkspaceFolder) {
 		let uri = workspaceFolder.uri.toString()
 		let client = this.clients.get(uri)
@@ -215,6 +254,10 @@ export class CSSNavigationExtension {
 		}
 	}
 
+	private showChannelMessage(message: string) {
+		this.channel.appendLine(message)
+	}
+	
 	async restartAllClients() {
 		await this.stopAllClients()
 		this.checkClients()

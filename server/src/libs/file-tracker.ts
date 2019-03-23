@@ -1,6 +1,9 @@
 import * as path from 'path'
-import * as glob from 'glob'
+import * as _glob from 'glob'
 import * as minimatch from 'minimatch'
+import * as util from 'util'
+const glob = util.promisify(_glob)
+
 
 import {
 	TextDocuments,
@@ -208,7 +211,7 @@ export class FileTracker {
 	}
 	
 	private async getFilePathsInFolder(folderPath: string): Promise<string[]> {
-		let cssFilePaths = await glob.__promisify__(`${folderPath.replace(/\\/g, '/')}/${this.includeGlobPattern}`, {
+		let cssFilePaths = await glob(`${folderPath.replace(/\\/g, '/')}/${this.includeGlobPattern}`, {
 			ignore: this.excludeGlobPattern || undefined,
 			nodir: true
 		})
