@@ -30,7 +30,7 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 		vscode.workspace.onDidChangeWorkspaceFolders(event => {
 			//since one 
 			for (let folder of event.removed) {
-				extension.stopClientFor(folder)
+				extension.stopClient(folder)
 			}
 
 			//even only remove some, may still need to start servers for the folders contained in current removed folder
@@ -67,7 +67,7 @@ export class CSSNavigationExtension {
 	private context: vscode.ExtensionContext
 	private config!: vscode.WorkspaceConfiguration
 	private clients: Map<string, LanguageClient> = new Map()	//one client for each workspace folder
-	private gitIgnoreWatcher: vscode.FileSystemWatcher | null = null
+	private gitIgnoreWatchers: Map<string, vscode.FileSystemWatcher> = new Map()
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context
@@ -115,7 +115,7 @@ export class CSSNavigationExtension {
 
 		//was covered by another folder, stop it
 		if (outmostWorkspaceURI && workspaceURI !== outmostWorkspaceURI && this.clients.has(workspaceURI)) {
-			this.stopClientFor(workspaceFolder)
+			this.stopClient(workspaceFolder)
 		}
 		
 		if (outmostWorkspaceURI && !this.clients.has(outmostWorkspaceURI)) {
@@ -215,42 +215,46 @@ export class CSSNavigationExtension {
 			return await getGitIgnoreGlobPatterns(workspaceFolder)
 		}
 		else {
-			this.unwatchGitIgnore()
 			return null
 		}
 	}
 
 	private watchGitIgnore(workspaceFolder: vscode.WorkspaceFolder) {
-		this.unwatchGitIgnore()
-		this.gitIgnoreWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(workspaceFolder.uri.fsPath, `.gitignore`))
+		this.unwatchGitIgnore(workspaceFolder)
 
+		let watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(workspaceFolder.uri.fsPath, `.gitignore`))
 		let onGitIgnoreChange = () => {
-			this.onGitIgnoreChange(workspaceFolder)
+			this.restartClient(workspaceFolder)
 		}
 
-		this.gitIgnoreWatcher.onDidCreate(onGitIgnoreChange)
-		this.gitIgnoreWatcher.onDidDelete(onGitIgnoreChange)
-		this.gitIgnoreWatcher.onDidChange(onGitIgnoreChange)
+		watcher.onDidCreate(onGitIgnoreChange)
+		watcher.onDidDelete(onGitIgnoreChange)
+		watcher.onDidChange(onGitIgnoreChange)
+
+		this.gitIgnoreWatchers.set(workspaceFolder.uri.fsPath, watcher)
 	}
 
-	private unwatchGitIgnore() {
-		if (this.gitIgnoreWatcher) {
-			this.gitIgnoreWatcher.dispose()
+	private unwatchGitIgnore(workspaceFolder: vscode.WorkspaceFolder) {
+		let watcher = this.gitIgnoreWatchers.get(workspaceFolder.uri.fsPath)
+		if (watcher) {
+			watcher.dispose()
 		}
 	}
 
-	private onGitIgnoreChange(workspaceFolder: vscode.WorkspaceFolder) {
-		this.stopClientFor(workspaceFolder)
+	private async restartClient(workspaceFolder: vscode.WorkspaceFolder) {
+		await this.stopClient(workspaceFolder)
 		this.checkClients()
 	}
 
-	stopClientFor(workspaceFolder: vscode.WorkspaceFolder) {
+	async stopClient(workspaceFolder: vscode.WorkspaceFolder) {
+		this.unwatchGitIgnore(workspaceFolder)
+
 		let uri = workspaceFolder.uri.toString()
 		let client = this.clients.get(uri)
 		if (client) {
 			this.clients.delete(uri)
-			client.stop()
-			this.showChannelMessage(`Client for workspace folder "${workspaceFolder.name}" stopped`)
+			await client.stop()
+			this.showChannelMessage(getTimeMarker() + `Client for workspace folder "${workspaceFolder.name}" stopped`)
 		}
 	}
 
@@ -264,15 +268,14 @@ export class CSSNavigationExtension {
 	}
 
 	async stopAllClients() {
-		let promises: Thenable<void>[] = []
-		for (let client of this.clients.values()) {
-			promises.push(client.stop())
+		let promises: Promise<void>[] = []
+		for (let uri of this.clients.keys()) {
+			let workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(uri))
+			if (workspaceFolder) {
+				this.stopClient(workspaceFolder)
+			}
 		}
 		await Promise.all(promises)
 		this.clients.clear()
-		
-		if (promises.length > 0) {
-			this.showChannelMessage(`All clients stopped`)
-		}
 	}
 }
