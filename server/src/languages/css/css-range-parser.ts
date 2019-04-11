@@ -84,12 +84,12 @@ export class CSSRangeParser {
 		let match: RegExpExecArray | null
 
 		while (match = re.exec(text)) {
-			let selector = match[1]
+			let chars = match[1]
 			let endChar = match[2]
 
-			if (endChar === '{' && selector) {
-				let startIndex = re.lastIndex - selector.length - 1
-				selector = selector.trimRight().replace(/\s+/g, ' ')
+			if (endChar === '{' && chars) {
+				let startIndex = re.lastIndex - chars.length - 1
+				let selector = chars.trimRight().replace(/\s+/g, ' ')
 				let names = this.parseToNames(selector)
 
 				if (names.length === 0) {
