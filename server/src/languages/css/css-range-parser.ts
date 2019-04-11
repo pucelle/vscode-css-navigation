@@ -221,7 +221,7 @@ export class CSSRangeParser {
 
 	private combineNestingNames(oldNames: LeafName[]): LeafName[] {
 		let re = /(?<=^|[\s+>~])&/g	//has sass reference '&' if match
-		let names:  LeafName[] = []
+		let names: LeafName[] = []
 		let parentFullNames = this.getClosestSelectorFullNames()
 		let currentCommandType: NameType | undefined
 
