@@ -39,7 +39,7 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		this.skipWhiteSpaces()
 		let attribute = this.readWord()
 
-		if (attribute === 'className' || attribute === 'id' && !inExpression) {
+		if (attribute === 'className' || attribute === 'class' || attribute === 'id' && !inExpression) {
 			let raw = (attribute === 'className' ? '.' : '#') + word
 			return SimpleSelector.create(raw)
 		}
