@@ -12,7 +12,7 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 			return null
 		}
 		
-		//Should ignore <ComponentName>, it's not a truly exist elemenet which may have selector match.
+		// Should ignore <ComponentName>, it's not a truly exist elemenet which may have selector match.
 
 		let [untilChar] = this.readUntil(['<', '\'', '"', '`'], 1024)
 		if (!untilChar || untilChar === '<') {
@@ -22,7 +22,7 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		this.skipWhiteSpaces()
 
 		if (this.peek() !== '=') {
-			//assume it's in 'className={...[HERE]...}'
+			// Assume it's in `className={...[HERE]...}` or `class="..."`
 			[untilChar] = this.readUntil(['<', '{', '}'], 1024)
 			if (!untilChar || untilChar !== '{') {
 				return null
@@ -40,7 +40,7 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		let attribute = this.readWord()
 
 		if (attribute === 'className' || attribute === 'class' || attribute === 'id' && !inExpression) {
-			let raw = (attribute === 'className' ? '.' : '#') + word
+			let raw = (attribute === 'id' ? '#' : '.') + word
 			return SimpleSelector.create(raw)
 		}
 

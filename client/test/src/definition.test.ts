@@ -104,11 +104,12 @@ describe('Test Finding Definition from JSX', () => {
 
 	it('Should find right class definition', async () => {
 		assert.deepEqual(await gs(['"', 'class1', '"'], jsxDocument), ['.class1'])
+		assert.deepEqual(await gs(['"', 'class2', '"'], jsxDocument), ['.class2, .class3'])
 	})
 
 	it('Should find right class definition within expression', async () => {
-		assert.deepEqual(await gs(['', 'class2', ''], jsxDocument), ['.class2, .class3'])
 		assert.deepEqual(await gs(['', 'class3', ''], jsxDocument), ['.class2, .class3'])
 		assert.deepEqual(await gs(['', 'class4', ''], jsxDocument), ['.class4, .class4-sub'])
+		assert.deepEqual(await gs(['', 'class5', ''], jsxDocument), ['.class5'])
 	})
 })
