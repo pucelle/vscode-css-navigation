@@ -1,8 +1,15 @@
 # ChangeLog
 
+## [1.4.0]
+
+ - Will aspect nested `.gitignore` and `.npmignore` in different folders when looking for CSS definitions.
+ - Fix the issue that `class="..."` can't be recognized in `jsx` and `tsx` file.
+ - Can find CSS definitions in ES template css`...`.
+
+
 ## [1.3.0]
 
- - Will ignore finding references in the files listed in `.gitignore`.
+ - Will ignore the files listed in `.gitignore` when looking for CSS definitions.
 
 
 ## [1.2.0]
@@ -12,7 +19,7 @@
 
 ## [1.1.0]
 
- - Supports finding references in `JSX` language.
+ - Supports looking for CSS definitions in `JSX` language.
 
 
 ## [1.0.3]
