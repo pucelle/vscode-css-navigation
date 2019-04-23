@@ -53,14 +53,18 @@ export namespace HTMLService {
 
 	export function findDefinitionsInInnerStyle(document: TextDocument, select: SimpleSelector): Location[] {
 		let text = document.getText()
-		let re = /<style\b(.*?)>(.*?)<\/style>/gs
+		let re = /<style\b(.*?)>(.*?)<\/style>|css`(.*?)`/gs
 		let match: RegExpExecArray | null
 		let locations: Location[] = []
 
 		while (match = re.exec(text)) {
-			let languageId = getLanguageIdFromPropertiesText(match[1] || '')
-			let cssText = match[2]
-			let styleIndex = re.lastIndex - 8 - cssText.length
+			let languageId = match[1] ? getLanguageIdFromPropertiesText(match[1] || '') : 'scss'
+			let cssText = match[2] || match[3]
+
+			let styleIndex = match[2]
+				? re.lastIndex - 8 - cssText.length	// 8 is the length of `</style>`
+				: re.lastIndex - 1 - cssText.length	// 1 is the length of `
+
 			let cssDocument = TextDocument.create('untitled.' + languageId , languageId, 0, cssText)
 			let cssLocations = CSSService.create(cssDocument).findLocationsMatchSelector(select)
 
