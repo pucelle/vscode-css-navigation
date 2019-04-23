@@ -1,8 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} from 'vscode-languageclient'
-import {getOutmostWorkspaceURI, getExtension, generateGlobPatternFromExtensions, getTimeMarker, unique} from './util'
-import {getGitIgnoreGlobPatterns} from './gitignore-parser'
+import {getOutmostWorkspaceURI, getExtension, generateGlobPatternFromExtensions, getTimeMarker} from './util'
 
 
 process.on('unhandledRejection', function(reason) {
@@ -168,12 +167,7 @@ export class CSSNavigationExtension {
 		//to notify open / close / content changed for html & css files in specified range 
 		//and provide language service for them
 		let htmlCSSPattern = generateGlobPatternFromExtensions([...activeHTMLFileExtensions, ...activeCSSFileExtensions])
-		let ignoreGlobPatterns = await this.checkAndGetGitIgnoreGlobPatterns(workspaceFolder)
 		let configuration = this.getConfigObject()
-
-		if (ignoreGlobPatterns) {
-			configuration.excludeGlobPatterns = unique([...configuration.excludeGlobPatterns, ...ignoreGlobPatterns])
-		}
 
 		let clientOptions: LanguageClientOptions = {
 			documentSelector: [{
@@ -207,38 +201,8 @@ export class CSSNavigationExtension {
 		this.clients.set(workspaceFolder.uri.toString(), client)
 
 		this.showChannelMessage(getTimeMarker() + `Client for workspace folder "${workspaceFolder.name}" started`)
-	}
 
-	private async checkAndGetGitIgnoreGlobPatterns(workspaceFolder: vscode.WorkspaceFolder): Promise<string[] | null> {
-		if (this.config.get('ignoreFilesInGitIgnore', true)) {
-			this.watchGitIgnore(workspaceFolder)
-			return await getGitIgnoreGlobPatterns(workspaceFolder)
-		}
-		else {
-			return null
-		}
-	}
-
-	private watchGitIgnore(workspaceFolder: vscode.WorkspaceFolder) {
-		this.unwatchGitIgnore(workspaceFolder)
-
-		let watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(workspaceFolder.uri.fsPath, `.gitignore`))
-		let onGitIgnoreChange = () => {
-			this.restartClient(workspaceFolder)
-		}
-
-		watcher.onDidCreate(onGitIgnoreChange)
-		watcher.onDidDelete(onGitIgnoreChange)
-		watcher.onDidChange(onGitIgnoreChange)
-
-		this.gitIgnoreWatchers.set(workspaceFolder.uri.fsPath, watcher)
-	}
-
-	private unwatchGitIgnore(workspaceFolder: vscode.WorkspaceFolder) {
-		let watcher = this.gitIgnoreWatchers.get(workspaceFolder.uri.fsPath)
-		if (watcher) {
-			watcher.dispose()
-		}
+		this.watchGitIgnoreFile(workspaceFolder)
 	}
 
 	private async restartClient(workspaceFolder: vscode.WorkspaceFolder) {
@@ -247,7 +211,7 @@ export class CSSNavigationExtension {
 	}
 
 	async stopClient(workspaceFolder: vscode.WorkspaceFolder) {
-		this.unwatchGitIgnore(workspaceFolder)
+		this.unwatchLastWatchedGitIgnoreFile(workspaceFolder)
 
 		let uri = workspaceFolder.uri.toString()
 		let client = this.clients.get(uri)
@@ -277,5 +241,28 @@ export class CSSNavigationExtension {
 		}
 		await Promise.all(promises)
 		this.clients.clear()
+	}
+	
+	// Only watch `.gitignore` in root directory.
+	private watchGitIgnoreFile(workspaceFolder: vscode.WorkspaceFolder) {
+		this.unwatchLastWatchedGitIgnoreFile(workspaceFolder)
+
+		let watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(workspaceFolder.uri.fsPath, `.gitignore`))
+		let onGitIgnoreChange = () => {
+			this.restartClient(workspaceFolder)
+		}
+
+		watcher.onDidCreate(onGitIgnoreChange)
+		watcher.onDidDelete(onGitIgnoreChange)
+		watcher.onDidChange(onGitIgnoreChange)
+
+		this.gitIgnoreWatchers.set(workspaceFolder.uri.fsPath, watcher)
+	}
+
+	private unwatchLastWatchedGitIgnoreFile(workspaceFolder: vscode.WorkspaceFolder) {
+		let watcher = this.gitIgnoreWatchers.get(workspaceFolder.uri.fsPath)
+		if (watcher) {
+			watcher.dispose()
+		}
 	}
 }

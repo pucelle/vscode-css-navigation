@@ -1,8 +1,6 @@
 import * as path from 'path'
 import * as _glob from 'glob'
 import * as minimatch from 'minimatch'
-import * as util from 'util'
-const glob = util.promisify(_glob)
 
 
 import {
@@ -18,6 +16,7 @@ import {
 import * as file from './file'
 import * as timer from './timer'
 import Uri from 'vscode-uri'
+import {getFilePathsMathGlobPattern} from './file'
 
 
 export interface FileTrackerItem {
@@ -67,7 +66,7 @@ export class FileTracker {
 
 	constructor(options: FileTrackerOptions) {
 		if (options.includeGlobPattern && path.isAbsolute(options.includeGlobPattern)) {
-			throw new Error(`includeGlobPattern parameter "${options.includeGlobPattern}" should not be an absolute path pattern`)
+			throw new Error(`"includeGlobPattern" parameter "${options.includeGlobPattern}" should not be an absolute path pattern`)
 		}
 
 		this.includeGlobPattern = options.includeGlobPattern || '**/*'
@@ -85,13 +84,13 @@ export class FileTracker {
 
 		options.documents.onDidChangeContent(this.onDocumentOpenOrContentChanged.bind(this))
 
-		//seems onDidSave not work, handle this logic on reTrackFile
+		// Seems `onDidSave` not work, handle this logic on reTrackFile.
 		//options.documents.onDidSave(this.onDocumentSaved.bind(this))
 
 		options.documents.onDidClose(this.onDocumentClosed.bind(this))
 
-		//there is one interesting bug here, onDidChangeWatchedFiles can't been registered for twice, or the first one will not work
-		//handle it in top server
+		// There is one interesting bug here, `onDidChangeWatchedFiles` can't been registered for twice, or the first one will stop working.
+		// Handle it in top server handler.
 		//options.connection.onDidChangeWatchedFiles(this.onWatchedPathChanged.bind(this))
 	}
 
@@ -106,8 +105,8 @@ export class FileTracker {
 		this.startPathLoaded = true
 	}
 
-	//no need to handle file opening because we have preloaded all the files
-	//open and changed event will be distinguished by document version later
+	// No need to handle file opening because we have preloaded all the files.
+	// Open and changed event will be distinguished by document version later.
 	private onDocumentOpenOrContentChanged(event: TextDocumentChangeEvent) {
 		let document = event.document
 		let filePath = Files.uriToFilePath(document.uri)
@@ -142,7 +141,7 @@ export class FileTracker {
 	// 	let filePath = Files.uriToFilePath(document.uri)
 	// 	let item = this.map.get(filePath!)
 
-	// 	//since onDidChangeWatchedFiles event was triggered so frequently, we only do updating after saved
+	// 	// Since `onDidChangeWatchedFiles` event was triggered so frequently, we only do updating after saved.
 	// 	if (item && !item.fresh && this.updateImmediately) {
 	// 		this.doUpdate(filePath!, item)
 	// 	}
@@ -154,7 +153,7 @@ export class FileTracker {
 		this.unTrackOpenedFile(filePath!)
 	}
 
-	//no need to handle file changes making by vscode when document is opening, and document version > 1 at this time
+	// No need to handle file changes making by vscode when document is opening, and document version > 1 at this time.
 	async onWatchedPathChanged(params: DidChangeWatchedFilesParams) {
 		if (!this.startPathLoaded) {
 			return
@@ -204,19 +203,10 @@ export class FileTracker {
 	}
 	
 	private async trackFolder(folderPath: string) {
-		let filePaths = await this.getFilePathsInFolder(folderPath)
+		let filePaths = await getFilePathsMathGlobPattern(folderPath, this.includeMatcher, this.excludeMatcher)
 		for (let filePath of filePaths) {
 			this.trackFile(filePath)
 		}
-	}
-	
-	private async getFilePathsInFolder(folderPath: string): Promise<string[]> {
-		let cssFilePaths = await glob(`${folderPath.replace(/\\/g, '/')}/${this.includeGlobPattern}`, {
-			ignore: this.excludeGlobPattern || undefined,
-			nodir: true
-		})
-		
-		return cssFilePaths.map(path.normalize)
 	}
 
 	private trackFile(filePath: string) {
@@ -246,7 +236,7 @@ export class FileTracker {
 		}
 	}
 
-	//still keep data for ignored items 
+	// Still keep data for ignored items.
 	ignore(filePath: string) {
 		this.ignoredFilePaths.add(filePath)
 		timer.log(`${filePath} ignored`)
@@ -265,7 +255,7 @@ export class FileTracker {
 		let item = this.map.get(filePath)
 		if (item) {
 			if (item.opened) {
-				//changes made in opened files, should update after been saved
+				// Changes made in opened files, should be updated after files saved.
 				if (!item.fresh && this.updateImmediately) {
 					this.doUpdate(filePath, item)
 				}
@@ -293,12 +283,12 @@ export class FileTracker {
 		}
 	}
 
-	//document is always the same object for the same file
-	//very frequently to trigger when do editing
+	// `document` is always the same object for the same file.
+	// Very frequently to trigger when do editing.
 	private trackOpenedFile(filePath: string, document: TextDocument) {
 		let item = this.map.get(filePath)
 		if (item) {
-			//both newly created document and firstly opened document have version=1
+			// Both newly created document and firstly opened document have `version=1`.
 			let changed = document.version > item.version
 			item.document = document
 			item.version = document.version
@@ -325,7 +315,7 @@ export class FileTracker {
 	private unTrackOpenedFile(filePath: string) {
 		let item = this.map.get(filePath)
 		if (item) {
-			//it becomes same as not opened document, but still fresh
+			// Tt becomes same as not opened document, but still fresh.
 			item.document = null
 			item.version = 1
 			item.opened = false
@@ -350,7 +340,7 @@ export class FileTracker {
 			}
 		}
 
-		//may restore ignore
+		// May restore ignore.
 		this.allFresh = false
 	}
 
@@ -415,7 +405,7 @@ export class FileTracker {
 		try {
 			let text = await file.readText(filePath)
 			
-			//very low resource usage to create document
+			// Very low resource usage to create document.
 			document = TextDocument.create(uri, languageId, 1, text)
 		}
 		catch (err) {

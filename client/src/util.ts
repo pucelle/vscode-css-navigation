@@ -35,8 +35,3 @@ export function getTimeMarker() {
 		+ String(date.getSeconds()).padStart(2, '0')
 		+ '] '
 }
-
-export function unique<T>(array: T[]): T[] {
-	let set: Set<T> = new Set(array)
-	return [...set.values()]
-}

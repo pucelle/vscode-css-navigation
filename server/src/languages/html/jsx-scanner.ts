@@ -7,8 +7,8 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 	public scan(): SimpleSelector | null {
 		let inExpression = false
 
-		let word = this.readWholeWord()
-		if (!word) {
+		let attributeValue = this.readWholeWord()
+		if (!attributeValue) {
 			return null
 		}
 		
@@ -37,10 +37,10 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		}
 		
 		this.skipWhiteSpaces()
-		let attribute = this.readWord()
+		let attributeName = this.readWord()
 
-		if (attribute === 'className' || attribute === 'class' || attribute === 'id' && !inExpression) {
-			let raw = (attribute === 'id' ? '#' : '.') + word
+		if (attributeName === 'className' || attributeName === 'class' || attributeName === 'id' && !inExpression) {
+			let raw = (attributeName === 'id' ? '#' : '.') + attributeValue
 			return SimpleSelector.create(raw)
 		}
 

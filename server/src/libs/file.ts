@@ -1,5 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
+import minimatch = require('minimatch')
+const ignoreWalk = require('ignore-walk')
 
 
 export function readText(fsPath: string): Promise<string> {
@@ -56,4 +58,26 @@ export function getExtension(filePath: string): string {
 
 export function replaceExtension(filePath: string, toExtension: string): string {
 	return filePath.replace(/\.\w+$/, '.' + toExtension)
+}
+
+
+// Will return the normalized full file path, only file paths, not include folder paths.
+export async function getFilePathsMathGlobPattern(folderPath: string, includeMatcher: minimatch.IMinimatch, excludeMatcher: minimatch.IMinimatch | null): Promise<string[]> {
+	let filePaths = await ignoreWalk({
+		path: folderPath,
+		ignoreFiles: ['.gitignore', '.npmignore'],
+		includeEmpty: false, // true to include empty dirs, default false
+		follow: false // true to follow symlink dirs, default false
+	})
+
+	let matchedFilePaths: string[] = []
+
+	for (let filePath of filePaths) {
+		let absoluteFilePath = path.join(folderPath, filePath)
+		if (includeMatcher.match(filePath) && (!excludeMatcher || !excludeMatcher.match(absoluteFilePath))) {
+			matchedFilePaths.push(absoluteFilePath)
+		}
+	}
+
+	return matchedFilePaths
 }
