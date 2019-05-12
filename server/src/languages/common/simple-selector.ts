@@ -2,6 +2,7 @@ export interface SimpleSelector {
 	type: SimpleSelector.Type
 	value: string
 	raw: string
+	filePath: string | null
 }
 
 export namespace SimpleSelector {
@@ -12,7 +13,7 @@ export namespace SimpleSelector {
 		Id
 	}
 	
-	export function create(raw: string): SimpleSelector | null {
+	export function create(raw: string, filePath: string | null = null): SimpleSelector | null {
 		if (!validate(raw)) {
 			return null
 		}
@@ -26,7 +27,8 @@ export namespace SimpleSelector {
 		return {
 			type,
 			value,
-			raw
+			raw,
+			filePath
 		}
 	}
 

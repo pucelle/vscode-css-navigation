@@ -111,5 +111,6 @@ describe('Test Finding Definition from JSX', () => {
 		assert.deepEqual(await gs(['', 'class3', ''], jsxDocument), ['.class2, .class3'])
 		assert.deepEqual(await gs(['', 'class4', ''], jsxDocument), ['.class4, .class4-sub'])
 		assert.deepEqual(await gs(['', 'class5', ''], jsxDocument), ['.class5'])
+		assert.deepEqual(await gs(['', 'class6', ''], jsxDocument), ['.class6'])
 	})
 })

@@ -19,6 +19,11 @@ export class CSSServiceMap extends FileTracker {
 		this.ignoreSameNameCSSFile = options.ignoreSameNameCSSFile
 	}
 
+	async get(filePath: string): Promise<CSSService | undefined> {
+		await this.beFresh()
+		return this.serviceMap.get(filePath)
+	}
+
 	protected onTrack(filePath: string) {
 		if (this.ignoreSameNameCSSFile) {
 			let ext = path.extname(filePath).slice(1).toLowerCase()

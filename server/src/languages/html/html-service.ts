@@ -39,15 +39,14 @@ export class HTMLService {
 
 export namespace HTMLService {
 	
-	export function getSimpleSelectorAt(document: TextDocument, position: Position): SimpleSelector | null {
-		let text = document.getText()
+	export async function getSimpleSelectorAt(document: TextDocument, position: Position): Promise<SimpleSelector | null> {
 		let offset = document.offsetAt(position)
 
 		if (document.languageId === 'javascriptreact' || document.languageId === 'typescriptreact') {
-			return new JSXSimpleSelectorScanner(text, offset).scan()
+			return await new JSXSimpleSelectorScanner(document, offset).scan()
 		}
 		else {
-			return new HTMLSimpleSelectorScanner(text, offset).scan()
+			return await new HTMLSimpleSelectorScanner(document, offset).scan()
 		}
 	}
 

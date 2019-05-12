@@ -1,3 +1,5 @@
+import style from './css/test.scss'
+
 class App {
 	render() {
 		return (
@@ -8,6 +10,7 @@ class App {
 				<div className={'class3'} />
 				<div className={`any-other-class class4`} />
 				<div className={`any-other-class ` + any_variable_or_expression + ` class5`} />
+				<div className={style.class6} />
 			</div>
 		)
 	}

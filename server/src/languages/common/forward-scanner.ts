@@ -1,10 +1,15 @@
+import {TextDocument} from 'vscode-languageserver'
+
+
 export class ForwardScanner {
 
+	protected document: TextDocument
 	protected text: string
 	protected offset: number
 
-	constructor(text: string, offset: number) {
-		this.text = text
+	constructor(document: TextDocument, offset: number) {
+		this.document = document
+		this.text = document.getText()
 		this.offset = offset - 1
 	}
 
@@ -32,6 +37,7 @@ export class ForwardScanner {
 		this.offset--
 	}
 
+	// Read word at when cursor at the end of the word: `word[HERE]`.
 	protected readWord(): string {
 		let startPosition = this.offset
 
@@ -46,6 +52,7 @@ export class ForwardScanner {
 		return this.text.slice(this.offset + 1, startPosition + 1)
 	}
 
+	// Read word at when cursor at the middle of the word: `wo[HERE]rd`.
 	protected readWholeWord(): string {
 		let startPosition = this.offset + 1
 

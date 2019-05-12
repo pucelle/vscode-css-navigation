@@ -25,7 +25,7 @@ in fact there is an easier way to do so, only about 20 lines of codes, but shoul
 */
 export class HTMLSimpleSelectorScanner extends ForwardScanner {
 
-	public scan(): SimpleSelector | null {
+	scan(): SimpleSelector | null {
 		let word = this.readWholeWord()
 		if (!word) {
 			return null

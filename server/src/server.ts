@@ -14,13 +14,16 @@ import {
 	CompletionItem,
 	CompletionItemKind,
 	ReferenceParams,
-	Files
+	Files,
+	TextDocument
 } from 'vscode-languageserver'
 
 import {SimpleSelector} from './languages/common/simple-selector'
 import {HTMLService, HTMLServiceMap} from './languages/html'
 import {CSSService, CSSServiceMap} from './languages/css'
 import {file, timer} from './libs'
+import {readText} from './libs/file'
+import URI from 'vscode-uri'
 
 
 process.on('unhandledRejection', function(reason) {
@@ -125,13 +128,26 @@ class CSSNaigationServer {
 			return null
 		}
 
-		let selector = HTMLService.getSimpleSelectorAt(document, position)
+		let selector = await HTMLService.getSimpleSelectorAt(document, position)
 		if (!selector) {
 			return null
 		}
 
 		if (this.config.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
 			return null
+		}
+
+		// If module css file not in current work space folder, create an `CSSService` for one time.
+		if (selector.filePath) {
+			let cssService = await this.cssServiceMap.get(selector.filePath)
+			if (!cssService) {
+				let extension = path.extname(selector.filePath).slice(1)
+				let text = await readText(selector.filePath)
+				let cssDocument = TextDocument.create(URI.file(selector.filePath).toString(), extension, 1, text)
+				cssService = CSSService.create(cssDocument)
+			}
+			
+			return cssService.findLocationsMatchSelector(selector)
 		}
 
 		let locations = await this.cssServiceMap.findDefinitionMatchSelector(selector)
@@ -170,7 +186,7 @@ class CSSNaigationServer {
 			return null
 		}
 
-		let selector = HTMLService.getSimpleSelectorAt(document, position)
+		let selector = await HTMLService.getSimpleSelectorAt(document, position)
 		if (!selector || selector.type === SimpleSelector.Type.Tag) {
 			return null
 		}

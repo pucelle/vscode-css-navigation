@@ -1,10 +1,13 @@
 import {SimpleSelector} from '../common/simple-selector'
 import {ForwardScanner} from '../common/forward-scanner'
+import * as path from 'path'
+import {exists} from '../../libs/file'
+import URI from 'vscode-uri'
 
 
 export class JSXSimpleSelectorScanner extends ForwardScanner {
 
-	public scan(): SimpleSelector | null {
+	async scan(): Promise<SimpleSelector | null> {
 		let inExpression = false
 
 		let attributeValue = this.readWholeWord()
@@ -12,9 +15,15 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 			return null
 		}
 		
-		// Should ignore <ComponentName>, it's not a truly exist elemenet which may have selector match.
+		// Module CSS, e.g. `className={style.className}`.
+		if (this.peek() === '.') {
+			this.read()
+			return this.scanModuleCSS(attributeValue)
+		}
 
 		let [untilChar] = this.readUntil(['<', '\'', '"', '`'], 1024)
+
+		// Compare to `html-scanner`, here should ignore `<tagName>`.
 		if (!untilChar || untilChar === '<') {
 			return null
 		}
@@ -42,6 +51,37 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		if (attributeName === 'className' || attributeName === 'class' || attributeName === 'id' && !inExpression) {
 			let raw = (attributeName === 'id' ? '#' : '.') + attributeValue
 			return SimpleSelector.create(raw)
+		}
+
+		return null
+	}
+
+	private async scanModuleCSS(attributeValue: string): Promise<SimpleSelector | null> {
+		let moduleVariable = this.readWord()
+		if (!moduleVariable) {
+			return null
+		}
+
+		let modulePath = this.getImportedPathFromVariableName(moduleVariable)
+		if (modulePath) {
+			let fullPath = path.resolve(path.dirname(URI.parse(this.document.uri).fsPath), modulePath)
+			if (await exists(fullPath)) {
+				return SimpleSelector.create('.' + attributeValue, fullPath)
+			}
+		}
+
+		return SimpleSelector.create('.' + attributeValue)
+	}
+
+	private getImportedPathFromVariableName(nameToMatch: string): string | null {
+		let re = /import\s+(\w+)\s+from\s+(['"])(.+?)\2/g
+		let match: RegExpExecArray | null
+
+		while (match = re.exec(this.text)) {
+			let name = match[1]
+			if (name === nameToMatch) {
+				return match[3]
+			}
 		}
 
 		return null

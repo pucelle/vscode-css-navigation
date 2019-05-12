@@ -30,6 +30,14 @@ export function stat(fsPath: string): Promise<fs.Stats | null> {
 	})
 }
 
+export function exists(fsPath: string): Promise<boolean> {
+	return new Promise((resolve) => {
+		fs.exists(fsPath, (exists) => {
+			resolve(exists)
+		})
+	})
+}
+
 
 export function generateGlobPatternFromPatterns(patterns: string[]): string | undefined {
 	if (patterns.length > 1) {

@@ -7,13 +7,11 @@ import {NamedRange, CSSRangeParser} from './css-range-parser'
 
 export class CSSSimpleSelectorScanner extends ForwardScanner {
 
-	private document: TextDocument
 	private supportsNesting: boolean
 	private startOffset: number
 
 	constructor(document: TextDocument, offset: number) {
-		super(document.getText(), offset)
-		this.document = document
+		super(document, offset)
 		this.supportsNesting = CSSService.isLanguageSupportsNesting(document.languageId)
 		this.startOffset = offset
 	}
