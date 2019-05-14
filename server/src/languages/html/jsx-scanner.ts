@@ -21,7 +21,13 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 			return this.scanModuleCSS(attributeValue)
 		}
 
-		let [untilChar] = this.readUntil(['<', '\'', '"', '`'], 1024)
+		// Module CSS, e.g. `className={style['class-name']}`.
+		if ((this.peek() === '"' || this.peek() === '\'') && this.peekSkipWhiteSpaces(1) === '[') {
+			this.readUntil(['['])
+			return this.scanModuleCSS(attributeValue)
+		}
+
+		let [untilChar] = this.readUntil(['<', '\'', '"', '`'])
 
 		// Compare to `html-scanner`, here should ignore `<tagName>`.
 		if (!untilChar || untilChar === '<') {
@@ -32,7 +38,7 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 
 		if (this.peek() !== '=') {
 			// Assume it's in `className={...[HERE]...}` or `class="..."`
-			[untilChar] = this.readUntil(['<', '{', '}'], 1024)
+			[untilChar] = this.readUntil(['<', '{', '}'])
 			if (!untilChar || untilChar !== '{') {
 				return null
 			}

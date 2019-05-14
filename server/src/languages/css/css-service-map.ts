@@ -82,7 +82,7 @@ export class CSSServiceMap extends FileTracker {
 		
 		let locations: Location[] = []
 		for (let cssService of this.iterateAvailableCSSServices()) {
-			locations.push(...cssService.findLocationsMatchSelector(selector))
+			locations.push(...cssService.findDefinitionsMatchSelector(selector))
 		}
 		return locations
 	}
@@ -97,12 +97,12 @@ export class CSSServiceMap extends FileTracker {
 		return symbols
 	}
 
-	async findCompletionMatchSelector(selector: SimpleSelector): Promise<string[]> {
+	async findCompletionLabelsMatchSelector(selector: SimpleSelector): Promise<string[]> {
 		await this.beFresh()
 
 		let labelSet: Set<string> = new Set()
 		for (let cssService of this.iterateAvailableCSSServices()) {
-			for (let label of cssService.findCompletionMatchSelector(selector)) {
+			for (let label of cssService.findCompletionLabelsMatchSelector(selector)) {
 				labelSet.add(label)
 			}
 		}

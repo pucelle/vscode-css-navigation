@@ -21,12 +21,26 @@ export class ForwardScanner {
 		return this.text.charAt(this.offset--)
 	}
 
-	protected peek(): string {
-		return this.text.charAt(this.offset)
+	protected peek(forward: number = 0): string {
+		return this.text.charAt(this.offset - forward)
 	}
 
-	protected peekNext(): string {
-		return this.text.charAt(this.offset + 1)
+	protected peekSkipWhiteSpaces(forward: number = 0): string {
+		let offset = this.offset
+		let forwardCount = 0
+
+		while (offset >= 0) {
+			let char = this.text.charAt(offset)
+			if (!/\s/.test(char)) {
+				if (forwardCount === forward) {
+					return char
+				}
+				forwardCount++
+			}
+			offset--
+		}
+
+		return ''
 	}
 
 	protected back() {
@@ -70,9 +84,9 @@ export class ForwardScanner {
 		
 		return this.text.slice(this.offset + 1, startPosition)
 	}
-	
-	//include the until char
-	protected readUntil(chars: string[], maxCharCount: number): [string, string] {
+
+	// Include the until char
+	protected readUntil(chars: string[], maxCharCount: number = 1024): [string, string] {
 		let startPosition = this.offset
 		let count = 0
 		let untilChar = ''

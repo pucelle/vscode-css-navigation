@@ -14,16 +14,13 @@ import {
 	CompletionItem,
 	CompletionItemKind,
 	ReferenceParams,
-	Files,
-	TextDocument
+	Files
 } from 'vscode-languageserver'
 
 import {SimpleSelector} from './languages/common/simple-selector'
 import {HTMLService, HTMLServiceMap} from './languages/html'
 import {CSSService, CSSServiceMap} from './languages/css'
 import {file, timer} from './libs'
-import {readText} from './libs/file'
-import URI from 'vscode-uri'
 
 
 process.on('unhandledRejection', function(reason) {
@@ -137,17 +134,19 @@ class CSSNaigationServer {
 			return null
 		}
 
-		// If module css file not in current work space folder, create an `CSSService` for one time.
+		// If module css file not in current work space folder, create an `CSSService`.
 		if (selector.filePath) {
-			let cssService = await this.cssServiceMap.get(selector.filePath)
+			let cssService: CSSService | null = await this.cssServiceMap.get(selector.filePath) || null
 			if (!cssService) {
-				let extension = path.extname(selector.filePath).slice(1)
-				let text = await readText(selector.filePath)
-				let cssDocument = TextDocument.create(URI.file(selector.filePath).toString(), extension, 1, text)
-				cssService = CSSService.create(cssDocument)
+				cssService = await CSSService.createFromFilePath(selector.filePath)
 			}
 			
-			return cssService.findLocationsMatchSelector(selector)
+			if (cssService) {
+				return cssService.findDefinitionsMatchSelector(selector)
+			}
+			else {
+				return null
+			}
 		}
 
 		let locations = await this.cssServiceMap.findDefinitionMatchSelector(selector)
@@ -191,7 +190,27 @@ class CSSNaigationServer {
 			return null
 		}
 
-		let labels = await this.cssServiceMap.findCompletionMatchSelector(selector)
+		// If module css file not in current work space folder, create an `CSSService`.
+		if (selector.filePath) {
+			let cssService: CSSService | null = await this.cssServiceMap.get(selector.filePath) || null
+			if (!cssService) {
+				cssService = await CSSService.createFromFilePath(selector.filePath)
+			}
+			
+			if (cssService) {
+				let labels = cssService.findCompletionLabelsMatchSelector(selector)
+				return this.formatLabelsToCompletionItems(labels)
+			}
+			else {
+				return null
+			}
+		}
+
+		let labels = await this.cssServiceMap.findCompletionLabelsMatchSelector(selector)
+		return this.formatLabelsToCompletionItems(labels)
+	}
+
+	private formatLabelsToCompletionItems(labels: string[]): CompletionItem[] {
 		return labels.map(label => {
 			let item = CompletionItem.create(label)
 			item.kind = CompletionItemKind.Class

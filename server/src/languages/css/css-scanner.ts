@@ -18,7 +18,7 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 
 	public scan(): SimpleSelector[] | null {
 		//when mouse in '|&-a', check if the next char is &
-		let nextChar = this.peekNext()
+		let nextChar = this.peek(-1)
 		if (nextChar === '#' || nextChar === '.' || this.supportsNesting && nextChar === '&') {
 			this.back()
 		}

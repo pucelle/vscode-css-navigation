@@ -1,8 +1,10 @@
+import * as path from 'path'
 import {TextDocument, SymbolInformation, SymbolKind, Location, Position} from 'vscode-languageserver'
 import {SimpleSelector} from '../common/simple-selector'
 import {NamedRange, CSSRangeParser} from './css-range-parser'
 import {CSSSimpleSelectorScanner} from './css-scanner'
-
+import {readText} from '../../libs/file'
+import URI from 'vscode-uri'
 
 //it doesn't keep document
 export class CSSService {
@@ -20,7 +22,7 @@ export class CSSService {
 		this.ranges = ranges
 	}
 
-	findLocationsMatchSelector(selector: SimpleSelector): Location[] {
+	findDefinitionsMatchSelector(selector: SimpleSelector): Location[] {
 		let locations: Location[] = []
 		let selectorRaw = selector.raw
 
@@ -105,7 +107,7 @@ export class CSSService {
 		return true
 	}
 
-	findCompletionMatchSelector(selector: SimpleSelector): string[] {
+	findCompletionLabelsMatchSelector(selector: SimpleSelector): string[] {
 		let labelSet: Set<string> = new Set()
 		let selectorRaw = selector.raw
 
@@ -138,5 +140,17 @@ export namespace CSSService {
 	export function getSimpleSelectorAt(document: TextDocument, position: Position): SimpleSelector[] | null {
 		let offset = document.offsetAt(position)
 		return new CSSSimpleSelectorScanner(document, offset).scan()
+	}
+
+	export async function createFromFilePath(filePath: string): Promise<CSSService | null> {
+		let extension = path.extname(filePath).slice(1)
+		try{
+			let text = await readText(filePath)
+			let cssDocument = TextDocument.create(URI.file(filePath).toString(), extension, 1, text)
+			return CSSService.create(cssDocument)
+		}
+		catch {
+			return null
+		}
 	}
 }

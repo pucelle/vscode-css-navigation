@@ -11,6 +11,7 @@ class App {
 				<div className={`any-other-class class4`} />
 				<div className={`any-other-class ` + any_variable_or_expression + ` class5`} />
 				<div className={style.class6} />
+				<div className={style['class7']} />
 			</div>
 		)
 	}

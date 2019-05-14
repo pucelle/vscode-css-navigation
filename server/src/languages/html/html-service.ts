@@ -65,7 +65,7 @@ export namespace HTMLService {
 				: re.lastIndex - 1 - cssText.length	// 1 is the length of `
 
 			let cssDocument = TextDocument.create('untitled.' + languageId , languageId, 0, cssText)
-			let cssLocations = CSSService.create(cssDocument).findLocationsMatchSelector(select)
+			let cssLocations = CSSService.create(cssDocument).findDefinitionsMatchSelector(select)
 
 			for (let location of cssLocations) {
 				let startIndexInCSS = cssDocument.offsetAt(location.range.start)
