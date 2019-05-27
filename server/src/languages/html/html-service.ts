@@ -13,11 +13,6 @@ export class HTMLService {
 	private uri: string
 	private ranges: NamedRange[]
 
-	static create(document: TextDocument): HTMLService {
-		let ranges = new HTMLRangeParser(document).parse()
-		return new HTMLService(document, ranges)
-	}
-
 	constructor(document: TextDocument, ranges: NamedRange[]) {
 		this.uri = document.uri
 		this.ranges = ranges
@@ -39,6 +34,11 @@ export class HTMLService {
 
 export namespace HTMLService {
 	
+	export function create(document: TextDocument): HTMLService {
+		let ranges = new HTMLRangeParser(document).parse()
+		return new HTMLService(document, ranges)
+	}
+
 	export async function getSimpleSelectorAt(document: TextDocument, position: Position): Promise<SimpleSelector | null> {
 		let offset = document.offsetAt(position)
 

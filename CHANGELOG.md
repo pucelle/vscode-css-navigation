@@ -1,5 +1,15 @@
 # ChangeLog
 
+## [1.6.0]
+
+ - Will always load files from `@import ...` for CSS files even it's in `node_modules`.
+
+
+## [1.5.0]
+
+ - Supports `Module CSS`.
+
+
 ## [1.4.0]
 
  - Will aspect nested `.gitignore` and `.npmignore` in different folders when looking for CSS definitions.

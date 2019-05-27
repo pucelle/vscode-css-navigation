@@ -95,6 +95,15 @@ describe('Test Finding Definition from HTML', () => {
 })
 
 
+describe('Test Finding Definitions in `@import ...`', () => {
+	before(prepare)
+
+	it('Should find right class definition in `@import...`', async () => {
+		assert.deepEqual(await gs(['class="', 'class-imported', '"']), ['.class-imported'])
+	})
+})
+
+
 describe('Test Finding Definition from JSX', () => {
 	before(prepare)
 

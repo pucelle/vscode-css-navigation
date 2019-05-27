@@ -62,7 +62,14 @@ export class CSSServiceMap extends FileTracker {
 
 	protected async onUpdate(filePath: string, item: FileTrackerItem) {
 		if (item.document) {
-			this.serviceMap.set(filePath, CSSService.create(item.document))
+			let cssService = CSSService.create(item.document)
+			this.serviceMap.set(filePath, cssService)
+
+			if (cssService.importPaths.length > 0) {
+				for (let importPath of cssService.importPaths) {
+					this.trackFile(importPath)
+				}
+			}
 
 			//very important, release document memory usage after symbols generated
 			item.document = null

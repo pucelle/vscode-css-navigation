@@ -1,11 +1,14 @@
+import * as path from 'path'
 import {TextDocument, Range} from 'vscode-languageserver'
 import {timer} from '../../libs'
 import {CSSService} from './css-service'
+import URI from 'vscode-uri';
 
 
-enum NameType{
+export enum NameType{
 	Selector,
 	Keyframes,
+	Import,
 	AtRoot,
 	OtherCommand,
 	Others
@@ -24,13 +27,13 @@ interface LeafRange {
 	parent: LeafRange | undefined
 }
 
-interface FullMainName {
+interface FullAndMainName {
 	full: string
 	mains: string[] | null
 }
 
 export interface NamedRange {
-	names: FullMainName[]
+	names: FullAndMainName[]
 	range: Range
 }
 
@@ -43,6 +46,9 @@ export class CSSRangeParser {
 	private stack: LeafRange[] = []
 	private current: LeafRange | undefined
 	private ignoreDeep: number = 0
+
+	// When has `@import ...`, need to load the imported files even they are inside `node_modules`.
+	private importPaths: string[] = []
 
 	constructor(document: TextDocument) {
 		//here mixed language and file extension, must makesure all languages supported are sames as file extensions
@@ -57,7 +63,7 @@ export class CSSRangeParser {
 		this.document = document
 	}
 
-	parse(): NamedRange[] {
+	parse() {
 		let text = this.document.getText()
 		let ranges: LeafRange[] = []
 		
@@ -114,7 +120,15 @@ export class CSSRangeParser {
 					if (this.supportsNesting) {
 						this.current = this.stack.pop()
 					}
+					else {
+						this.current = undefined
+					}
 				}
+			}
+			// `@...` command in top level
+			// parse `@import ...` to `this.importPaths`
+			else if (chars && !this.current) {
+				this.parseToNames(chars)
 			}
 		}
 
@@ -124,7 +138,10 @@ export class CSSRangeParser {
 			}
 		}
 
-		return this.formatToNamedRanges(ranges)
+		return {
+			ranges: this.formatToNamedRanges(ranges),
+			importPaths: this.importPaths
+		}
 	}
 
 	//may selectors like this: '[attr="]"]', but we are not high strictly parser
@@ -135,6 +152,10 @@ export class CSSRangeParser {
 		if (match) {
 			let command = match[0]
 			let type = this.getCommandType(command)
+
+			if (type === NameType.Import) {
+				this.parseImportPaths(selectors)
+			}
 
 			//@at-root still follows selectors
 			if (type === NameType.AtRoot) {	//should only work on scss
@@ -192,8 +213,24 @@ export class CSSRangeParser {
 			case '@keyframes':
 				return NameType.Keyframes
 			
+			case '@import':
+				return NameType.Import
+			
 			default:
-			return NameType.OtherCommand
+				return NameType.OtherCommand
+		}
+	}
+
+	private parseImportPaths(selectors: string) {
+		let match = selectors.match(/^@import\s+(['"])(.+?)\1/)
+		if (match) {
+			let relativePath = match[2].replace(/^~/, 'node_modules/')
+			let isURL = /^https?:|^\/\//.test(relativePath)
+			if (!isURL) {
+				let dir = path.dirname(URI.parse(this.document.uri).fsPath)
+				let filePath = path.resolve(dir, relativePath)
+				this.importPaths.push(filePath)
+			}
 		}
 	}
 
@@ -288,7 +325,7 @@ export class CSSRangeParser {
 		return ranges
 	}
 
-	private formatLeafNameToFullMainName({raw, full, type}: LeafName): FullMainName {
+	private formatLeafNameToFullMainName({raw, full, type}: LeafName): FullAndMainName {
 		if (type !== NameType.Selector) {
 			return {
 				full,

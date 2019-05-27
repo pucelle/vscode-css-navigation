@@ -42,8 +42,7 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 	}
 
 	parseAndGetSelectors(word: string): SimpleSelector[] | null {
-		let parser = new CSSRangeParser(this.document)
-		let ranges = parser.parse()
+		let {ranges} = new CSSRangeParser(this.document).parse()
 		let currentRange: NamedRange | undefined
 		let selectorIncludedParentRange: NamedRange | undefined
 

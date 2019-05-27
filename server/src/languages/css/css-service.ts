@@ -6,20 +6,18 @@ import {CSSSimpleSelectorScanner} from './css-scanner'
 import {readText} from '../../libs/file'
 import URI from 'vscode-uri'
 
-//it doesn't keep document
+
 export class CSSService {
 
 	private uri: string
 	private ranges: NamedRange[]
 
-	static create(document: TextDocument): CSSService {
-		let ranges = new CSSRangeParser(document).parse()
-		return new CSSService(document, ranges)
-	}
+	importPaths: string[]
 
-	constructor(document: TextDocument, ranges: NamedRange[]) {
+	constructor(document: TextDocument, ranges: NamedRange[], importPaths: string[]) {
 		this.uri = document.uri
 		this.ranges = ranges
+		this.importPaths = importPaths
 	}
 
 	findDefinitionsMatchSelector(selector: SimpleSelector): Location[] {
@@ -132,6 +130,11 @@ export class CSSService {
 
 export namespace CSSService {
 	
+	export function create(document: TextDocument): CSSService {
+		let {ranges, importPaths} = new CSSRangeParser(document).parse()
+		return new CSSService(document, ranges, importPaths)
+	}
+
 	export function isLanguageSupportsNesting(languageId: string): boolean {
 		let supportedNestingLanguages = ['less', 'scss']
 		return supportedNestingLanguages.includes(languageId)

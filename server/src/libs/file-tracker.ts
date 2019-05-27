@@ -20,6 +20,7 @@ import {getFilePathsMathGlobPattern} from './file'
 
 
 export interface FileTrackerItem {
+
 	document: TextDocument | null
 
 	//when file was tracked, version=0
@@ -63,6 +64,7 @@ export class FileTracker {
 	private ignoredFilePaths: Set<string> = new Set()
 	private allFresh: boolean
 	private startPathLoaded: boolean
+	private updating: boolean = false
 
 	constructor(options: FileTrackerOptions) {
 		if (options.includeGlobPattern && path.isAbsolute(options.includeGlobPattern)) {
@@ -209,7 +211,7 @@ export class FileTracker {
 		}
 	}
 
-	private trackFile(filePath: string) {
+	protected trackFile(filePath: string) {
 		let item = this.map.get(filePath)
 		if (!item) {
 			item = {
@@ -226,7 +228,7 @@ export class FileTracker {
 	}
 
 	private handleTrackFollowed(filePath: string, item: FileTrackerItem) {
-		if (this.updateImmediately) {
+		if (this.updateImmediately || this.updating) {
 			this.doUpdate(filePath, item)
 		}
 		else {
@@ -350,6 +352,7 @@ export class FileTracker {
 				await this.loadStartPath()
 			}
 
+			this.updating = true
 			timer.start('update')
 
 			let promises: Promise<boolean>[] = []
@@ -366,6 +369,7 @@ export class FileTracker {
 				timer.log(`${updatedCount} files loaded in ${timer.end('update')} ms`)
 			}
 
+			this.updating = false
 			this.allFresh = true
 		}
 	}
