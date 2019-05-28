@@ -1,8 +1,6 @@
-import * as path from 'path'
 import {TextDocument, Range} from 'vscode-languageserver'
 import {timer} from '../../libs'
 import {CSSService} from './css-service'
-import URI from 'vscode-uri';
 
 
 export enum NameType{
@@ -224,12 +222,9 @@ export class CSSRangeParser {
 	private parseImportPaths(selectors: string) {
 		let match = selectors.match(/^@import\s+(['"])(.+?)\1/)
 		if (match) {
-			let relativePath = match[2].replace(/^~/, 'node_modules/')
-			let isURL = /^https?:|^\/\//.test(relativePath)
+			let isURL = /^https?:|^\/\//.test(match[2])
 			if (!isURL) {
-				let dir = path.dirname(URI.parse(this.document.uri).fsPath)
-				let filePath = path.resolve(dir, relativePath)
-				this.importPaths.push(filePath)
+				this.importPaths.push(match[2])
 			}
 		}
 	}

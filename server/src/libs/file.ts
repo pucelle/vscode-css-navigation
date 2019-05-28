@@ -89,3 +89,26 @@ export async function getFilePathsMathGlobPattern(folderPath: string, includeMat
 
 	return matchedFilePaths
 }
+
+
+export async function resolveImportPath(fromPath: string, toPath: string): Promise<string | null> {
+	let isModulePath = toPath.startsWith('~')
+	if (isModulePath) {
+		while (fromPath) {
+			let filePath = path.resolve(fromPath, 'node_modules/' + toPath.slice(1))
+			if (await exists(filePath)) {
+				return filePath
+			}
+			let dir = path.dirname(fromPath)
+			if (dir === fromPath) {
+				break
+			}
+			fromPath = dir
+		}
+
+		return null
+	}
+	else {
+		return path.resolve(fromPath, toPath)
+	}
+}

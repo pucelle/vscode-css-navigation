@@ -5,6 +5,8 @@ import {NamedRange, CSSRangeParser} from './css-range-parser'
 import {CSSSimpleSelectorScanner} from './css-scanner'
 import {readText} from '../../libs/file'
 import URI from 'vscode-uri'
+import {resolveImportPath} from '../../libs/file'
+
 
 
 export class CSSService {
@@ -18,6 +20,25 @@ export class CSSService {
 		this.uri = document.uri
 		this.ranges = ranges
 		this.importPaths = importPaths
+	}
+
+	async getResolvedImportPaths(): Promise<string[]> {
+		if (this.importPaths.length > 0) {
+			let dir = path.dirname(URI.parse(this.uri).fsPath)
+			let filePaths: string[] = []
+
+			for (let importPath of this.importPaths) {
+				let filePath = await resolveImportPath(dir, importPath)
+				if (filePath) {
+					filePaths.push(filePath)
+				}
+			}
+			
+			return filePaths
+		}
+		else {
+			return []
+		}
 	}
 
 	findDefinitionsMatchSelector(selector: SimpleSelector): Location[] {

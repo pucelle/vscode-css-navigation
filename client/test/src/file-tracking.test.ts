@@ -80,9 +80,9 @@ describe('Test CSS File Tracking', () => {
 		assert.deepEqual(await gs(['<', 'html', '>']), ['html'])
 	})
 
-	it('Should track folder renaming on disk, and should ignore node_modules by default', async () => {
+	it('Should track folder renaming on disk, and should ignore `vendor` by default', async () => {
 		let dirName = path.dirname(scssURI.fsPath)
-		let renameTo = path.dirname(dirName) + '/node_modules'
+		let renameTo = path.dirname(dirName) + '/vendor'
 		fs.renameSync(dirName, renameTo)
 		await sleep(1000)
 		let err

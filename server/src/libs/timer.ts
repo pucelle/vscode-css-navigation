@@ -33,7 +33,7 @@ export function warn(msg: string) {
 }
 
 export function error(msg: string | Error) {
-	scopedConsole.error(getTimeMarker() + msg)
+	scopedConsole.error(String(msg))
 }
 
 

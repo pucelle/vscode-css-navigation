@@ -65,8 +65,9 @@ export class CSSServiceMap extends FileTracker {
 			let cssService = CSSService.create(item.document)
 			this.serviceMap.set(filePath, cssService)
 
-			if (cssService.importPaths.length > 0) {
-				for (let importPath of cssService.importPaths) {
+			let importPaths = await cssService.getResolvedImportPaths()
+			if (importPaths.length > 0) {
+				for (let importPath of importPaths) {
 					this.trackFile(importPath)
 				}
 			}

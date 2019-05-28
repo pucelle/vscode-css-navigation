@@ -395,10 +395,11 @@ export class FileTracker {
 			}
 		}
 		
-		item.fresh = true
-		await this.onUpdate(filePath, item)
-
-		timer.log(`${filePath} loaded${hasDocumentBefore ? ' from document' : ''}`)
+		if (item.document) {
+			item.fresh = true
+			await this.onUpdate(filePath, item)
+			timer.log(`${filePath} loaded${hasDocumentBefore ? ' from document' : ''}`)
+		}
 	}
 
 	private async loadDocumentFromFilePath(filePath: string): Promise<TextDocument | null> {
