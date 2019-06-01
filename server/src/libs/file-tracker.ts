@@ -64,7 +64,6 @@ export class FileTracker {
 	private ignoredFilePaths: Set<string> = new Set()
 	private allFresh: boolean
 	private startPathLoaded: boolean
-	private updating: boolean = false
 
 	constructor(options: FileTrackerOptions) {
 		if (options.includeGlobPattern && path.isAbsolute(options.includeGlobPattern)) {
@@ -156,6 +155,9 @@ export class FileTracker {
 	}
 
 	// No need to handle file changes making by vscode when document is opening, and document version > 1 at this time.
+	// Here is a issue for `@import x` resources:
+	//   It's common that we import sources from `node_modules` directory,
+	//   But we can't get notifications when files in it changed.
 	async onWatchedPathChanged(params: DidChangeWatchedFilesParams) {
 		if (!this.startPathLoaded) {
 			return
@@ -227,8 +229,22 @@ export class FileTracker {
 		}
 	}
 
+	// Used to track and load `@import` sources
+	protected async trackAndUpdateImmediately(filePath: string) {
+		let item = this.map.get(filePath)
+		if (!item) {
+			this.trackFile(filePath)
+			item = this.map.get(filePath)
+		}
+
+		if (!item!.fresh) {
+			await this.doUpdate(filePath, item!)
+		}
+	}
+
 	private handleTrackFollowed(filePath: string, item: FileTrackerItem) {
-		if (this.updateImmediately || this.updating) {
+		if (this.updateImmediately) {
+			// Here it just loaded for future usage, no need to update asynchronously.
 			this.doUpdate(filePath, item)
 		}
 		else {
@@ -253,6 +269,7 @@ export class FileTracker {
 		return this.ignoredFilePaths.size > 0 && this.ignoredFilePaths.has(filePath)
 	}
 
+	// When file content may changed, reload it.
 	private reTrackFile(filePath: string) {
 		let item = this.map.get(filePath)
 		if (item) {
@@ -352,7 +369,6 @@ export class FileTracker {
 				await this.loadStartPath()
 			}
 
-			this.updating = true
 			timer.start('update')
 
 			let promises: Promise<boolean>[] = []
@@ -369,7 +385,6 @@ export class FileTracker {
 				timer.log(`${updatedCount} files loaded in ${timer.end('update')} ms`)
 			}
 
-			this.updating = false
 			this.allFresh = true
 		}
 	}

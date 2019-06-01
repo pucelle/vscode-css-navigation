@@ -68,7 +68,7 @@ export class CSSServiceMap extends FileTracker {
 			let importPaths = await cssService.getResolvedImportPaths()
 			if (importPaths.length > 0) {
 				for (let importPath of importPaths) {
-					this.trackFile(importPath)
+					await this.trackAndUpdateImmediately(importPath)
 				}
 			}
 
@@ -85,7 +85,7 @@ export class CSSServiceMap extends FileTracker {
 		}
 	}
 
-	async findDefinitionMatchSelector(selector: SimpleSelector): Promise<Location[]> {
+	async findDefinitionsMatchSelector(selector: SimpleSelector): Promise<Location[]> {
 		await this.beFresh()
 		
 		let locations: Location[] = []
