@@ -30,10 +30,15 @@ export function stat(fsPath: string): Promise<fs.Stats | null> {
 	})
 }
 
-export function exists(fsPath: string): Promise<boolean> {
+export function fileExists(fsPath: string): Promise<boolean> {
 	return new Promise((resolve) => {
-		fs.exists(fsPath, (exists) => {
-			resolve(exists)
+		fs.stat(fsPath, (err, stat) => {
+			if (err) {
+				resolve(false)
+			}
+			else {
+				resolve(stat.isFile())
+			}
 		})
 	})
 }
@@ -93,22 +98,62 @@ export async function getFilePathsMathGlobPattern(folderPath: string, includeMat
 
 export async function resolveImportPath(fromPath: string, toPath: string): Promise<string | null> {
 	let isModulePath = toPath.startsWith('~')
+	let fromDir = path.dirname(fromPath)
+	let fromPathExtension = path.extname(fromPath).slice(1).toLowerCase()
+
 	if (isModulePath) {
-		while (fromPath) {
-			let filePath = path.resolve(fromPath, 'node_modules/' + toPath.slice(1))
-			if (await exists(filePath)) {
+		while (fromDir) {
+			let filePath = await resolvePath(path.resolve(fromDir, 'node_modules/' + toPath.slice(1)), fromPathExtension)
+			if (filePath) {
 				return filePath
 			}
-			let dir = path.dirname(fromPath)
-			if (dir === fromPath) {
+			let dir = path.dirname(fromDir)
+			if (dir === fromDir) {
 				break
 			}
-			fromPath = dir
+			fromDir = dir
 		}
 
 		return null
 	}
 	else {
-		return path.resolve(fromPath, toPath)
+		return await resolvePath(path.resolve(fromDir, toPath), fromPathExtension)
 	}
+}
+
+
+async function resolvePath(filePath: string, fromPathExtension: string): Promise<string | null> {
+	if (await fileExists(filePath)) {
+		return filePath
+	}
+
+	if (fromPathExtension === 'scss') {
+		// @import `b` -> `b.scss`
+		if (path.extname(filePath) === '') {
+			filePath += '.scss'
+
+			if (await fileExists(filePath)) {
+				return filePath
+			}
+		}
+
+		// @import `b.scss` -> `_b.scss`
+		if (path.basename(filePath)[0] !== '_') {
+			filePath = path.join(path.dirname(filePath), '_' + path.basename(filePath))
+
+			if (await fileExists(filePath)) {
+				return filePath
+			}
+		}
+	}
+
+	// One issue here:
+	//   If we rename `b.scss` to `_b.scss` in `node_modules`,
+	//   we can't get file change notification,
+	//   and we can't reload it from from path because nothing changes in it.
+
+	// So we need to validate if import paths exist after we got definition results.
+	// Although we still can't get results in `_b.scss`.
+
+	return null
 }

@@ -24,11 +24,10 @@ export class CSSService {
 
 	async getResolvedImportPaths(): Promise<string[]> {
 		if (this.importPaths.length > 0) {
-			let dir = path.dirname(URI.parse(this.uri).fsPath)
 			let filePaths: string[] = []
 
 			for (let importPath of this.importPaths) {
-				let filePath = await resolveImportPath(dir, importPath)
+				let filePath = await resolveImportPath(URI.parse(this.uri).fsPath, importPath)
 				if (filePath) {
 					filePaths.push(filePath)
 				}
