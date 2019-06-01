@@ -1,7 +1,7 @@
 import {SimpleSelector} from '../common/simple-selector'
 import {ForwardScanner} from '../common/forward-scanner'
 import * as path from 'path'
-import {exists} from '../../libs/file'
+import {fileExists} from '../../libs/file'
 import URI from 'vscode-uri'
 
 
@@ -71,7 +71,7 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		let modulePath = this.getImportedPathFromVariableName(moduleVariable)
 		if (modulePath) {
 			let fullPath = path.resolve(path.dirname(URI.parse(this.document.uri).fsPath), modulePath)
-			if (await exists(fullPath)) {
+			if (await fileExists(fullPath)) {
 				return SimpleSelector.create('.' + attributeValue, fullPath)
 			}
 		}

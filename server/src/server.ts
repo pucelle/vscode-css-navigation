@@ -149,7 +149,7 @@ class CSSNaigationServer {
 			}
 		}
 
-		let locations = await this.cssServiceMap.findDefinitionMatchSelector(selector)
+		let locations = await this.cssServiceMap.findDefinitionsMatchSelector(selector)
 
 		if (this.config.alsoSearchDefinitionsInStyleTag) {
 			locations.unshift(...HTMLService.findDefinitionsInInnerStyle(document, selector))
