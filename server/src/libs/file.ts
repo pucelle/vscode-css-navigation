@@ -149,11 +149,12 @@ async function resolvePath(filePath: string, fromPathExtension: string): Promise
 
 	// One issue here:
 	//   If we rename `b.scss` to `_b.scss` in `node_modules`,
-	//   we can't get file change notification,
-	//   and we can't reload it from from path because nothing changes in it.
+	//   we can't get file changing notification from VSCode,
+	//   and we can't reload it from path because nothing changes in it.
 
 	// So we need to validate if import paths exist after we got definition results.
 	// Although we still can't get results in `_b.scss`.
+	// TODO
 
 	return null
 }
