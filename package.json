@@ -1,7 +1,7 @@
 {
 	"name": "vscode-css-navigation",
 	"displayName": "CSS Navigation",
-	"description": "Allows Go to Definition from HTML to CSS, provides Completion and Workspace Symbols for class & id name, and supports Finding References from CSS to HTML.",
+	"description": "Allows Go to Definition from HTML to CSS; provides Completion and Workspace Symbols for class & id name; supports CSS, Sass, Less languages.",
 	"icon": "images/logo.png",
 	"version": "1.6.3",
 	"license": "MIT",
