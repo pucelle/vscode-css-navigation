@@ -29,6 +29,7 @@ process.on('unhandledRejection', function(reason) {
 
 
 let connection: Connection = createConnection(ProposedFeatures.all)
+let configuration: Configuration
 let documents: TextDocuments = new TextDocuments()
 let server: CSSNaigationServer
 timer.pipeTo(connection)
@@ -40,6 +41,10 @@ interface InitializationOptions {
 }
 
 interface Configuration {
+	enableGoToDefinition: boolean
+	enableWorkspaceSymbols: boolean
+	enableIdAndClassNameCompletion: boolean
+	enableFindAllReferences: boolean
 	activeHTMLFileExtensions: string[]
 	activeCSSFileExtensions: string[]
 	excludeGlobPatterns: string[]
@@ -51,6 +56,7 @@ interface Configuration {
 
 connection.onInitialize((params: InitializeParams) => {
 	let options: InitializationOptions = params.initializationOptions
+	configuration = options.configuration
 	server = new CSSNaigationServer(options)
 
 	return {
@@ -59,21 +65,32 @@ connection.onInitialize((params: InitializeParams) => {
 				openClose: true,
 				change: TextDocumentSyncKind.Full
 			},
-			completionProvider: {
+			completionProvider: configuration.enableIdAndClassNameCompletion ? {
 				resolveProvider: false
-			},
-			definitionProvider: true,
-			referencesProvider: true,
-			workspaceSymbolProvider: true
+			} : undefined,
+			definitionProvider: configuration.enableGoToDefinition,
+			referencesProvider: configuration.enableFindAllReferences,
+			workspaceSymbolProvider: configuration.enableWorkspaceSymbols
 		}
 	}
 })
 
 connection.onInitialized(() => {
-	connection.onDefinition(timer.logListReturnedFunctionExecutedTime(server.findDefinitions.bind(server), 'definition'))
-	connection.onWorkspaceSymbol(timer.logListReturnedFunctionExecutedTime(server.findSymbolsMatchQueryParam.bind(server), 'workspace symbol'))
-	connection.onCompletion(timer.logListReturnedFunctionExecutedTime(server.provideCompletion.bind(server), 'completion'))
-	connection.onReferences(timer.logListReturnedFunctionExecutedTime(server.findRefenerces.bind(server), 'reference'))
+	if (configuration.enableGoToDefinition) {
+		connection.onDefinition(timer.logListReturnedFunctionExecutedTime(server.findDefinitions.bind(server), 'definition'))
+	}
+
+	if (configuration.enableWorkspaceSymbols) {
+		connection.onWorkspaceSymbol(timer.logListReturnedFunctionExecutedTime(server.findSymbolsMatchQueryParam.bind(server), 'workspace symbol'))
+	}
+	
+	if (configuration.enableIdAndClassNameCompletion) {
+		connection.onCompletion(timer.logListReturnedFunctionExecutedTime(server.provideCompletion.bind(server), 'completion'))
+	}
+
+	if (configuration.enableFindAllReferences) {
+		connection.onReferences(timer.logListReturnedFunctionExecutedTime(server.findRefenerces.bind(server), 'reference'))
+	}
 })
 
 documents.listen(connection)
@@ -83,22 +100,20 @@ connection.listen()
 class CSSNaigationServer {
 
 	private options: InitializationOptions
-	private config: Configuration
 	private cssServiceMap: CSSServiceMap
 	private htmlServiceMap: HTMLServiceMap | null = null
 
 	constructor(options: InitializationOptions) {
 		this.options = options
-		let config = this.config = options.configuration
 
 		this.cssServiceMap = new CSSServiceMap({
 			connection,
 			documents,
-			includeGlobPattern: file.generateGlobPatternFromExtensions(config.activeCSSFileExtensions)!,
-			excludeGlobPattern: file.generateGlobPatternFromPatterns(config.excludeGlobPatterns),
-			updateImmediately: config.preloadCSSFiles,
+			includeGlobPattern: file.generateGlobPatternFromExtensions(configuration.activeCSSFileExtensions)!,
+			excludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.excludeGlobPatterns),
+			updateImmediately: configuration.preloadCSSFiles,
 			startPath: options.workspaceFolderPath,
-			ignoreSameNameCSSFile: config.ignoreSameNameCSSFile && config.activeCSSFileExtensions.length > 1 && config.activeCSSFileExtensions.includes('css')
+			ignoreSameNameCSSFile: configuration.ignoreSameNameCSSFile && configuration.activeCSSFileExtensions.length > 1 && configuration.activeCSSFileExtensions.includes('css')
 		})
 
 		//onDidChangeWatchedFiles can't been registered for twice, or the first one will not work, so handle it here, not on service map
@@ -121,7 +136,7 @@ class CSSNaigationServer {
 			return null
 		}
 		
-		if (!this.config.activeHTMLFileExtensions.includes(file.getExtension(document.uri))) {
+		if (!configuration.activeHTMLFileExtensions.includes(file.getExtension(document.uri))) {
 			return null
 		}
 
@@ -130,7 +145,7 @@ class CSSNaigationServer {
 			return null
 		}
 
-		if (this.config.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
+		if (configuration.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
 			return null
 		}
 
@@ -151,7 +166,7 @@ class CSSNaigationServer {
 
 		let locations = await this.cssServiceMap.findDefinitionsMatchSelector(selector)
 
-		if (this.config.alsoSearchDefinitionsInStyleTag) {
+		if (configuration.alsoSearchDefinitionsInStyleTag) {
 			locations.unshift(...HTMLService.findDefinitionsInInnerStyle(document, selector))
 		}
 
@@ -181,7 +196,7 @@ class CSSNaigationServer {
 			return null
 		}
 
-		if (!this.config.activeHTMLFileExtensions.includes(file.getExtension(document.uri))) {
+		if (!configuration.activeHTMLFileExtensions.includes(file.getExtension(document.uri))) {
 			return null
 		}
 
@@ -190,7 +205,7 @@ class CSSNaigationServer {
 			return null
 		}
 
-		// If module css file not in current work space folder, create an `CSSService`.
+		// If module css file not in current work space folder, create an `CSSService` to load it.
 		if (selector.filePath) {
 			let cssService: CSSService | null = await this.cssServiceMap.get(selector.filePath) || null
 			if (!cssService) {
@@ -228,8 +243,8 @@ class CSSNaigationServer {
 		}
 
 		let extension = file.getExtension(document.uri)
-		if (this.config.activeHTMLFileExtensions.includes(extension)) {
-			if (this.config.alsoSearchDefinitionsInStyleTag) {
+		if (configuration.activeHTMLFileExtensions.includes(extension)) {
+			if (configuration.alsoSearchDefinitionsInStyleTag) {
 				let filePath = Files.uriToFilePath(document.uri)
 
 				let htmlService = this.htmlServiceMap ? this.htmlServiceMap.get(filePath!) : undefined
@@ -242,7 +257,7 @@ class CSSNaigationServer {
 			return null
 		}
 
-		if (!this.config.activeCSSFileExtensions.includes(extension)) {
+		if (!configuration.activeCSSFileExtensions.includes(extension)) {
 			return null
 		}
 
@@ -260,14 +275,14 @@ class CSSNaigationServer {
 		return locations
 	}
 
-	ensureHTMLService() {
-		let {config, options} = this
+	private ensureHTMLService() {
+		let {options} = this
 
 		this.htmlServiceMap = this.htmlServiceMap || new HTMLServiceMap({
 			connection,
 			documents,
-			includeGlobPattern: file.generateGlobPatternFromExtensions(config.activeHTMLFileExtensions)!,
-			excludeGlobPattern: file.generateGlobPatternFromPatterns(config.excludeGlobPatterns),
+			includeGlobPattern: file.generateGlobPatternFromExtensions(configuration.activeHTMLFileExtensions)!,
+			excludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.excludeGlobPatterns),
 			updateImmediately: false,
 			startPath: options.workspaceFolderPath
 		})

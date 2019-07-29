@@ -51,6 +51,10 @@ interface InitializationOptions {
 }
 
 interface Configuration {
+	enableGoToDefinition: boolean
+	enableWorkspaceSymbols: boolean
+	enableIdAndClassNameCompletion: boolean
+	enableFindAllReferences: boolean
 	activeHTMLFileExtensions: string[]
 	activeCSSFileExtensions: string[]
 	excludeGlobPatterns: string[]
@@ -82,9 +86,13 @@ export class CSSNavigationExtension {
 		let config = this.config
 
 		return {
-			activeHTMLFileExtensions: <string[]>config.get('activeHTMLFileExtensions', []),
-			activeCSSFileExtensions: <string[]>config.get('activeCSSFileExtensions', []),
-			excludeGlobPatterns: <string[]>config.get('excludeGlobPatterns') || [],
+			enableGoToDefinition: config.get('enableGoToDefinition', true),
+			enableIdAndClassNameCompletion: config.get('enableIdAndClassNameCompletion', true),
+			enableWorkspaceSymbols: config.get('enableWorkspaceSymbols', true),
+			enableFindAllReferences: config.get('enableFindAllReferences', true),
+			activeHTMLFileExtensions: config.get('activeHTMLFileExtensions', []),
+			activeCSSFileExtensions: config.get('activeCSSFileExtensions', []),
+			excludeGlobPatterns: config.get('excludeGlobPatterns') || [],
 			alsoSearchDefinitionsInStyleTag: config.get('alsoSearchDefinitionsInStyleTag', false),
 			preloadCSSFiles: config.get('preloadCSSFiles', false),
 			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),

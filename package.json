@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Allows Go to Definition from HTML to CSS; provides Completion and Workspace Symbols for class & id name; supports CSS, Sass, Less languages.",
 	"icon": "images/logo.png",
-	"version": "1.6.3",
+	"version": "1.7.0",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -36,6 +36,26 @@
 			"type": "object",
 			"title": "CSS Navigation",
 			"properties": {
+				"CSSNavigation.enableGoToDefinition": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable `go to definition` by clicking `F12` in HTML files."
+				},
+				"CSSNavigation.enableWorkspaceSymbols": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable searching class and id name across workspace by clicking `Ctrl + T`."
+				},
+				"CSSNavigation.enableIdAndClassNameCompletion": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable auto complete for id and class name in HTML files."
+				},
+				"CSSNavigation.enableFindAllReferences": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable searching CSS selector references in HTML files."
+				},
 				"CSSNavigation.activeHTMLFileExtensions": {
 					"type": "array",
 					"default": [
