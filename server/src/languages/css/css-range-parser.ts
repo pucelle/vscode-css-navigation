@@ -114,13 +114,7 @@ export class CSSRangeParser {
 
 				if (this.current) {
 					this.current.end = re.lastIndex
-
-					if (this.supportsNesting) {
-						this.current = this.stack.pop()
-					}
-					else {
-						this.current = undefined
-					}
+					this.current = this.stack.pop()
 				}
 			}
 			// `@...` command in top level
@@ -235,7 +229,7 @@ export class CSSRangeParser {
 		}
 
 		let parent = this.current
-		if (this.supportsNesting && parent) {
+		if (parent) {
 			this.stack.push(parent)
 		}
 

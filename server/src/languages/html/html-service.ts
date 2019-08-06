@@ -57,7 +57,7 @@ export namespace HTMLService {
 		let locations: Location[] = []
 
 		while (match = re.exec(text)) {
-			let languageId = match[1] ? getLanguageIdFromPropertiesText(match[1] || '') : 'scss'
+			let languageId = match[1] ? getLanguageIdFromPropertiesText(match[1] || '') : 'css'
 			let cssText = match[2] || match[3]
 
 			let styleIndex = match[2]
@@ -113,7 +113,7 @@ export namespace HTMLService {
 	}
 
 	function getLanguageIdFromPropertiesText(text: string): string {
-		let propertiesMatch = text.match(/type\s*=\s*"text\/(scss|less|css)"/i)
+		let propertiesMatch = text.match(/\b(scss|less|css)\b/i)
 		let languageId = propertiesMatch ? propertiesMatch[1].toLowerCase() : 'css'
 	
 		return languageId
