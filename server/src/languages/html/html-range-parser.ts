@@ -37,7 +37,7 @@ export class HTMLRangeParser {
 				continue
 			}
 
-			let startIndex = re.lastIndex - match[0].length
+			let startIndex = match.index
 			let endIndex = re.lastIndex
 			ranges.push(...this.getRangesFromAttribute(attribute, startIndex, endIndex))
 		}
