@@ -92,7 +92,7 @@ export class CSSRangeParser {
 			let endChar = match[2]
 
 			if (endChar === '{' && chars) {
-				let startIndex = match.index - 1
+				let startIndex = re.lastIndex - chars.length - 1
 				let selector = chars.trimRight().replace(/\s+/g, ' ')
 				let names = this.parseToNames(selector)
 
