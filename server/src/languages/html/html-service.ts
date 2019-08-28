@@ -42,12 +42,14 @@ export namespace HTMLService {
 	export async function getSimpleSelectorAt(document: TextDocument, position: Position): Promise<SimpleSelector | null> {
 		let offset = document.offsetAt(position)
 
-		if (document.languageId === 'javascriptreact' || document.languageId === 'typescriptreact') {
-			return await new JSXSimpleSelectorScanner(document, offset).scan()
+		if (['javascriptreact', 'typescriptreact', 'javascript', 'typescript'].includes(document.languageId)) {
+			let selector = await new JSXSimpleSelectorScanner(document, offset).scan()
+			if (selector) {
+				return selector
+			}
 		}
-		else {
-			return await new HTMLSimpleSelectorScanner(document, offset).scan()
-		}
+
+		return await new HTMLSimpleSelectorScanner(document, offset).scan()
 	}
 
 	export function findDefinitionsInInnerStyle(document: TextDocument, select: SimpleSelector): Location[] {
