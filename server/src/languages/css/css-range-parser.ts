@@ -13,8 +13,12 @@ export enum NameType{
 }
 
 interface LeafName {
+	// Raw selector before processing nesting
 	raw: string
+
+	// Full selector after processing nesting
 	full: string
+
 	type: NameType
 }
 
@@ -65,7 +69,7 @@ export class CSSRangeParser {
 		let text = this.document.getText()
 		let ranges: LeafRange[] = []
 		
-		let re = /\s*(?:\/\/.*|\/\*[\s\S]*?\*\/|((?:\(.*?\)|".*?"|'.*?'|[\s\S])*?)([;{}]))/g
+		let re = /\s*(?:\/\/.*|\/\*[\s\S]*?\*\/|((?:\(.*?\)|".*?"|'.*?'|\/\/.*|\/\*[\s\S]*?\*\/|[\s\S])*?)([;{}]))/g
 		/*
 			\s* - match white spaces in left
 			(?:
@@ -139,6 +143,8 @@ export class CSSRangeParser {
 	//may selectors like this: '[attr="]"]', but we are not high strictly parser
 	//if want to handle it, use /((?:\[(?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\]|\((?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\)|[\s\S])+?)(?:,|$)/g
 	private parseToNames(selectors: string): LeafName[] {
+		selectors = this.removeComments(selectors)
+		
 		let match = selectors.match(/^@[\w-]+/)
 		let names: LeafName[] = []
 		if (match) {
@@ -195,6 +201,10 @@ export class CSSRangeParser {
 		}
 
 		return names
+	}
+
+	private removeComments(code: string) {
+		return code.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '')
 	}
 
 	private getCommandType(command: string): NameType {
