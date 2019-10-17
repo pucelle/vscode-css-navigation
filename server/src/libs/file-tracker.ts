@@ -381,8 +381,9 @@ export class FileTracker {
 			let updateResults = await Promise.all(promises)
 			let updatedCount = updateResults.reduce((count, value) => count + (value ? 1 : 0), 0)
 
+			let timeCost = timer.end('update')
 			if (updatedCount > 0) {
-				timer.log(`${updatedCount} files loaded in ${timer.end('update')} ms`)
+				timer.log(`${updatedCount} files loaded in ${timeCost} ms`)
 			}
 
 			this.allFresh = true

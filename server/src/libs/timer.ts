@@ -51,7 +51,8 @@ export function start(name: string) {
 export function end(name: string): number {
 	let startTime = startTimeMap.get(name)
 	if (startTime === undefined) {
-		throw new Error('Timer "${name}" is not started')
+		console.warn(`Timer "${name}" is not started`)
+		return 0
 	}
 	startTimeMap.delete(name)
 	return Math.round(getMillisecond() - startTime!)
