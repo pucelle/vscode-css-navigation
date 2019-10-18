@@ -27,12 +27,12 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 		}),
 
 		vscode.workspace.onDidChangeWorkspaceFolders(event => {
-			//since one 
 			for (let folder of event.removed) {
 				extension.stopClient(folder)
 			}
 
-			//even only remove some, may still need to start servers for the folders contained in current removed folder
+			// Even only removes a folder, we may still need to restart all servers for every folder,
+			// because some client folder may be contained in removed folders.
 			extension.checkClients()
 		})
 	)
