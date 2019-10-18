@@ -20,7 +20,7 @@ import {
 import {SimpleSelector} from './languages/common/simple-selector'
 import {HTMLService, HTMLServiceMap} from './languages/html'
 import {CSSService, CSSServiceMap} from './languages/css'
-import {file, timer} from './libs'
+import {file, timer, Ignore} from './libs'
 
 
 process.on('unhandledRejection', function(reason) {
@@ -52,6 +52,8 @@ interface Configuration {
 	preloadCSSFiles: boolean
 	ignoreSameNameCSSFile: boolean
 	ignoreCustomElement: boolean
+	ignoreFilesBy: Ignore[]
+	ignoreFilesInNPMIgnore: boolean
 }
 
 connection.onInitialize((params: InitializeParams) => {
@@ -111,6 +113,7 @@ class CSSNaigationServer {
 			documents,
 			includeGlobPattern: file.generateGlobPatternFromExtensions(configuration.activeCSSFileExtensions)!,
 			excludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.excludeGlobPatterns),
+			ignoreFilesBy: configuration.ignoreFilesBy,
 			updateImmediately: configuration.preloadCSSFiles,
 			startPath: options.workspaceFolderPath,
 			ignoreSameNameCSSFile: configuration.ignoreSameNameCSSFile && configuration.activeCSSFileExtensions.length > 1 && configuration.activeCSSFileExtensions.includes('css')

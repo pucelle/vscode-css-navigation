@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import minimatch = require('minimatch')
+import {Ignore} from './file-tracker'
 const ignoreWalk = require('ignore-walk')
 
 
@@ -75,10 +76,10 @@ export function replaceExtension(filePath: string, toExtension: string): string 
 
 
 // Will return the normalized full file path, only file paths, not include folder paths.
-export async function getFilePathsMathGlobPattern(folderPath: string, includeMatcher: minimatch.IMinimatch, excludeMatcher: minimatch.IMinimatch | null): Promise<string[]> {
+export async function getFilePathsMathGlobPattern(folderPath: string, includeMatcher: minimatch.IMinimatch, excludeMatcher: minimatch.IMinimatch | null, ignoreFilesBy: Ignore[]): Promise<string[]> {
 	let filePaths = await ignoreWalk({
 		path: folderPath,
-		ignoreFiles: ['.gitignore', '.npmignore'],
+		ignoreFiles: ignoreFilesBy,
 		includeEmpty: false, // true to include empty dirs, default false
 		follow: false // true to follow symlink dirs, default false
 	})

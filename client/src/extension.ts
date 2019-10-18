@@ -62,6 +62,7 @@ interface Configuration {
 	preloadCSSFiles: boolean
 	ignoreSameNameCSSFile: boolean
 	ignoreCustomElement: boolean
+	ignoreFilesBy: string[]
 }
 
 export class CSSNavigationExtension {
@@ -96,7 +97,8 @@ export class CSSNavigationExtension {
 			alsoSearchDefinitionsInStyleTag: config.get('alsoSearchDefinitionsInStyleTag', false),
 			preloadCSSFiles: config.get('preloadCSSFiles', false),
 			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
-			ignoreCustomElement: config.get('ignoreCustomElement', false)
+			ignoreCustomElement: config.get('ignoreCustomElement', false),
+			ignoreFilesBy: config.get('ignoreFilesBy', []),
 		}
 	}
 

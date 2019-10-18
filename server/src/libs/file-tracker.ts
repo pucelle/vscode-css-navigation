@@ -14,7 +14,7 @@ import {
 } from 'vscode-languageserver'
 
 import * as file from './file'
-import * as timer from './timer'
+import * as timer from './console'
 import Uri from 'vscode-uri'
 import {getFilePathsMathGlobPattern} from './file'
 
@@ -41,11 +41,14 @@ export interface FileTrackerItem {
 	updatePromise: Promise<void> | null
 }
 
+export type Ignore = '.gitignore' | '.npmignore'
+
 export interface FileTrackerOptions {
 	connection: Connection
 	documents: TextDocuments
 	includeGlobPattern: string
 	excludeGlobPattern?: string
+	ignoreFilesBy?: Ignore[]
 	updateImmediately?: boolean
 	startPath: string | undefined
 }
@@ -54,6 +57,7 @@ export class FileTracker {
 
 	private includeGlobPattern: string
 	private excludeGlobPattern: string | undefined
+	private ignoreFilesBy: Ignore[]
 	private updateImmediately: boolean
 	private startPath: string | undefined
 
@@ -72,6 +76,7 @@ export class FileTracker {
 
 		this.includeGlobPattern = options.includeGlobPattern || '**/*'
 		this.excludeGlobPattern = options.excludeGlobPattern
+		this.ignoreFilesBy = options.ignoreFilesBy || []
 		this.includeMatcher = new minimatch.Minimatch(this.includeGlobPattern)
 		this.excludeMatcher = this.excludeGlobPattern ? new minimatch.Minimatch(this.excludeGlobPattern) : null
 		this.updateImmediately = options.updateImmediately || false
@@ -207,7 +212,7 @@ export class FileTracker {
 	}
 	
 	private async trackFolder(folderPath: string) {
-		let filePaths = await getFilePathsMathGlobPattern(folderPath, this.includeMatcher, this.excludeMatcher)
+		let filePaths = await getFilePathsMathGlobPattern(folderPath, this.includeMatcher, this.excludeMatcher, this.ignoreFilesBy)
 		for (let filePath of filePaths) {
 			this.trackFile(filePath)
 		}

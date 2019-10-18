@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Allows Go to Definition from HTML to CSS; provides Completion and Workspace Symbols for class & id name; supports CSS, Sass, Less languages.",
 	"icon": "images/logo.png",
-	"version": "1.7.3",
+	"version": "1.8.0",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -126,10 +126,14 @@
 					"default": true,
 					"description": "When `true` by default, custom element definitions in CSS will be ignored, such that it will go to it's defined place directly."
 				},
-				"CSSNavigation.ignoreFilesInGitIgnore": {
-					"type": "boolean",
-					"default": true,
-					"description": "When `true` by default, will ignore files and directories list in `.gitignore` and `.npmignore` when looking for css definitions."
+				"CSSNavigation.ignoreFilesBy": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"enum": [".gitignore", ".npmignore"]
+					},
+					"default": [".gitignore"],
+					"description": "When `true` by default, will ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions."
 				}
 			}
 		}
