@@ -63,6 +63,7 @@ interface Configuration {
 	ignoreSameNameCSSFile: boolean
 	ignoreCustomElement: boolean
 	ignoreFilesBy: string[]
+	alwaysIncludeGlobPatterns: string[]
 }
 
 export class CSSNavigationExtension {
@@ -94,6 +95,7 @@ export class CSSNavigationExtension {
 			activeHTMLFileExtensions: config.get('activeHTMLFileExtensions', []),
 			activeCSSFileExtensions: config.get('activeCSSFileExtensions', []),
 			excludeGlobPatterns: config.get('excludeGlobPatterns') || [],
+			alwaysIncludeGlobPatterns: config.get('alwaysIncludeGlobPatterns', []),
 			alsoSearchDefinitionsInStyleTag: config.get('alsoSearchDefinitionsInStyleTag', false),
 			preloadCSSFiles: config.get('preloadCSSFiles', false),
 			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
@@ -210,7 +212,11 @@ export class CSSNavigationExtension {
 		client.start()
 		this.clients.set(workspaceFolder.uri.toString(), client)
 
-		this.showChannelMessage(getTimeMarker() + `Client for workspace folder "${workspaceFolder.name}" started`)
+		this.showChannelMessage(
+			getTimeMarker()
+			+ `Client for workspace folder "${workspaceFolder.name}" started`
+			+ (searchAcrossWorkspaceFolders ? ', and search across all workspace folders.' : '')
+		)
 
 		this.watchGitIgnoreFile(workspaceFolder)
 	}

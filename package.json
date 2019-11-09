@@ -133,7 +133,15 @@
 						"enum": [".gitignore", ".npmignore"]
 					},
 					"default": [".gitignore"],
-					"description": "When `true` by default, will ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions."
+					"description": "Specifies it to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions."
+				},
+				"CSSNavigation.alwaysIncludeGlobPatterns": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"description": "A glob pattern, files matched will always be included even they match `excludeGlobPatterns` or  listed in `.gitignore` or `.npmignore`."
 				}
 			}
 		}

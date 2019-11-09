@@ -101,8 +101,8 @@ So please give me your feedback. Thanks.
 | `preloadCSSFiles`                 | When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you change and save it or VSCode startup. If you are a heavy user in CSS definition searching, just check it.
 | `ignoreSameNameCSSFile`           | When `true` by default, e.g.: If 'the-name.scss and 'the-name.css', which share the same basename, are exist in the same directory, the 'the-name.css' will be skipped. If you prefer compiling Scss or Less file to the same name CSS file, this would be very helpful.
 | `ignoreCustomElement`             | When `true` by default, custom element definitions in CSS will be ignored, such that it will go to it's defined place directly.
-| `ignoreFilesInGitIgnore`          | When `true` by default, will ignore files and directories list in `.gitignore` and `.npmignore` when looking for CSS definitions.
-
+| `ignoreFilesBy`                   | Specifies it to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions. Default value is `[".gitignore"]`.
+| `alwaysIncludeGlobPatterns`       | A glob pattern, files matched will always be included even they match `excludeGlobPatterns` or  listed in `.gitignore` or `.npmignore`.
 
 ## FAQ
 
@@ -110,7 +110,7 @@ So please give me your feedback. Thanks.
 
 No, VSCode always sort the definition results, seems in name order. If you don't like duplicate css definitions, you can remove the `css` in `activeCSSFileExtensions` option, or compile css file to the same folder, and keep `ignoreSameNameCSSFile` as `true`.
 
-From version 1.3.0 there is a `ignoreFilesInGitIgnore` option, it's `true` by default, and your CSS files should be ignored if there is `*.css` in your `.gitignore`.
+From version 1.3.0 there is a `ignoreFilesBy` option, you may specify to ignore css files listed in your `.gitignore`.
 
 
 ### Need to wait when I go to definition for the first time after workspace startup.

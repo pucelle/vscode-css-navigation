@@ -1,5 +1,4 @@
 import * as path from 'path'
-import * as _glob from 'glob'
 import * as minimatch from 'minimatch'
 
 
@@ -48,6 +47,7 @@ export interface FileTrackerOptions {
 	documents: TextDocuments
 	includeGlobPattern: string
 	excludeGlobPattern?: string
+	alwaysIncludeGlobPattern?: string
 	ignoreFilesBy?: Ignore[]
 	updateImmediately?: boolean
 	startPath: string | undefined
@@ -57,12 +57,14 @@ export class FileTracker {
 
 	private includeGlobPattern: string
 	private excludeGlobPattern: string | undefined
+	private alwaysIncludeGlobPattern: string | undefined
 	private ignoreFilesBy: Ignore[]
 	private updateImmediately: boolean
 	private startPath: string | undefined
 
 	private includeMatcher: minimatch.IMinimatch
 	private excludeMatcher: minimatch.IMinimatch | null
+	private alwaysIncludeMatcher: minimatch.IMinimatch | null
 
 	private map: Map<string, FileTrackerItem> = new Map()
 	private ignoredFilePaths: Set<string> = new Set()
@@ -76,9 +78,11 @@ export class FileTracker {
 
 		this.includeGlobPattern = options.includeGlobPattern || '**/*'
 		this.excludeGlobPattern = options.excludeGlobPattern
+		this.alwaysIncludeGlobPattern = options.alwaysIncludeGlobPattern
 		this.ignoreFilesBy = options.ignoreFilesBy || []
 		this.includeMatcher = new minimatch.Minimatch(this.includeGlobPattern)
 		this.excludeMatcher = this.excludeGlobPattern ? new minimatch.Minimatch(this.excludeGlobPattern) : null
+		this.alwaysIncludeMatcher = this.alwaysIncludeGlobPattern ? new minimatch.Minimatch(this.alwaysIncludeGlobPattern) : null
 		this.updateImmediately = options.updateImmediately || false
 		this.startPath = options.startPath
 		this.startPathLoaded = !this.startPath
@@ -127,15 +131,25 @@ export class FileTracker {
 			return false
 		}
 
-		if (this.excludeMatcher && this.excludeMatcher.match(filePath)) {
+		if (this.shouldExclude(filePath)) {
 			return false
 		}
 
 		return true
 	}
 
+	private shouldExclude(filePath: string) {
+		if (this.excludeMatcher && this.excludeMatcher.match(filePath)) {
+			if (!this.alwaysIncludeMatcher || !this.alwaysIncludeMatcher.match(filePath)) {
+				return true
+			}
+		}
+
+		return false
+	}
+
 	private canTrackPath(fileOrFolderPath: string): boolean {
-		if (this.excludeMatcher && this.excludeMatcher.match(fileOrFolderPath)) {
+		if (this.shouldExclude(fileOrFolderPath)) {
 			return false
 		}
 
@@ -212,7 +226,7 @@ export class FileTracker {
 	}
 	
 	private async trackFolder(folderPath: string) {
-		let filePaths = await getFilePathsMathGlobPattern(folderPath, this.includeMatcher, this.excludeMatcher, this.ignoreFilesBy)
+		let filePaths = await getFilePathsMathGlobPattern(folderPath, this.includeMatcher, this.excludeMatcher, this.ignoreFilesBy, this.alwaysIncludeGlobPattern)
 		for (let filePath of filePaths) {
 			this.trackFile(filePath)
 		}

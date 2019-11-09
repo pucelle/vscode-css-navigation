@@ -76,24 +76,32 @@ export function replaceExtension(filePath: string, toExtension: string): string 
 
 
 // Will return the normalized full file path, only file paths, not include folder paths.
-export async function getFilePathsMathGlobPattern(folderPath: string, includeMatcher: minimatch.IMinimatch, excludeMatcher: minimatch.IMinimatch | null, ignoreFilesBy: Ignore[]): Promise<string[]> {
+export async function getFilePathsMathGlobPattern(
+		folderPath: string,
+		includeMatcher: minimatch.IMinimatch,
+		excludeMatcher: minimatch.IMinimatch | null,
+		ignoreFilesBy: Ignore[],
+		alwaysIncludeGlobPattern: string | undefined
+	): Promise<string[]>
+{
 	let filePaths = await ignoreWalk({
 		path: folderPath,
 		ignoreFiles: ignoreFilesBy,
 		includeEmpty: false, // true to include empty dirs, default false
-		follow: false // true to follow symlink dirs, default false
+		follow: false, // true to follow symlink dirs, default false
+		alwaysIncludeGlobPattern,
 	})
 
-	let matchedFilePaths: string[] = []
+	let matchedFilePaths: Set<string> = new Set()
 
 	for (let filePath of filePaths) {
 		let absoluteFilePath = path.join(folderPath, filePath)
 		if (includeMatcher.match(filePath) && (!excludeMatcher || !excludeMatcher.match(absoluteFilePath))) {
-			matchedFilePaths.push(absoluteFilePath)
+			matchedFilePaths.add(absoluteFilePath)
 		}
 	}
 
-	return matchedFilePaths
+	return [...matchedFilePaths]
 }
 
 

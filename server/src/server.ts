@@ -48,6 +48,7 @@ interface Configuration {
 	activeHTMLFileExtensions: string[]
 	activeCSSFileExtensions: string[]
 	excludeGlobPatterns: string[]
+	alwaysIncludeGlobPatterns: string[],
 	alsoSearchDefinitionsInStyleTag: boolean
 	preloadCSSFiles: boolean
 	ignoreSameNameCSSFile: boolean
@@ -113,10 +114,11 @@ class CSSNaigationServer {
 			documents,
 			includeGlobPattern: file.generateGlobPatternFromExtensions(configuration.activeCSSFileExtensions)!,
 			excludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.excludeGlobPatterns),
-			ignoreFilesBy: configuration.ignoreFilesBy,
+			alwaysIncludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.alwaysIncludeGlobPatterns),
 			updateImmediately: configuration.preloadCSSFiles,
 			startPath: options.workspaceFolderPath,
-			ignoreSameNameCSSFile: configuration.ignoreSameNameCSSFile && configuration.activeCSSFileExtensions.length > 1 && configuration.activeCSSFileExtensions.includes('css')
+			ignoreSameNameCSSFile: configuration.ignoreSameNameCSSFile && configuration.activeCSSFileExtensions.length > 1 && configuration.activeCSSFileExtensions.includes('css'),
+			ignoreFilesBy: configuration.ignoreFilesBy,
 		})
 
 		//onDidChangeWatchedFiles can't been registered for twice, or the first one will not work, so handle it here, not on service map
