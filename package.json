@@ -141,7 +141,7 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "A glob pattern, files matched will always be included even they match `excludeGlobPatterns` or  listed in `.gitignore` or `.npmignore`."
+					"description": "A glob pattern, files matched will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`."
 				}
 			}
 		}

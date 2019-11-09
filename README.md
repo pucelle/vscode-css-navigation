@@ -102,7 +102,7 @@ So please give me your feedback. Thanks.
 | `ignoreSameNameCSSFile`           | When `true` by default, e.g.: If 'the-name.scss and 'the-name.css', which share the same basename, are exist in the same directory, the 'the-name.css' will be skipped. If you prefer compiling Scss or Less file to the same name CSS file, this would be very helpful.
 | `ignoreCustomElement`             | When `true` by default, custom element definitions in CSS will be ignored, such that it will go to it's defined place directly.
 | `ignoreFilesBy`                   | Specifies it to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions. Default value is `[".gitignore"]`.
-| `alwaysIncludeGlobPatterns`       | A glob pattern, files matched will always be included even they match `excludeGlobPatterns` or  listed in `.gitignore` or `.npmignore`.
+| `alwaysIncludeGlobPatterns`       | A glob pattern, files matched will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`.
 
 ## FAQ
 
