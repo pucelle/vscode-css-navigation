@@ -1,5 +1,21 @@
 # ChangeLog
 
+
+## [1.9.0]
+
+ - Can specifies always include some sources even they should be ignores from `excludeGlobPatterns`, `.gitignore` or `.npmignore`.
+
+
+## [1.8.0]
+
+ - Supports ignores files by `.gitignore` or `.npmignore`.
+
+
+## [1.7.0]
+
+ - Supports disabling all four main functionality separately.
+
+
 ## [1.6.0]
 
  - Will always load files from `@import ...` for CSS files even it's in `node_modules`.
