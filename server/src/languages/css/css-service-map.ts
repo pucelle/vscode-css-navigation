@@ -28,13 +28,13 @@ export class CSSServiceMap extends FileTracker {
 		if (this.ignoreSameNameCSSFile) {
 			let ext = path.extname(filePath).slice(1).toLowerCase()
 			if (ext === 'css') {
-				let sassOrLessExist = this.has(file.replaceExtension(filePath, 'scss')) || this.has(file.replaceExtension(filePath, 'scss'))
+				let sassOrLessExist = this.has(file.replacePathExtension(filePath, 'scss')) || this.has(file.replacePathExtension(filePath, 'scss'))
 				if (sassOrLessExist) {
 					this.ignore(filePath)
 				}
 			}
 			else {
-				let cssPath = file.replaceExtension(filePath, 'css')
+				let cssPath = file.replacePathExtension(filePath, 'css')
 				if (this.has(cssPath)) {
 					this.ignore(cssPath)
 				}
@@ -52,7 +52,7 @@ export class CSSServiceMap extends FileTracker {
 		if (this.ignoreSameNameCSSFile) {
 			let ext = path.extname(filePath).slice(1).toLowerCase()
 			if (ext !== 'css') {
-				let cssPath = file.replaceExtension(filePath, 'css')
+				let cssPath = file.replacePathExtension(filePath, 'css')
 				if (this.has(cssPath)) {
 					this.notIgnore(cssPath)
 				}

@@ -1,8 +1,8 @@
 import {SimpleSelector} from '../common/simple-selector'
 import {ForwardScanner} from '../common/forward-scanner'
 import * as path from 'path'
-import {fileExists} from '../../libs/file'
-import URI from 'vscode-uri'
+import {URI} from 'vscode-uri'
+import * as fs from 'fs-extra'
 
 
 export class JSXSimpleSelectorScanner extends ForwardScanner {
@@ -18,13 +18,13 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		// Module CSS, e.g. `className={style.className}`.
 		if (this.peek() === '.') {
 			this.read()
-			return this.scanModuleCSS(attributeValue)
+			return this.scanCSSModule(attributeValue)
 		}
 
 		// Module CSS, e.g. `className={style['class-name']}`.
 		if ((this.peek() === '"' || this.peek() === '\'') && this.peekSkipWhiteSpaces(1) === '[') {
 			this.readUntil(['['])
-			return this.scanModuleCSS(attributeValue)
+			return this.scanCSSModule(attributeValue)
 		}
 
 		let [untilChar] = this.readUntil(['<', '\'', '"', '`'])
@@ -62,16 +62,29 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		return null
 	}
 
-	private async scanModuleCSS(attributeValue: string): Promise<SimpleSelector | null> {
+	/** Scan CSS module imported. */
+	private async scanCSSModule(attributeValue: string): Promise<SimpleSelector | null> {
 		let moduleVariable = this.readWord()
 		if (!moduleVariable) {
+			return null
+		}
+
+		this.readUntil(['{'])
+		this.skipWhiteSpaces()
+		if (this.read() !== '=') {
+			return null
+		}
+
+		// Must be `className={style.className}`, or it will popup frequently even type `a.b`.
+		let className = this.readWord()
+		if (className !== 'class' && className !== 'className') {
 			return null
 		}
 
 		let modulePath = this.getImportedPathFromVariableName(moduleVariable)
 		if (modulePath) {
 			let fullPath = path.resolve(path.dirname(URI.parse(this.document.uri).fsPath), modulePath)
-			if (await fileExists(fullPath)) {
+			if (await fs.pathExists(fullPath)) {
 				return SimpleSelector.create('.' + attributeValue, fullPath)
 			}
 		}

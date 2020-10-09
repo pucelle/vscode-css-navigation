@@ -1,4 +1,5 @@
-import {TextDocument, Location, Position, Range} from 'vscode-languageserver'
+import {Location, Position, Range} from 'vscode-languageserver'
+import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 import {NamedRange, HTMLRangeParser} from './html-range-parser'
 import {HTMLSimpleSelectorScanner} from './html-scanner'
@@ -39,7 +40,7 @@ export namespace HTMLService {
 		return new HTMLService(document, ranges)
 	}
 
-	export async function getSimpleSelectorAt(document: TextDocument, position: Position): Promise<SimpleSelector | null> {
+	export async function searchSimpleSelectorAt(document: TextDocument, position: Position): Promise<SimpleSelector | null> {
 		let offset = document.offsetAt(position)
 
 		if (['javascriptreact', 'typescriptreact', 'javascript', 'typescript'].includes(document.languageId)) {
@@ -49,7 +50,7 @@ export namespace HTMLService {
 			}
 		}
 
-		return await new HTMLSimpleSelectorScanner(document, offset).scan()
+		return new HTMLSimpleSelectorScanner(document, offset).scan()
 	}
 
 	export function findDefinitionsInInnerStyle(document: TextDocument, select: SimpleSelector): Location[] {

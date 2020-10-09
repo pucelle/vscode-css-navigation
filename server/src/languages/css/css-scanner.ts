@@ -1,4 +1,4 @@
-import {TextDocument} from 'vscode-languageserver'
+import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 import {ForwardScanner} from '../common/forward-scanner'
 import {CSSService} from './css-service'

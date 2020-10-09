@@ -1,10 +1,10 @@
 import * as path from 'path'
 import * as minimatch from 'minimatch'
+import * as fs from 'fs-extra'
 
 
 import {
 	TextDocuments,
-	TextDocument,
 	Connection,
 	TextDocumentChangeEvent,
 	Files,
@@ -12,11 +12,11 @@ import {
 	FileChangeType
 } from 'vscode-languageserver'
 
-import * as file from './file'
-import * as timer from './console'
-import Uri from 'vscode-uri'
-import {getFilePathsMathGlobPattern} from './file'
+import {TextDocument} from 'vscode-languageserver-textdocument'
 
+import * as timer from './console'
+import {URI} from 'vscode-uri'
+import {walkDirectoryToGetFilePaths} from './file'
 
 export interface FileTrackerItem {
 
@@ -44,7 +44,7 @@ export type Ignore = '.gitignore' | '.npmignore'
 
 export interface FileTrackerOptions {
 	connection: Connection
-	documents: TextDocuments
+	documents: TextDocuments<TextDocument>
 	includeGlobPattern: string
 	excludeGlobPattern?: string
 	alwaysIncludeGlobPattern?: string
@@ -117,7 +117,7 @@ export class FileTracker {
 
 	// No need to handle file opening because we have preloaded all the files.
 	// Open and changed event will be distinguished by document version later.
-	private onDocumentOpenOrContentChanged(event: TextDocumentChangeEvent) {
+	private onDocumentOpenOrContentChanged(event: TextDocumentChangeEvent<TextDocument>) {
 		let document = event.document
 		let filePath = Files.uriToFilePath(document.uri)
 
@@ -167,7 +167,7 @@ export class FileTracker {
 	// 	}
 	// }
 
-	private onDocumentClosed(event: TextDocumentChangeEvent) {
+	private onDocumentClosed(event: TextDocumentChangeEvent<TextDocument>) {
 		let document = event.document
 		let filePath = Files.uriToFilePath(document.uri)
 		this.unTrackOpenedFile(filePath!)
@@ -194,7 +194,7 @@ export class FileTracker {
 				this.trackPath(fileOrFolderPath)
 			}
 			else if (change.type === FileChangeType.Changed) {
-				let stat = await file.stat(fileOrFolderPath)
+				let stat = await fs.stat(fileOrFolderPath)
 				if (stat && stat.isFile()) {
 					let filePath = fileOrFolderPath
 					if (this.canTrackFilePath(filePath)) {
@@ -213,7 +213,7 @@ export class FileTracker {
 			return
 		}
 
-		let stat = await file.stat(fileOrFolderPath)
+		let stat = await fs.stat(fileOrFolderPath)
 		if (stat && stat.isDirectory()) {
 			await this.trackFolder(fileOrFolderPath)
 		}
@@ -226,7 +226,8 @@ export class FileTracker {
 	}
 	
 	private async trackFolder(folderPath: string) {
-		let filePaths = await getFilePathsMathGlobPattern(folderPath, this.includeMatcher, this.excludeMatcher, this.ignoreFilesBy, this.alwaysIncludeGlobPattern)
+		let filePaths = await walkDirectoryToGetFilePaths(folderPath, this.includeMatcher, this.excludeMatcher, this.ignoreFilesBy, this.alwaysIncludeGlobPattern)
+
 		for (let filePath of filePaths) {
 			this.trackFile(filePath)
 		}
@@ -439,11 +440,11 @@ export class FileTracker {
 
 	private async loadDocumentFromFilePath(filePath: string): Promise<TextDocument | null> {
 		let languageId = path.extname(filePath).slice(1).toLowerCase()
-		let uri = Uri.file(filePath).toString()
+		let uri = URI.file(filePath).toString()
 		let document = null
 
 		try {
-			let text = await file.readText(filePath)
+			let text = (await fs.readFile(filePath)).toString('utf8')
 			
 			// Very low resource usage to create document.
 			document = TextDocument.create(uri, languageId, 1, text)

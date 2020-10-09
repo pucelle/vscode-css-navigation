@@ -1,48 +1,9 @@
-import * as fs from 'fs'
 import * as path from 'path'
 import minimatch = require('minimatch')
 import {Ignore} from './file-tracker'
+import * as fs from 'fs-extra'
 const ignoreWalk = require('ignore-walk')
 
-
-export function readText(fsPath: string): Promise<string> {
-	return new Promise((resolve, reject) => {
-		fs.readFile(fsPath, 'utf8', (err, text) => {
-			if (err) {
-				reject(err)
-			}
-			else {
-				resolve(text)
-			}
-		})
-	})
-}
-
-export function stat(fsPath: string): Promise<fs.Stats | null> {
-	return new Promise((resolve) => {
-		fs.stat(fsPath, (err, stat) => {
-			if (err) {
-				resolve(null)
-			}
-			else {
-				resolve(stat)
-			}
-		})
-	})
-}
-
-export function fileExists(fsPath: string): Promise<boolean> {
-	return new Promise((resolve) => {
-		fs.stat(fsPath, (err, stat) => {
-			if (err) {
-				resolve(false)
-			}
-			else {
-				resolve(stat.isFile())
-			}
-		})
-	})
-}
 
 
 export function generateGlobPatternFromPatterns(patterns: string[]): string | undefined {
@@ -66,24 +27,23 @@ export function generateGlobPatternFromExtensions(extensions: string[]): string 
 }
 
 
-export function getExtension(filePath: string): string {
+export function getPathExtension(filePath: string): string {
 	return path.extname(filePath).slice(1).toLowerCase()
 }
 
-export function replaceExtension(filePath: string, toExtension: string): string {
+export function replacePathExtension(filePath: string, toExtension: string): string {
 	return filePath.replace(/\.\w+$/, '.' + toExtension)
 }
 
 
-// Will return the normalized full file path, only file paths, not include folder paths.
-export async function getFilePathsMathGlobPattern(
-		folderPath: string,
-		includeMatcher: minimatch.IMinimatch,
-		excludeMatcher: minimatch.IMinimatch | null,
-		ignoreFilesBy: Ignore[],
-		alwaysIncludeGlobPattern: string | undefined
-	): Promise<string[]>
-{
+/** Will return the normalized full file path, not include folder paths. */
+export async function walkDirectoryToGetFilePaths(
+	folderPath: string,
+	includeMatcher: minimatch.IMinimatch,
+	excludeMatcher: minimatch.IMinimatch | null,
+	ignoreFilesBy: Ignore[],
+	alwaysIncludeGlobPattern: string | undefined
+): Promise<string[]> {
 	let filePaths = await ignoreWalk({
 		path: folderPath,
 		ignoreFiles: ignoreFilesBy,
@@ -105,6 +65,7 @@ export async function getFilePathsMathGlobPattern(
 }
 
 
+/** Resolve import path, will search `node_modules` directory to find final import path. */
 export async function resolveImportPath(fromPath: string, toPath: string): Promise<string | null> {
 	let isModulePath = toPath.startsWith('~')
 	let fromDir = path.dirname(fromPath)
@@ -112,7 +73,7 @@ export async function resolveImportPath(fromPath: string, toPath: string): Promi
 
 	if (isModulePath) {
 		while (fromDir) {
-			let filePath = await resolvePath(path.resolve(fromDir, 'node_modules/' + toPath.slice(1)), fromPathExtension)
+			let filePath = await resolveImportedPath(path.resolve(fromDir, 'node_modules/' + toPath.slice(1)), fromPathExtension)
 			if (filePath) {
 				return filePath
 			}
@@ -126,13 +87,14 @@ export async function resolveImportPath(fromPath: string, toPath: string): Promi
 		return null
 	}
 	else {
-		return await resolvePath(path.resolve(fromDir, toPath), fromPathExtension)
+		return await resolveImportedPath(path.resolve(fromDir, toPath), fromPathExtension)
 	}
 }
 
 
-async function resolvePath(filePath: string, fromPathExtension: string): Promise<string | null> {
-	if (await fileExists(filePath)) {
+/** Fix imported path with extension. */
+async function resolveImportedPath(filePath: string, fromPathExtension: string): Promise<string | null> {
+	if (await fs.pathExists(filePath)) {
 		return filePath
 	}
 
@@ -141,7 +103,7 @@ async function resolvePath(filePath: string, fromPathExtension: string): Promise
 		if (path.extname(filePath) === '') {
 			filePath += '.scss'
 
-			if (await fileExists(filePath)) {
+			if (await fs.pathExists(filePath)) {
 				return filePath
 			}
 		}
@@ -150,7 +112,7 @@ async function resolvePath(filePath: string, fromPathExtension: string): Promise
 		if (path.basename(filePath)[0] !== '_') {
 			filePath = path.join(path.dirname(filePath), '_' + path.basename(filePath))
 
-			if (await fileExists(filePath)) {
+			if (await fs.pathExists(filePath)) {
 				return filePath
 			}
 		}

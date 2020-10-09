@@ -1,12 +1,12 @@
 import * as path from 'path'
-import {TextDocument, SymbolInformation, SymbolKind, Location, Position} from 'vscode-languageserver'
+import {SymbolInformation, SymbolKind, Location, Position} from 'vscode-languageserver'
+import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 import {NamedRange, CSSRangeParser} from './css-range-parser'
 import {CSSSimpleSelectorScanner} from './css-scanner'
-import {readText} from '../../libs/file'
-import URI from 'vscode-uri'
+import {URI} from 'vscode-uri'
+import * as fs from 'fs-extra'
 import {resolveImportPath} from '../../libs/file'
-
 
 
 export class CSSService {
@@ -168,7 +168,7 @@ export namespace CSSService {
 	export async function createFromFilePath(filePath: string): Promise<CSSService | null> {
 		let extension = path.extname(filePath).slice(1)
 		try{
-			let text = await readText(filePath)
+			let text = (await fs.readFile(filePath)).toString('utf8')
 			let cssDocument = TextDocument.create(URI.file(filePath).toString(), extension, 1, text)
 			return CSSService.create(cssDocument)
 		}

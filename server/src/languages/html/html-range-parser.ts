@@ -1,4 +1,5 @@
-import {TextDocument, Range} from 'vscode-languageserver'
+import {Range} from 'vscode-languageserver'
+import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 
 

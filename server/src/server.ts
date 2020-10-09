@@ -17,6 +17,8 @@ import {
 	Files
 } from 'vscode-languageserver'
 
+import {TextDocument} from 'vscode-languageserver-textdocument'
+
 import {SimpleSelector} from './languages/common/simple-selector'
 import {HTMLService, HTMLServiceMap} from './languages/html'
 import {CSSService, CSSServiceMap} from './languages/css'
@@ -30,7 +32,7 @@ process.on('unhandledRejection', function(reason) {
 
 let connection: Connection = createConnection(ProposedFeatures.all)
 let configuration: Configuration
-let documents: TextDocuments = new TextDocuments()
+let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument)
 let server: CSSNaigationServer
 timer.pipeTo(connection)
 
@@ -141,11 +143,13 @@ class CSSNaigationServer {
 			return null
 		}
 		
-		if (!configuration.activeHTMLFileExtensions.includes(file.getExtension(document.uri))) {
+		// Not belongs to HTML files.
+		if (!configuration.activeHTMLFileExtensions.includes(file.getPathExtension(document.uri))) {
 			return null
 		}
 
-		let selector = await HTMLService.getSimpleSelectorAt(document, position)
+		// Search current css selector.
+		let selector = await HTMLService.searchSimpleSelectorAt(document, position)
 		if (!selector) {
 			return null
 		}
@@ -201,16 +205,16 @@ class CSSNaigationServer {
 			return null
 		}
 
-		if (!configuration.activeHTMLFileExtensions.includes(file.getExtension(document.uri))) {
+		if (!configuration.activeHTMLFileExtensions.includes(file.getPathExtension(document.uri))) {
 			return null
 		}
 
-		let selector = await HTMLService.getSimpleSelectorAt(document, position)
+		let selector = await HTMLService.searchSimpleSelectorAt(document, position)
 		if (!selector || selector.type === SimpleSelector.Type.Tag) {
 			return null
 		}
 
-		// If module css file not in current work space folder, create an `CSSService` to load it.
+		// If module css file not in current work space folder, create a temporary `CSSService` to load it.
 		if (selector.filePath) {
 			let cssService: CSSService | null = await this.cssServiceMap.get(selector.filePath) || null
 			if (!cssService) {
@@ -247,7 +251,7 @@ class CSSNaigationServer {
 			return null
 		}
 
-		let extension = file.getExtension(document.uri)
+		let extension = file.getPathExtension(document.uri)
 		if (configuration.activeHTMLFileExtensions.includes(extension)) {
 			if (configuration.alsoSearchDefinitionsInStyleTag) {
 				let filePath = Files.uriToFilePath(document.uri)
