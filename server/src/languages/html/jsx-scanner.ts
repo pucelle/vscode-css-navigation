@@ -76,6 +76,7 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		}
 
 		// Must be `className={style.className}`, or it will popup frequently even type `a.b`.
+		this.skipWhiteSpaces()
 		let className = this.readWord()
 		if (className !== 'class' && className !== 'className') {
 			return null
