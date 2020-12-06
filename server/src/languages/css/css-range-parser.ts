@@ -1,6 +1,6 @@
 import {Range} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {timer} from '../../libs'
+import {console} from '../../internal'
 import {CSSService} from './css-service'
 
 
@@ -20,9 +20,11 @@ interface LeafName {
 	// Full selector after processing nesting
 	full: string
 
+	/** CSS leaf piece type. */
 	type: NameType
 }
 
+/** Internal leaf node. */
 interface LeafRange {
 	names: LeafName[]
 	start: number
@@ -30,16 +32,30 @@ interface LeafRange {
 	parent: LeafRange | undefined
 }
 
+/** Selector names. */
 interface FullAndMainName {
 	full: string
 	mains: string[] | null
 }
 
+/** Exported css ranges. */
+export interface CSSRange {
+
+	/** All ranges in current CSS file. */
+	ranges: NamedRange[]
+	
+	/** All imported paths in current CSS file. */
+    importPaths: string[]
+}
+
+/** One range and it's related names. */
 export interface NamedRange {
 	names: FullAndMainName[]
 	range: Range
 }
 
+
+/** To parse css one css file to declarations. */
 export class CSSRangeParser {
 
 	private supportedLanguages = ['css', 'less', 'scss']
@@ -50,7 +66,7 @@ export class CSSRangeParser {
 	private current: LeafRange | undefined
 	private ignoreDeep: number = 0
 
-	// When has `@import ...`, need to load the imported files even they are inside `node_modules`.
+	/** When having `@import ...`, we need to load the imported files even they are inside `node_modules`. */
 	private importPaths: string[] = []
 
 	constructor(document: TextDocument) {
@@ -59,7 +75,7 @@ export class CSSRangeParser {
 		let {languageId} = document
 		if (!this.supportedLanguages.includes(languageId)) {
 			languageId = 'css'
-			timer.log(`Language "${languageId}" is not a declared css language, using css language instead.`)
+			console.warn(`Language "${languageId}" is not a declared css language, using css language instead.`)
 		}
 
 		this.supportsNesting = CSSService.isLanguageSupportsNesting(languageId)
@@ -141,11 +157,12 @@ export class CSSRangeParser {
 		}
 	}
 
-	//may selectors like this: '[attr="]"]', but we are not high strictly parser
-	//if want to handle it, use /((?:\[(?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\]|\((?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\)|[\s\S])+?)(?:,|$)/g
+	/** Parse selector to name array. */
 	private parseToNames(selectors: string): LeafName[] {
+		//may selectors like this: '[attr="]"]', but we are not high strictly parser
+		//if want to handle it, use /((?:\[(?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\]|\((?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\)|[\s\S])+?)(?:,|$)/g
 		selectors = this.removeComments(selectors)
-		
+			
 		let match = selectors.match(/^@[\w-]+/)
 		let names: LeafName[] = []
 		if (match) {
@@ -204,10 +221,12 @@ export class CSSRangeParser {
 		return names
 	}
 
+	/** Replace out comments. */
 	private removeComments(code: string) {
 		return code.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '')
 	}
 
+	/** Get command type. */
 	private getCommandType(command: string): NameType {
 		switch (command) {
 			case '@at-root':
@@ -224,6 +243,7 @@ export class CSSRangeParser {
 		}
 	}
 
+	/** Parse `@import ...` to paths. */
 	private parseImportPaths(selectors: string) {
 		let match = selectors.match(/^@import\s+(['"])(.+?)\1/)
 		if (match) {
@@ -234,6 +254,7 @@ export class CSSRangeParser {
 		}
 	}
 
+	/** Create range piece. */
 	private newLeafRange(names: LeafName[], start: number): LeafRange {
 		if (this.supportsNesting && this.ignoreDeep === 0 && this.current && this.haveSelectorInNames(names)) {
 			names = this.combineNestingNames(names)
@@ -252,10 +273,12 @@ export class CSSRangeParser {
 		}
 	}
 
+	/** Check whether having selector in names. */
 	private haveSelectorInNames(names: LeafName[]): boolean {
 		return names.length > 1 || names[0].type === NameType.Selector
 	}
 
+	/** Combine nesting names into a name stack group. */
 	private combineNestingNames(oldNames: LeafName[]): LeafName[] {
 		let re = /(?<=^|[\s+>~])&/g	//has sass reference '&' if match
 		let names: LeafName[] = []
@@ -290,33 +313,40 @@ export class CSSRangeParser {
 		return names
 	}
 
+	/** Get names of closest parent selector. */
 	private getClosestSelectorFullNames(): string[] | null {
 		let parent = this.current
+
 		while (parent) {
 			if (this.haveSelectorInNames(parent.names)) {
 				break
 			}
 			parent = parent.parent
 		}
+
 		if (!parent) {
 			return null
 		}
 		
 		let fullNames: string[] = []
+
 		for (let name of parent.names) {
 			if (name.type === NameType.Selector) {
 				fullNames.push(name.full)
 			}
 		}
+
 		return fullNames
 	}
 
+	/** Leaves -> name ranges. */
 	private formatToNamedRanges(leafRanges: LeafRange[]): NamedRange[] {
 		let ranges: NamedRange[] = []
 
 		for (let {names, start, end} of leafRanges) {
 			ranges.push({
 				names: names.map(leafName => this.formatLeafNameToFullMainName(leafName)),
+
 				//positionAt use a binary search algorithm, it should be fast enough, no need to count lines here, although faster
 				range: Range.create(this.document.positionAt(start), this.document.positionAt(end))
 			})
@@ -325,6 +355,7 @@ export class CSSRangeParser {
 		return ranges
 	}
 
+	/** Leaves -> names. */
 	private formatLeafNameToFullMainName({raw, full, type}: LeafName): FullAndMainName {
 		if (type !== NameType.Selector) {
 			return {
@@ -343,26 +374,27 @@ export class CSSRangeParser {
 		}
 
 		let mains = this.getMainSelectors(full)
+
 		return {
 			full,
 			mains
 		}
 	}
 
-	//like '&:hover', 'a &:hover'
+	/** Checks whether having a reference tag `&` in right most part, returns `true` for '&:hover', 'a &:hover'. */
 	private hasSingleReferenceInRightMostDescendant(selector: string): boolean {
 		let rightMost = this.getRightMostDescendant(selector)
 		return /^&(?:[^\w-]|$)/.test(rightMost)
 	}
 
-	/*
-	it returns the start of the right most descendant
-	e.g., selectors below wull returns '.a'
-		.a[...]
-		.a:actived
-		.a::before
-		.a.b
-	*/
+	/**
+	 * Returns the start of the right most descendant as the main part.
+	 * e.g., selectors below wull returns '.a'
+	 * 	.a[...]
+	 * 	.a:actived
+	 * 	.a::before
+	 * 	.a.b
+	 */
 	private getMainSelectors(selector: string): string[] | null {
 		let rightMost = this.getRightMostDescendant(selector)
 		if (!rightMost) {
@@ -388,9 +420,9 @@ export class CSSRangeParser {
 		return mains.length > 0 ? mains : null
 	}
 
-	//the descendant combinator used to split ancestor and descendant: space > + ~
-	//it's not a strict regexp, if want so, use /(?:\[(?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[^\]])*?+?\]|\((?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[^)])*?+?\)|[^\s>+~|])+?$/
+	/** Returns descendant combinator used to split ancestor and descendant: space > + ~. */
 	private getRightMostDescendant(selector: string): string {
+		// It's not a strict regexp, if want so, use /(?:\[(?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[^\]])*?+?\]|\((?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[^)])*?+?\)|[^\s>+~|])+?$/
 		let descendantRE = /(?:\[[^\]]*?\]|\([^)]*?\)|[^\s+>~])+?$/
 		/*
 			(?:

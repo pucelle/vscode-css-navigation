@@ -16,7 +16,8 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 		this.startOffset = offset
 	}
 
-	public scan(): SimpleSelector[] | null {
+	/** Scan CSS selector for a CSS document from specified offset. */
+	scan(): SimpleSelector[] | null {
 		//when mouse in '|&-a', check if the next char is &
 		let nextChar = this.peek(-1)
 		if (nextChar === '#' || nextChar === '.' || this.supportsNesting && nextChar === '&') {
@@ -41,18 +42,19 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 		return null
 	}
 
-	parseAndGetSelectors(word: string): SimpleSelector[] | null {
+	/** Parse whole ranges for document and get selector. */
+	private parseAndGetSelectors(word: string): SimpleSelector[] | null {
 		let {ranges} = new CSSRangeParser(this.document).parse()
 		let currentRange: NamedRange | undefined
 		let selectorIncludedParentRange: NamedRange | undefined
 
-		//binary searching should be a little better, but not help much
+		// Binary searching should be a little better, but not help much
 		for (let i = 0; i < ranges.length; i++) {
 			let range = ranges[i]
 			let start = this.document.offsetAt(range.range.start)
 			let end = this.document.offsetAt(range.range.end)
 			
-			//is ancestor and has selector
+			// Is a ancestor and has selector
 			if (this.startOffset >= start && this.startOffset < end) {
 				if (currentRange && this.isRangeHaveSelector(currentRange)) {
 					selectorIncludedParentRange = currentRange
@@ -70,6 +72,7 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 		}
 
 		let selectors = []
+
 		for (let {full} of selectorIncludedParentRange.names) {
 			if (full[0] === '.' || full[0] === '#') {
 				let selector = SimpleSelector.create(full + word)
@@ -82,7 +85,8 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 		return selectors
 	}
 
-	isRangeHaveSelector(range: NamedRange): boolean {
+	/** Checks whether range having a selector. */
+	private isRangeHaveSelector(range: NamedRange): boolean {
 		return range.names.some(({mains}) => mains !== null)
 	}
 }

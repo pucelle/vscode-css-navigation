@@ -6,15 +6,15 @@ import {NamedRange, CSSRangeParser} from './css-range-parser'
 import {CSSSimpleSelectorScanner} from './css-scanner'
 import {URI} from 'vscode-uri'
 import * as fs from 'fs-extra'
-import {resolveImportPath} from '../../libs/file'
+import {resolveImportPath} from '../../internal/file'
 
 
+/** Gives CSS service for one CSS file. */
 export class CSSService {
 
 	private uri: string
 	private ranges: NamedRange[]
-
-	importPaths: string[]
+	private importPaths: string[]
 
 	constructor(document: TextDocument, ranges: NamedRange[], importPaths: string[]) {
 		this.uri = document.uri
@@ -22,6 +22,7 @@ export class CSSService {
 		this.importPaths = importPaths
 	}
 
+	/** Get resolved imported css paths from `@import ...`. */
 	async getResolvedImportPaths(): Promise<string[]> {
 		if (this.importPaths.length > 0) {
 			let filePaths: string[] = []
@@ -40,6 +41,7 @@ export class CSSService {
 		}
 	}
 
+	/** Find definitions match one selector. */
 	findDefinitionsMatchSelector(selector: SimpleSelector): Location[] {
 		let locations: Location[] = []
 		let selectorRaw = selector.raw
@@ -57,13 +59,15 @@ export class CSSService {
 		return locations
 	}
 
-	/*
-	query 'p' will match:
-		p* as tag name
-		.p* as class name
-		#p* as id
-	and may more decorated selectors follow
-	*/
+	/**
+	 * Query symbols from a wildmatch query string.
+     *
+	 * Query string 'p' will match:
+	 *	p* as tag name
+	 *	.p* as class name
+	 *	#p* as id
+	 * and may have more decorated selectors followed.
+	 */
 	findSymbolsMatchQuery(query: string): SymbolInformation[] {
 		let symbols: SymbolInformation[] = []
 		let lowerQuery = query.toLowerCase()
@@ -84,10 +88,9 @@ export class CSSService {
 
 		return symbols
 	}
-
 	
-	//match when left word boundary match
-	isMatchQuery(selector: string, query: string): boolean {
+	/** Test if one selector match a symbol query string, they will match when left word boundaris matched. */
+	private isMatchQuery(selector: string, query: string): boolean {
 		let lowerSelector = selector.toLowerCase()
 		let index = lowerSelector.indexOf(query)
 
@@ -125,6 +128,7 @@ export class CSSService {
 		return true
 	}
 
+	/** Find completion label pieces from selector. */
 	findCompletionLabelsMatchSelector(selector: SimpleSelector): string[] {
 		let labelSet: Set<string> = new Set()
 		let selectorRaw = selector.raw
@@ -148,23 +152,28 @@ export class CSSService {
 }
 
 
+/** Global help functions of CSSService. */
 export namespace CSSService {
 	
+	/** Create a CSSService from a CSS document. */
 	export function create(document: TextDocument): CSSService {
 		let {ranges, importPaths} = new CSSRangeParser(document).parse()
 		return new CSSService(document, ranges, importPaths)
 	}
 
+	/** Check if CSS language supports nesting. */
 	export function isLanguageSupportsNesting(languageId: string): boolean {
 		let supportedNestingLanguages = ['less', 'scss']
 		return supportedNestingLanguages.includes(languageId)
 	}
 
+	/** Get current selector from CSS document at position. */
 	export function getSimpleSelectorAt(document: TextDocument, position: Position): SimpleSelector[] | null {
 		let offset = document.offsetAt(position)
 		return new CSSSimpleSelectorScanner(document, offset).scan()
 	}
 
+	/** Create a CSSService from a CSS file path. */
 	export async function createFromFilePath(filePath: string): Promise<CSSService | null> {
 		let extension = path.extname(filePath).slice(1)
 		try{

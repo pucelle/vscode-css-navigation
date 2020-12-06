@@ -44,28 +44,6 @@ export function deactivate(): Promise<void> {
 	return extension.stopAllClients()
 }
 
-
-interface InitializationOptions {
-	workspaceFolderPath: string
-	configuration: Configuration
-}
-
-interface Configuration {
-	enableGoToDefinition: boolean
-	enableWorkspaceSymbols: boolean
-	enableIdAndClassNameCompletion: boolean
-	enableFindAllReferences: boolean
-	activeHTMLFileExtensions: string[]
-	activeCSSFileExtensions: string[]
-	excludeGlobPatterns: string[]
-	alsoSearchDefinitionsInStyleTag: boolean
-	preloadCSSFiles: boolean
-	ignoreSameNameCSSFile: boolean
-	ignoreCustomElement: boolean
-	ignoreFilesBy: string[]
-	alwaysIncludeGlobPatterns: string[]
-}
-
 export class CSSNavigationExtension {
 	
 	channel = vscode.window.createOutputChannel('CSS Navigation')
@@ -97,10 +75,10 @@ export class CSSNavigationExtension {
 			excludeGlobPatterns: config.get('excludeGlobPatterns') || [],
 			alwaysIncludeGlobPatterns: config.get('alwaysIncludeGlobPatterns', []),
 			alsoSearchDefinitionsInStyleTag: config.get('alsoSearchDefinitionsInStyleTag', false),
-			preloadCSSFiles: config.get('preloadCSSFiles', false),
 			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
 			ignoreCustomElement: config.get('ignoreCustomElement', false),
 			ignoreFilesBy: config.get('ignoreFilesBy', []),
+			enableLogLevelMessage: config.get('enableLogLevelMessage', false),
 		}
 	}
 

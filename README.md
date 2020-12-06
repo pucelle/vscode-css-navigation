@@ -96,14 +96,13 @@ So please give me your feedback. Thanks.
 | `activeHTMLFileExtensions`        | The languages of the html files, in where you can `go to definition`. Default value is `["html", "ejs", "erb", "php", "hbs", "js", "ts", "jsx", "tsx", "vue", "twig"]`.
 | `activeCSSFileExtensions`         | The extensions of the CSS files, only the matched files you can `go to` and `peek`. Default value is `["css", "less", "scss"]`. Currently not support other languages, you can specify more extensions, but the related files will be parsed as CSS.
 | `excludeGlobPatterns`             | A glob pattern, defines paths to exclude from when searching for CSS definitions. Default value is `["**/node_modules/**", "**/bower_components/**", "**/vendor/**", "**/coverage/**"]`.
+| `alwaysIncludeGlobPatterns`       | A glob pattern, files matched will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`. You may use this to include some special codes inside `node_modules`.
 | `alsoSearchDefinitionsInStyleTag` | Is `false` by default. When set to `true`, will also search CSS definitions in `<style>` tag for current document.
 | `searchAcrossWorkspaceFolders`    | When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current worksapce, you should set this to `true`.
-| `preloadCSSFiles`                 | When `false` by default, CSS files are loaded only when required, that's why you need to wait for a while when searching for definitions at the first time. By set it to `true`, CSS files are loaded immediately after you change and save it or VSCode startup. If you are a heavy user in CSS definition searching, just check it.
 | `ignoreSameNameCSSFile`           | When `true` by default, e.g.: If 'the-name.scss and 'the-name.css', which share the same basename, are exist in the same directory, the 'the-name.css' will be skipped. If you prefer compiling Scss or Less file to the same name CSS file, this would be very helpful.
 | `ignoreCustomElement`             | When `true` by default, custom element definitions in CSS will be ignored, such that it will go to it's defined place directly.
-| `ignoreFilesBy`                   | Specifies it to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions. Default value is `[".gitignore"]`.
-| `alwaysIncludeGlobPatterns`       | A glob pattern, files matched will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`.
-
+| `ignoreFilesBy`                   | Specifies this to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions. Default value is `[".gitignore"]`.
+| `enableLogLevelMessage`           | Whether enables log level message, set it to `true` for debugging.
 ## FAQ
 
 ### Can I change definition order to make sass files always before the css files?

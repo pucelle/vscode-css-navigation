@@ -7,6 +7,7 @@ import * as fs from 'fs-extra'
 
 export class JSXSimpleSelectorScanner extends ForwardScanner {
 
+	/** Scan a JSX document from a specified offset to find a CSS selector. */
 	async scan(): Promise<SimpleSelector | null> {
 		let inExpression = false
 
@@ -62,7 +63,7 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		return null
 	}
 
-	/** Scan CSS module imported. */
+	/** Scan imported CSS module. */
 	private async scanCSSModule(attributeValue: string): Promise<SimpleSelector | null> {
 		let moduleVariable = this.readWord()
 		if (!moduleVariable) {
@@ -82,7 +83,7 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 			return null
 		}
 
-		let modulePath = this.getImportedPathFromVariableName(moduleVariable)
+		let modulePath = this.parseImportedPathFromVariableName(moduleVariable)
 		if (modulePath) {
 			let fullPath = path.resolve(path.dirname(URI.parse(this.document.uri).fsPath), modulePath)
 			if (await fs.pathExists(fullPath)) {
@@ -93,7 +94,8 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		return SimpleSelector.create('.' + attributeValue)
 	}
 
-	private getImportedPathFromVariableName(nameToMatch: string): string | null {
+	/** Parse `import ...`. */
+	private parseImportedPathFromVariableName(nameToMatch: string): string | null {
 		let re = /import\s+(\w+)\s+from\s+(['"])(.+?)\2/g
 		let match: RegExpExecArray | null
 

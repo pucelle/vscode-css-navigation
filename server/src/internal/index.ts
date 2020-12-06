@@ -1,8 +1,8 @@
 export * from './file-tracker'
 
 import * as file from './file'
-import * as timer from './console'
+import * as console from './console'
 export {
 	file,
-	timer
+	console,
 }

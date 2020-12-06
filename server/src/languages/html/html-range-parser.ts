@@ -8,6 +8,7 @@ export interface NamedRange {
 	range: Range
 }
 
+
 export class HTMLRangeParser {
 
 	private document: TextDocument
@@ -16,6 +17,7 @@ export class HTMLRangeParser {
 		this.document = document
 	}
 
+	/** Parse HTML document to ranges. */
 	parse(): NamedRange[] {
 		let text = this.document.getText()
 		let ranges: NamedRange[] = []
@@ -40,12 +42,14 @@ export class HTMLRangeParser {
 
 			let startIndex = match.index
 			let endIndex = re.lastIndex
+
 			ranges.push(...this.getRangesFromAttribute(attribute, startIndex, endIndex))
 		}
 		
 		return ranges
 	}
 
+	/** Parse CSS range for HTML tag attribute. */
 	private getRangesFromAttribute(attribute: string, start: number, end: number): NamedRange[] {
 		let re = /\b(class|id)\s*=\s*(?:"(.*?)"|'(.*?)')/g
 		let match: RegExpExecArray | null

@@ -25,6 +25,7 @@ in fact there is an easier way to do so, only about 20 lines of codes, but shoul
 */
 export class HTMLSimpleSelectorScanner extends ForwardScanner {
 
+	/** Scan a HTML document from a specified offset to find a CSS selector. */
 	scan(): SimpleSelector | null {
 		let word = this.readWholeWord()
 		if (!word) {

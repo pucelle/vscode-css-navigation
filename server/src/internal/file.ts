@@ -6,24 +6,26 @@ const ignoreWalk = require('ignore-walk')
 
 
 
-export function generateGlobPatternFromPatterns(patterns: string[]): string | undefined {
+export function generateGlobPatternFromPatterns(patterns: string[]): string | null {
 	if (patterns.length > 1) {
 		return '{' + patterns.join(',') + '}'
 	}
 	else if (patterns.length === 1) {
 		return patterns[0]
 	}
-	return undefined
+
+	return null
 }
 
-export function generateGlobPatternFromExtensions(extensions: string[]): string | undefined {
+export function generateGlobPatternFromExtensions(extensions: string[]): string | null {
 	if (extensions.length > 1) {
 		return '**/*.{' + extensions.join(',') + '}'
 	}
 	else if (extensions.length === 1) {
 		return '**/*.' + extensions[0]
 	}
-	return undefined
+
+	return null
 }
 
 
@@ -37,12 +39,12 @@ export function replacePathExtension(filePath: string, toExtension: string): str
 
 
 /** Will return the normalized full file path, not include folder paths. */
-export async function walkDirectoryToGetFilePaths(
+export async function walkDirectoryToMatchFiles(
 	folderPath: string,
 	includeMatcher: minimatch.IMinimatch,
 	excludeMatcher: minimatch.IMinimatch | null,
 	ignoreFilesBy: Ignore[],
-	alwaysIncludeGlobPattern: string | undefined
+	alwaysIncludeGlobPattern: string | null
 ): Promise<string[]> {
 	let filePaths = await ignoreWalk({
 		path: folderPath,
@@ -123,9 +125,8 @@ async function resolveImportedPath(filePath: string, fromPathExtension: string):
 	//   we can't get file changing notification from VSCode,
 	//   and we can't reload it from path because nothing changes in it.
 
-	// So we need to validate if import paths exist after we got definition results.
-	// Although we still can't get results in `_b.scss`.
-	// TODO
+	// So we may need to validate if imported paths exist after we got definition results,
+	// although we still can't get new contents in `_b.scss`.
 
 	return null
 }
