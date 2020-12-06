@@ -61,7 +61,7 @@ export namespace HTMLService {
 
 		while (match = re.exec(text)) {
 			let languageId = match[1] ? getLanguageIdFromPropertiesText(match[1] || '') : 'css'
-			let cssText = match[2] || match[3]
+			let cssText = match[2] || match[3] || ''
 
 			let styleIndex = match[2]
 				? re.lastIndex - 8 - cssText.length	// 8 is the length of `</style>`
