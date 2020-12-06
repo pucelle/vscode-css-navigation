@@ -74,6 +74,7 @@ export class CSSNavigationExtension {
 			activeCSSFileExtensions: config.get('activeCSSFileExtensions', []),
 			excludeGlobPatterns: config.get('excludeGlobPatterns') || [],
 			alwaysIncludeGlobPatterns: config.get('alwaysIncludeGlobPatterns', []),
+			alwaysIncludeImportedFiles: config.get('alwaysIncludeImportedFiles', true),
 			alsoSearchDefinitionsInStyleTag: config.get('alsoSearchDefinitionsInStyleTag', false),
 			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
 			ignoreCustomElement: config.get('ignoreCustomElement', false),

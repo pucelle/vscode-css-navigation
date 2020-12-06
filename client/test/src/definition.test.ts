@@ -136,4 +136,8 @@ describe('Test Finding Definition for Vue Files', () => {
 	it('Should find imported class definition', async () => {
 		assert.deepStrictEqual(await gs(['"', 'test-vue-import-class', '"'], vueDocument), ['.test-vue-import-class'])
 	})
+
+	it('Should find imported class definition inside node_modules by style tag', async () => {
+		assert.deepStrictEqual(await gs(['"', 'class-style-imported', '"'], vueDocument), ['.class-style-imported'])
+	})
 })

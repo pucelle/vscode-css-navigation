@@ -8,6 +8,9 @@ import {CSSService} from './css-service'
 
 export interface CSSServiceMapOptions extends FileTrackerOptions {
 
+	/** Whether always include files specified by `@import ...` */
+	includeImportedFiles: boolean
+
 	/** Whether ignore css when same name scss files exists. */
 	ignoreSameNameCSSFile: boolean
 }
@@ -16,31 +19,34 @@ export interface CSSServiceMapOptions extends FileTrackerOptions {
 /** Gives CSS service for multiple files. */
 export class CSSServiceMap extends FileTracker {
 
+	private includeImportedFiles: boolean
 	private ignoreSameNameCSSFile: boolean
 	private serviceMap: Map<string, CSSService> = new Map()
 
 	constructor(documents: TextDocuments<TextDocument>, options: CSSServiceMapOptions) {
 		super(documents, options)
+		this.includeImportedFiles = options.includeImportedFiles
 		this.ignoreSameNameCSSFile = options.ignoreSameNameCSSFile
 	}
 
-	/** Get service for file. */
-	async get(filePath: string): Promise<CSSService | undefined> {
+	/** Get service by uri. */
+	async get(uri: string): Promise<CSSService | undefined> {
 		await this.makeFresh()
-		return this.serviceMap.get(filePath)
+		return this.serviceMap.get(uri)
 	}
 
-	protected onFileTracked(filePath: string) {
+	protected onFileTracked(uri: string) {
+		// If same name scss files exist, ignore css files.
 		if (this.ignoreSameNameCSSFile) {
-			let ext = path.extname(filePath).slice(1).toLowerCase()
+			let ext = path.extname(uri).slice(1).toLowerCase()
 			if (ext === 'css') {
-				let sassOrLessExist = this.has(file.replacePathExtension(filePath, 'scss')) || this.has(file.replacePathExtension(filePath, 'scss'))
+				let sassOrLessExist = this.has(file.replacePathExtension(uri, 'scss')) || this.has(file.replacePathExtension(uri, 'scss'))
 				if (sassOrLessExist) {
-					this.ignore(filePath)
+					this.ignore(uri)
 				}
 			}
 			else {
-				let cssPath = file.replacePathExtension(filePath, 'css')
+				let cssPath = file.replacePathExtension(uri, 'css')
 				if (this.has(cssPath)) {
 					this.ignore(cssPath)
 				}
@@ -48,17 +54,18 @@ export class CSSServiceMap extends FileTracker {
 		}
 	}
 
-	protected onFileExpired(filePath: string) {
-		this.serviceMap.delete(filePath)
+	protected onFileExpired(uri: string) {
+		this.serviceMap.delete(uri)
 	}
 
-	protected onFileUntracked(filePath: string) {
-		this.serviceMap.delete(filePath)
+	protected onFileUntracked(uri: string) {
+		this.serviceMap.delete(uri)
 
+		// If same name scss files deleted, unignore css files.
 		if (this.ignoreSameNameCSSFile) {
-			let ext = path.extname(filePath).slice(1).toLowerCase()
+			let ext = path.extname(uri).slice(1).toLowerCase()
 			if (ext !== 'css') {
-				let cssPath = file.replacePathExtension(filePath, 'css')
+				let cssPath = file.replacePathExtension(uri, 'css')
 				if (this.has(cssPath)) {
 					this.notIgnore(cssPath)
 				}
@@ -67,15 +74,16 @@ export class CSSServiceMap extends FileTracker {
 	}
 
 	/** Parse document to CSS service. */
-	protected async parseDocument(filePath: string, document: TextDocument) {
-		let cssService = CSSService.create(document)
-		this.serviceMap.set(filePath, cssService)
+	protected async parseDocument(uri: string, document: TextDocument) {
+		let cssService = CSSService.create(document, this.includeImportedFiles)
+		this.serviceMap.set(uri, cssService)
 
+		// If having `@import ...`
 		let importPaths = await cssService.getResolvedImportPaths()
 		if (importPaths.length > 0) {
 			for (let importPath of importPaths) {
 				// Will also parse imported file because are updating.
-				this.trackFile(importPath)
+				this.trackMoreFile(importPath)
 			}
 		}
 	}
@@ -113,8 +121,8 @@ export class CSSServiceMap extends FileTracker {
 	}
 	
 	private *iterateAvailableCSSServices(): IterableIterator<CSSService> {
-		for (let [filePath, cssService] of this.serviceMap.entries()) {
-			if (!this.hasIgnored(filePath)) {
+		for (let [uri, cssService] of this.serviceMap.entries()) {
+			if (!this.hasIgnored(uri)) {
 				yield cssService
 			}
 		}

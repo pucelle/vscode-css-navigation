@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Allows Go to Definition from HTML to CSS; provides Completion and Workspace Symbols for class & id name; supports CSS, Sass, Less languages.",
 	"icon": "images/logo.png",
-	"version": "1.9.0",
+	"version": "1.10.0",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -21,7 +21,7 @@
 		"Programming Languages"
 	],
 	"keywords": [
-		"CSS Go to Definition",
+		"CSS Goto Definition",
 		"CSS Peek Definition",
 		"CSS Completion",
 		"CSS Workspace Symbol",
@@ -101,6 +101,19 @@
 					},
 					"description": "A glob pattern, defines paths to exclude when searching for CSS definitions."
 				},
+				"CSSNavigation.alwaysIncludeGlobPatterns": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"description": "A glob pattern, files matched will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`, or out of workspace directory."
+				},
+				"CSSNavigation.alwaysIncludeImportedFiles": {
+					"type": "boolean",
+					"default": true,
+					"description": "Whether always include files specified by `@import ...`, although they should be excluded aspect to `excludeGlobPatterns`, or out of workspace directory."
+				},
 				"CSSNavigation.alsoSearchDefinitionsInStyleTag": {
 					"type": "boolean",
 					"default": false,
@@ -114,7 +127,7 @@
 				"CSSNavigation.ignoreSameNameCSSFile": {
 					"type": "boolean",
 					"default": true,
-					"description": "When `true` by default, e.g.: If 'the-name.scss and 'the-name.css', which share the same basename, are exist in the same directory, the 'the-name.css' will be skipped. If you prefer compiling Scss or Less file to the same name CSS file, this would be very helpful."
+					"description": "When `true` by default, e.g.: If `the-name.scss and `the-name.css` exist in a same folder, the `the-name.css` will be skipped. If you prefer compiling Scss or Less file to the same name CSS file, this would be very helpful."
 				},
 				"CSSNavigation.ignoreCustomElement": {
 					"type": "boolean",
@@ -134,14 +147,6 @@
 						".gitignore"
 					],
 					"description": "Specifies it to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions."
-				},
-				"CSSNavigation.alwaysIncludeGlobPatterns": {
-					"type": "array",
-					"default": [],
-					"items": {
-						"type": "string"
-					},
-					"description": "A glob pattern, files matched will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`."
 				},
 				"CSSNavigation.enableLogLevelMessage": {
 					"type": "boolean",

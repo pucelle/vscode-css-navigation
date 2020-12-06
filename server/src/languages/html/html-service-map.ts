@@ -11,21 +11,22 @@ export class HTMLServiceMap extends FileTracker {
 
 	protected onFileTracked() {}
 
-	protected onFileExpired(filePath: string) {
-		this.serviceMap.delete(filePath)
+	protected onFileExpired(uri: string) {
+		this.serviceMap.delete(uri)
 	}
 
-	protected onFileUntracked(filePath: string) {
-		this.serviceMap.delete(filePath)
+	protected onFileUntracked(uri: string) {
+		this.serviceMap.delete(uri)
 	}
 
-	protected async parseDocument(filePath: string, document: TextDocument) {
-		this.serviceMap.set(filePath, HTMLService.create(document))
+	protected async parseDocument(uri: string, document: TextDocument) {
+		this.serviceMap.set(uri, HTMLService.create(document))
 	}
 
-	/** Get a HTML service from file. */
-	get(filePath: string): HTMLService | undefined {
-		return this.serviceMap.get(filePath)
+	/** Get service by uri. */
+	async get(uri: string): Promise<HTMLService | undefined> {
+		await this.makeFresh()
+		return this.serviceMap.get(uri)
 	}
 
 	async findReferencesMatchSelector(selector: SimpleSelector): Promise<Location[]> {

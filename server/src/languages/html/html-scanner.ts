@@ -1,5 +1,6 @@
+import {firstMatch} from '../../internal/utils'
 import {SimpleSelector} from '../common/simple-selector'
-import {ForwardScanner} from '../common/forward-scanner'
+import {TextScanner} from '../common/text-scanner'
 
 
 /*
@@ -23,22 +24,22 @@ in fact there is an easier way to do so, only about 20 lines of codes, but shoul
 	4. read word in right, or slice 128 bytes in right, and match /^([\w-]+)/.
 	5. join left and right part.
 */
-export class HTMLSimpleSelectorScanner extends ForwardScanner {
+export class HTMLScanner extends TextScanner {
 
 	/** Scan a HTML document from a specified offset to find a CSS selector. */
-	scan(): SimpleSelector | null {
-		let word = this.readWholeWord()
+	scanForSelector(): SimpleSelector | null {
+		let word = this.readLeftWord()
 		if (!word) {
 			return null
 		}
 		
-		let char = this.peek()
+		let char = this.peekLeft()
 		if (char === '<') {
 			return SimpleSelector.create(word)
 		}
 
-		let [untilChar] = this.readUntil(['<', '\'', '"'])
-		if (!untilChar || untilChar === '<') {
+		this.readLeftUntil(['<', '\'', '"'])
+		if (this.peekRight(1) === '<') {
 			return null
 		}
 
@@ -51,21 +52,47 @@ export class HTMLSimpleSelectorScanner extends ForwardScanner {
 		have a very low possibility to meet '<tag a="class=" b', ignore it.
 		the good part is it can get selectors in any place, no matter the code format.
 		*/
-		if (this.peek() === '\\') {
-			this.forward()
+		if (this.peekLeft() === '\\') {
+			this.moveLeft()
 		}
 
-		this.skipWhiteSpaces()
-		if (this.read() !== '=') {
+		this.skipLeftWhiteSpaces()
+		if (this.readLeft() !== '=') {
 			return null
 		}
 
-		this.skipWhiteSpaces()
-		let attribute = this.readWord().toLowerCase()
+		this.skipLeftWhiteSpaces()
+		let attribute = this.readLeftWord().toLowerCase()
 
 		if (attribute === 'class' || attribute === 'id') {
 			let raw = (attribute === 'class' ? '.' : '#') + word
 			return SimpleSelector.create(raw)
+		}
+
+		return null
+	}
+
+	/** Scan for relative import path. */
+	scanForImportPath() {
+		this.readLeftUntil(['<', '>'])
+		if (this.peekRight(1) !== '<') {
+			return null
+		}
+
+		this.moveRight()
+
+		let code = this.readRightUntil(['>'])
+		let tag = firstMatch(code, /^<(\w+)/)
+		let linkRE = /<link[^>]+rel\s*=\s*['"]stylesheet['"]>/
+		let hrefRE = /\bhref\s*=['"](.*?)['"]/
+		let styleRE = /<style[^>]+src\s*=['"](.*?)['"]>/
+
+		if (tag === 'link' && linkRE.test(code)) {
+			return firstMatch(code, hrefRE)
+		}
+
+		if (tag === 'style') {
+			return firstMatch(code, styleRE)
 		}
 
 		return null

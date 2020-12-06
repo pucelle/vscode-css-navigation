@@ -12,6 +12,8 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import * as console from './console'
 import {URI} from 'vscode-uri'
 import {walkDirectoryToMatchFiles} from './file'
+import {glob} from 'glob'
+import {promisify} from 'util'
 
 
 interface FileTrackerItem {
@@ -103,9 +105,7 @@ export class FileTracker {
 
 		// No need to handle file opening because we have preloaded all the files.
 		// Open and changed event will be distinguished by document version later.
-		let filePath = URI.parse(document.uri).fsPath
-
-		if (filePath && this.shouldTrackFile(filePath)) {
+		if (this.shouldTrackFile(URI.parse(document.uri).fsPath)) {
 			this.trackOpenedDocument(document)
 		}
 	}
@@ -116,12 +116,11 @@ export class FileTracker {
 			return
 		}
 
-		let filePath = URI.parse(document.uri).fsPath
-		let item = this.map.get(filePath)
+		let item = this.map.get(document.uri)
 
 		// Since `onDidChangeWatchedFiles` event was triggered so frequently, we only do updating after saved.
 		if (item && !item.fresh && this.updating) {
-			this.updateFile(filePath, item)
+			this.updateFile(document.uri, item)
 		}
 	}
 
@@ -131,11 +130,10 @@ export class FileTracker {
 			return
 		}
 
-		let filePath = URI.parse(document.uri).fsPath
-		let item = this.map.get(filePath)
+		let item = this.map.get(document.uri)
 
 		if (item) {
-			this.retrackClosedFile(filePath)
+			this.retrackClosedFile(document.uri)
 		}
 	}
 
@@ -150,40 +148,34 @@ export class FileTracker {
 		
 		for (let change of params.changes) {
 			let uri = change.uri
-			let anyPath = URI.parse(uri).fsPath
-
-			if (!anyPath) {
-				continue
-			}
+			let fsPath = URI.parse(uri).fsPath
 
 			// New file or folder.
 			if (change.type === FileChangeType.Created) {
-				this.trackFileOrFolder(anyPath)
+				this.trackFileOrFolder(fsPath)
 			}
 
 			// Content changed file or folder.
 			else if (change.type === FileChangeType.Changed) {
-				let stat = await fs.stat(anyPath)
+				let stat = await fs.stat(fsPath)
 				if (stat && stat.isFile()) {
-					let filePath = anyPath
-
-					if (this.shouldTrackFile(filePath)) {
-						this.retrackChangedFile(filePath)
+					if (this.shouldTrackFile(fsPath)) {
+						this.retrackChangedFile(uri)
 					}
 				}
 			}
 
 			// Deleted file or folder.
 			else if (change.type === FileChangeType.Deleted) {
-				this.untrackDeletedFile(anyPath)
+				this.untrackDeletedFile(uri)
 			}
 		}
 	}
 
 
 	/** Whether tracked file. */
-	has(filePath: string): boolean {
-		return this.map.has(filePath)
+	has(uri: string): boolean {
+		return this.map.has(uri)
 	}
 
 	/** Load all files inside `startPath`, and also all opened documents. */
@@ -193,6 +185,21 @@ export class FileTracker {
 		for (let document of this.documents.all()) {
 			if (this.shouldTrackFile(URI.parse(document.uri).fsPath)) {
 				this.trackOpenedDocument(document)
+			}
+		}
+
+		if (this.alwaysIncludeGlobPattern) {
+			let alwaysIncludePaths = await promisify(glob)(this.alwaysIncludeGlobPattern, {
+				cwd: this.startPath || undefined,
+				absolute: true,
+			})
+
+			for (let filePath of alwaysIncludePaths) {
+				filePath = URI.file(filePath).fsPath
+
+				if (this.shouldTrackFile(filePath)) {
+					this.trackFile(filePath)
+				}
 			}
 		}
 
@@ -216,8 +223,8 @@ export class FileTracker {
 	}
 
 	/** Returns whether should track one file or folder. */
-	private shouldTrackFileOrFolder(anyPath: string): boolean {
-		if (this.shouldExcludeFileOrFolder(anyPath)) {
+	private shouldTrackFileOrFolder(fsPath: string): boolean {
+		if (this.shouldExcludeFileOrFolder(fsPath)) {
 			return false
 		}
 
@@ -225,28 +232,30 @@ export class FileTracker {
 	}
 
 	/** Returns whether should exclude file or folder. */
-	private shouldExcludeFileOrFolder(anyPath: string) {
-		if (this.excludeMatcher && this.excludeMatcher.match(anyPath)) {
-			if (!this.alwaysIncludeMatcher || !this.alwaysIncludeMatcher.match(anyPath)) {
-				return true
-			}
+	private shouldExcludeFileOrFolder(fsPath: string) {
+		if (this.alwaysIncludeMatcher && this.alwaysIncludeMatcher.match(fsPath)) {
+			return false
+		}
+
+		if (this.excludeMatcher && this.excludeMatcher.match(fsPath)) {
+			return true
 		}
 
 		return false
 	}
 
 	/** Track file or folder. */
-	private async trackFileOrFolder(anyPath: string) {
-		if (!this.shouldTrackFileOrFolder(anyPath)) {
+	private async trackFileOrFolder(fsPath: string) {
+		if (!this.shouldTrackFileOrFolder(fsPath)) {
 			return
 		}
 
-		let stat = await fs.stat(anyPath)
+		let stat = await fs.stat(fsPath)
 		if (stat && stat.isDirectory()) {
-			await this.trackFolder(anyPath)
+			await this.trackFolder(fsPath)
 		}
 		else if (stat && stat.isFile()) {
-			let filePath = anyPath
+			let filePath = fsPath
 			if (this.shouldTrackFile(filePath)) {
 				this.trackFile(filePath)
 			}
@@ -255,16 +264,18 @@ export class FileTracker {
 	
 	/** Track folder. */
 	private async trackFolder(folderPath: string) {
-		let filePaths = await walkDirectoryToMatchFiles(folderPath, this.includeFileMatcher, this.excludeMatcher, this.ignoreFilesBy, this.alwaysIncludeGlobPattern)
+		let filePaths = await walkDirectoryToMatchFiles(folderPath, this.includeFileMatcher, this.excludeMatcher, this.ignoreFilesBy)
 
 		for (let filePath of filePaths) {
+			filePath = URI.file(filePath).fsPath
 			this.trackFile(filePath)
 		}
 	}
 
 	/** Track file. */
-	protected trackFile(filePath: string) {
-		let item = this.map.get(filePath)
+	private trackFile(filePath: string) {
+		let uri = URI.file(filePath).toString()
+		let item = this.map.get(uri)
 
 		if (!item) {
 			item = {
@@ -275,15 +286,22 @@ export class FileTracker {
 				updatePromise: null
 			}
 
-			this.map.set(filePath, item)
-			this.afterTrackedFile(filePath, item)
+			this.map.set(uri, item)
+			this.afterTrackedFile(uri, item)
+		}
+	}
+
+	/** Track more file like imported file. although it may not in `startPath`. */
+	trackMoreFile(filePath: string) {
+		if (this.includeFileMatcher.match(filePath)) {
+			this.trackFile(filePath)
 		}
 	}
 
 	/** Track opened file from document, or update tracking, no matter files inside or outside workspace. */
 	private trackOpenedDocument(document: TextDocument) {
-		let filePath = URI.parse(document.uri).fsPath
-		let item = this.map.get(filePath)
+		let uri = document.uri
+		let item = this.map.get(uri)
 
 		if (item) {
 			let fileChanged = document.version > item.version
@@ -292,7 +310,7 @@ export class FileTracker {
 			item.opened = true
 
 			if (fileChanged) {
-				this.makeFileExpire(filePath, item)
+				this.makeFileExpire(uri, item)
 			}
 		}
 		else {
@@ -304,92 +322,89 @@ export class FileTracker {
 				updatePromise: null
 			}
 
-			this.map.set(filePath, item)
-			this.afterTrackedFile(filePath, item)
+			this.map.set(uri, item)
+			this.afterTrackedFile(uri, item)
 		}
 	}
 
 	/** After knows that file expired. */
-	private makeFileExpire(filePath: string, item: FileTrackerItem) {
+	private makeFileExpire(uri: string, item: FileTrackerItem) {
 		if (this.updating) {
-			this.updateFile(filePath, item)
+			this.updateFile(uri, item)
 		}
 		else {
 			item.fresh = false
 			item.version = 0
 			this.allFresh = false
-			console.log(`${filePath} expired`)
-			this.onFileExpired(filePath)
+			console.log(`${uri} expired`)
+			this.onFileExpired(uri)
 		}
 	}
 
 	/** After tracked file, check if it's fresh, if not, set global fresh state or update it. */
-	private afterTrackedFile(filePath: string, item: FileTrackerItem) {
+	private afterTrackedFile(uri: string, item: FileTrackerItem) {
 		if (this.updating) {
-			this.updateFile(filePath, item)
+			this.updateFile(uri, item)
 		}
 		else if (item) {
 			this.allFresh = false
 		}
 
-		console.log(`${filePath} tracked`)
-		this.onFileTracked(filePath)
+		console.log(`${uri} tracked`)
+		this.onFileTracked(uri)
 	}
 
 	/** Ignore file by path, Still keep data for ignored items. */
-	ignore(filePath: string) {
-		this.ignoredFilePaths.add(filePath)
-		console.log(`${filePath} ignored`)
+	ignore(uri: string) {
+		this.ignoredFilePaths.add(uri)
+		console.log(`${uri} ignored`)
 	}
 
 	/** Stop ignoring file by path. */
-	notIgnore(filePath: string) {
-		this.ignoredFilePaths.delete(filePath)
-		console.log(`${filePath} restored from ignored`)
+	notIgnore(uri: string) {
+		this.ignoredFilePaths.delete(uri)
+		console.log(`${uri} restored from ignored`)
 	}
 
 	/** Check whether ignored file by path. */
-	hasIgnored(filePath: string) {
-		return this.ignoredFilePaths.size > 0 && this.ignoredFilePaths.has(filePath)
+	hasIgnored(uri: string) {
+		return this.ignoredFilePaths.size > 0 && this.ignoredFilePaths.has(uri)
 	}
 
 	/** After file content changed, retrack it. */
-	private retrackChangedFile(filePath: string) {
-		let item = this.map.get(filePath)
+	private retrackChangedFile(uri: string) {
+		let item = this.map.get(uri)
 		if (item) {
-			this.makeFileExpire(filePath, item)
+			// Alread been handled by document change event.
+			let openedAndFresh = item.document && item.version === item.document.version
+			if (!openedAndFresh) {
+				this.makeFileExpire(uri, item)
+			}
 		}
 		else {
-			this.trackFile(filePath)
+			this.trackFile(uri)
 		}
 	}
 
 	/** retrack closed file. */
-	private retrackClosedFile(filePath: string) {
-		let item = this.map.get(filePath)
+	private retrackClosedFile(uri: string) {
+		let item = this.map.get(uri)
 		if (item) {
-			// Not been included in `startPath`
-			if (this.startPath && !this.startPath.startsWith(filePath)) {
-				this.untrackFile(filePath)
-			}
-
 			// Becomes same as not opened, still fresh.
-			else {
-				item.document = null
-				item.version = 0
-				item.opened = false
-				console.log(`${filePath} closed`)
-			}
+			item.document = null
+			item.version = 0
+			item.opened = false
+			console.log(`${uri} closed`)
 		}
 	}
 
 	/** After file or folder deleted from disk. */
-	private untrackDeletedFile(deletedPath: string) {
-		for (let filePath of this.map.keys()) {
-			if (filePath.startsWith(deletedPath)) {
-				let item = this.map.get(filePath)
+	private untrackDeletedFile(deletedURI: string) {
+		for (let uri of this.map.keys()) {
+			if (uri.startsWith(deletedURI)) {
+				let item = this.map.get(uri)
 				if (item) {
-					this.untrackFile(filePath)
+					this.untrackFile(uri)
 				}
 			}
 		}
@@ -398,15 +413,15 @@ export class FileTracker {
 	}
 
 	/** Delete one file. */
-	private untrackFile(filePath: string) {
-		this.map.delete(filePath)
+	private untrackFile(uri: string) {
+		this.map.delete(uri)
 					
 		if (this.ignoredFilePaths.size > 0) {
-			this.ignoredFilePaths.delete(filePath)
+			this.ignoredFilePaths.delete(uri)
 		}
 		
-		console.log(`${filePath} removed`)
-		this.onFileUntracked(filePath)
+		console.log(`${uri} removed`)
+		this.onFileUntracked(uri)
 	}
 
 	/** Ensure all the content be fresh. */
@@ -424,9 +439,9 @@ export class FileTracker {
 
 		console.timeStart('update')
 
-		for (let [filePath, item] of this.map.entries()) {
+		for (let [uri, item] of this.map.entries()) {
 			if (!item.fresh) {
-				this.updateFile(filePath, item)
+				this.updateFile(uri, item)
 			}
 		}
 
@@ -445,10 +460,10 @@ export class FileTracker {
 	}
 
 	/** Update one file, returns whether updated. */
-	private async updateFile(filePath: string, item: FileTrackerItem): Promise<boolean> {
-		if (!this.hasIgnored(filePath)) {
+	private async updateFile(uri: string, item: FileTrackerItem): Promise<boolean> {
+		if (!this.hasIgnored(uri)) {
 			if (!item.updatePromise) {
-				item.updatePromise = this.createUpdatePromise(filePath, item)
+				item.updatePromise = this.createUpdatePromise(uri, item)
 				this.updatePromises!.push(item.updatePromise)
 				await item.updatePromise
 				item.updatePromise = null
@@ -461,9 +476,9 @@ export class FileTracker {
 	}
 
 	/** Doing update and returns a promise. */
-	private async createUpdatePromise(filePath: string, item: FileTrackerItem) {
+	private async createUpdatePromise(uri: string, item: FileTrackerItem) {
 		if (!item.document) {
-			item.document = await this.loadDocument(filePath)
+			item.document = await this.loadDocument(uri)
 
 			if (item.document) {
 				item.version = item.document.version
@@ -472,25 +487,24 @@ export class FileTracker {
 		
 		if (item.document) {
 			item.fresh = true
-			await this.parseDocument(filePath, item.document)
+			await this.parseDocument(uri, item.document)
 
 			// Very important, release document memory usage after symbols generated
 			if (!item.opened) {
 				item.document = null
 			}
 
-			console.log(`${filePath} loaded${item.opened ? ' from opened document' : ''}`)
+			console.log(`${uri} loaded${item.opened ? ' from opened document' : ''}`)
 		}
 	}
 
 	/** Load text content and create one document. */
-	private async loadDocument(filePath: string): Promise<TextDocument | null> {
-		let languageId = path.extname(filePath).slice(1).toLowerCase()
-		let uri = URI.file(filePath).toString()
+	private async loadDocument(uri: string): Promise<TextDocument | null> {
+		let languageId = path.extname(uri).slice(1).toLowerCase()
 		let document = null
 
 		try {
-			let text = (await fs.readFile(filePath)).toString('utf8')
+			let text = (await fs.readFile(URI.parse(uri).fsPath)).toString('utf8')
 			
 			// Very low resource usage for creating one document.
 			document = TextDocument.create(uri, languageId, 1, text)
@@ -503,14 +517,14 @@ export class FileTracker {
 	}
 
 	/** After file tracked. */
-	protected onFileTracked(_filePath: string) {}
+	protected onFileTracked(_uri: string) {}
 
 	/** After file expired. */
-	protected onFileExpired(_filePath: string) {}
+	protected onFileExpired(_uri: string) {}
 
 	/** After file untracked. */
-	protected onFileUntracked(_filePath: string) {}
+	protected onFileUntracked(_uri: string) {}
 
 	/** Parsed document. */
-	protected async parseDocument(_filePath: string, _document: TextDocument) {}
+	protected async parseDocument(_uri: string, _document: TextDocument) {}
 }

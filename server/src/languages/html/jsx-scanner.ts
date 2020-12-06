@@ -1,59 +1,59 @@
 import {SimpleSelector} from '../common/simple-selector'
-import {ForwardScanner} from '../common/forward-scanner'
+import {TextScanner} from '../common/text-scanner'
 import * as path from 'path'
 import {URI} from 'vscode-uri'
 import * as fs from 'fs-extra'
 
 
-export class JSXSimpleSelectorScanner extends ForwardScanner {
+export class JSXScanner extends TextScanner {
 
 	/** Scan a JSX document from a specified offset to find a CSS selector. */
-	async scan(): Promise<SimpleSelector | null> {
+	async scanSelector(): Promise<SimpleSelector | null> {
 		let inExpression = false
 
-		let attributeValue = this.readWholeWord()
+		let attributeValue = this.readLeftWord()
 		if (!attributeValue) {
 			return null
 		}
 		
 		// Module CSS, e.g. `className={style.className}`.
-		if (this.peek() === '.') {
-			this.read()
+		if (this.peekLeft() === '.') {
+			this.readLeft()
 			return this.scanCSSModule(attributeValue)
 		}
 
 		// Module CSS, e.g. `className={style['class-name']}`.
-		if ((this.peek() === '"' || this.peek() === '\'') && this.peekSkipWhiteSpaces(1) === '[') {
-			this.readUntil(['['])
+		if ((this.peekLeft() === '"' || this.peekLeft() === '\'') && this.peekLeftSkipWhiteSpaces(1) === '[') {
+			this.readLeftUntil(['['])
 			return this.scanCSSModule(attributeValue)
 		}
 
-		let [untilChar] = this.readUntil(['<', '\'', '"', '`'])
+		this.readLeftUntil(['<', '\'', '"', '`'])
 
 		// Compare to `html-scanner`, here should ignore `<tagName>`.
-		if (!untilChar || untilChar === '<') {
+		if (this.peekRight(1) === '<') {
 			return null
 		}
 
-		this.skipWhiteSpaces()
+		this.skipLeftWhiteSpaces()
 
-		if (this.peek() !== '=') {
+		if (this.peekLeft() !== '=') {
 			// Assume it's in `className={...[HERE]...}` or `class="..."`
-			[untilChar] = this.readUntil(['<', '{', '}'])
-			if (!untilChar || untilChar !== '{') {
+			this.readLeftUntil(['<', '{', '}'])
+			if (this.peekRight(1) !== '{') {
 				return null
 			}
 
 			inExpression = true
 		}
 
-		this.skipWhiteSpaces()
-		if (this.read() !== '=') {
+		this.skipLeftWhiteSpaces()
+		if (this.readLeft() !== '=') {
 			return null
 		}
 		
-		this.skipWhiteSpaces()
-		let attributeName = this.readWord()
+		this.skipLeftWhiteSpaces()
+		let attributeName = this.readLeftWord()
 
 		if (attributeName === 'className' || attributeName === 'class' || attributeName === 'id' && !inExpression) {
 			let raw = (attributeName === 'id' ? '#' : '.') + attributeValue
@@ -65,20 +65,21 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 
 	/** Scan imported CSS module. */
 	private async scanCSSModule(attributeValue: string): Promise<SimpleSelector | null> {
-		let moduleVariable = this.readWord()
+		let moduleVariable = this.readLeftWord()
 		if (!moduleVariable) {
 			return null
 		}
 
-		this.readUntil(['{'])
-		this.skipWhiteSpaces()
-		if (this.read() !== '=') {
+		this.readLeftUntil(['{'])
+		this.skipLeftWhiteSpaces()
+
+		if (this.readLeft() !== '=') {
 			return null
 		}
 
 		// Must be `className={style.className}`, or it will popup frequently even type `a.b`.
-		this.skipWhiteSpaces()
-		let className = this.readWord()
+		this.skipLeftWhiteSpaces()
+		let className = this.readLeftWord()
 		if (className !== 'class' && className !== 'className') {
 			return null
 		}
@@ -87,7 +88,7 @@ export class JSXSimpleSelectorScanner extends ForwardScanner {
 		if (modulePath) {
 			let fullPath = path.resolve(path.dirname(URI.parse(this.document.uri).fsPath), modulePath)
 			if (await fs.pathExists(fullPath)) {
-				return SimpleSelector.create('.' + attributeValue, fullPath)
+				return SimpleSelector.create('.' + attributeValue, URI.file(fullPath).toString())
 			}
 		}
 

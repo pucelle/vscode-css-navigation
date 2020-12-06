@@ -1,11 +1,9 @@
-import * as path from 'path'
 import {SymbolInformation, SymbolKind, Location, Position} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 import {NamedRange, CSSRangeParser} from './css-range-parser'
-import {CSSSimpleSelectorScanner} from './css-scanner'
+import {CSSScanner} from './css-scanner'
 import {URI} from 'vscode-uri'
-import * as fs from 'fs-extra'
 import {resolveImportPath} from '../../internal/file'
 
 
@@ -156,11 +154,16 @@ export class CSSService {
 export namespace CSSService {
 	
 	/** Create a CSSService from a CSS document. */
-	export function create(document: TextDocument): CSSService {
+	export function create(document: TextDocument, includeImportedFiles: boolean): CSSService {
 		let {ranges, importPaths} = new CSSRangeParser(document).parse()
+
+		if (!includeImportedFiles) {
+			importPaths = []
+		}
+
 		return new CSSService(document, ranges, importPaths)
 	}
-
+	
 	/** Check if CSS language supports nesting. */
 	export function isLanguageSupportsNesting(languageId: string): boolean {
 		let supportedNestingLanguages = ['less', 'scss']
@@ -168,21 +171,22 @@ export namespace CSSService {
 	}
 
 	/** Get current selector from CSS document at position. */
-	export function getSimpleSelectorAt(document: TextDocument, position: Position): SimpleSelector[] | null {
+	export function getSimpleSelectorsAt(document: TextDocument, position: Position): SimpleSelector[] | null {
 		let offset = document.offsetAt(position)
-		return new CSSSimpleSelectorScanner(document, offset).scan()
+		return new CSSScanner(document, offset).scanForSelector()
 	}
 
-	/** Create a CSSService from a CSS file path. */
-	export async function createFromFilePath(filePath: string): Promise<CSSService | null> {
-		let extension = path.extname(filePath).slice(1)
-		try{
-			let text = (await fs.readFile(filePath)).toString('utf8')
-			let cssDocument = TextDocument.create(URI.file(filePath).toString(), extension, 1, text)
-			return CSSService.create(cssDocument)
+	/** If click `goto definition` at a `<link href="...">` or `<style src="...">`. */
+	export async function getImportPathAt(document: TextDocument, position: Position): Promise<string | null> {
+		let offset = document.offsetAt(position)
+		let importPath = new CSSScanner(document, offset).scanForImportPath()
+
+		if (importPath) {
+			return await resolveImportPath(URI.parse(document.uri).fsPath, importPath)
 		}
-		catch {
+		else {
 			return null
 		}
 	}
+	
 }

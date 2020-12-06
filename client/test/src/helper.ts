@@ -61,7 +61,6 @@ export async function searchSymbolNames([start, selector, end]: [string, string,
 
 	if (!ranges) {
 		assert.fail(`Can't find "${searchWord}" in index.html`)
-		return null
 	}
 
 	let namesOfStart = await getSymbolNamesAtPosition(ranges.in.start, document)
@@ -142,7 +141,6 @@ export async function searchReferences (searchWord: string, document: vscode.Tex
 	let ranges = searchWordInDocument(searchWord, document)
 	if (!ranges) {
 		assert.fail(`Can't find "${searchWord}" in ${path.basename(document.uri.toString())}`)
-		return null
 	}
 
 	let namesOfStart = await getReferenceNamesAtPosition(ranges.in.start, document)
@@ -211,7 +209,6 @@ export async function searchCompletion (searchWord: string): Promise<string[] | 
 	let ranges = searchWordInDocument(searchWord, htmlDocument)
 	if (!ranges) {
 		assert.fail(`Can't find "${searchWord}" in ${path.basename(htmlDocument.uri.toString())}`)
-		return null
 	}
 
 	let namesOfEnd = await getCompletionNamesAtPosition(ranges.in.end)

@@ -1,11 +1,12 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
-import {ForwardScanner} from '../common/forward-scanner'
+import {TextScanner} from '../common/text-scanner'
 import {CSSService} from './css-service'
 import {NamedRange, CSSRangeParser} from './css-range-parser'
+import {firstMatch} from '../../internal/utils'
 
 
-export class CSSSimpleSelectorScanner extends ForwardScanner {
+export class CSSScanner extends TextScanner {
 
 	private supportsNesting: boolean
 	private startOffset: number
@@ -17,19 +18,19 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 	}
 
 	/** Scan CSS selector for a CSS document from specified offset. */
-	scan(): SimpleSelector[] | null {
+	scanForSelector(): SimpleSelector[] | null {
 		//when mouse in '|&-a', check if the next char is &
-		let nextChar = this.peek(-1)
+		let nextChar = this.peekLeft(-1)
 		if (nextChar === '#' || nextChar === '.' || this.supportsNesting && nextChar === '&') {
-			this.back()
+			this.moveRight()
 		}
 
-		let word = this.readWholeWord()
+		let word = this.readLeftWord()
 		if (!word) {
 			return null
 		}
 
-		let char = this.read()
+		let char = this.readLeft()
 		if (char === '.' || char === '#') {
 			let selector = SimpleSelector.create(char + word)
 			return selector ? [selector] : null
@@ -88,5 +89,16 @@ export class CSSSimpleSelectorScanner extends ForwardScanner {
 	/** Checks whether range having a selector. */
 	private isRangeHaveSelector(range: NamedRange): boolean {
 		return range.names.some(({mains}) => mains !== null)
+	}
+
+	/** Scan for relative import path. */
+	scanForImportPath() {
+		this.readLeftUntil([';'])
+		this.moveRight()
+
+		let code = this.readRightUntil([';'])
+		let re = /@import\s*['"](.*?)['"]/
+
+		return firstMatch(code, re)
 	}
 }

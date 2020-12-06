@@ -1,19 +1,29 @@
 export interface SimpleSelector {
+
+	/** Selector type. */
 	type: SimpleSelector.Type
+
+	/** Selector string. */
 	value: string
+
+	/** Raw selector string. */
 	raw: string
-	filePath: string | null
+
+	/** Related imported file, only available for JSX files. */
+	importURI: string | null
 }
 
 export namespace SimpleSelector {
 
+	/** Selector types. */
 	export enum Type{
 		Tag,
 		Class,
 		Id
 	}
 	
-	export function create(raw: string, filePath: string | null = null): SimpleSelector | null {
+	/** Create a selector from raw selector string. */
+	export function create(raw: string, importURI: string | null = null): SimpleSelector | null {
 		if (!validate(raw)) {
 			return null
 		}
@@ -28,7 +38,7 @@ export namespace SimpleSelector {
 			type,
 			value,
 			raw,
-			filePath
+			importURI,
 		}
 	}
 

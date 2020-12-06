@@ -15,6 +15,7 @@ import {
 	CompletionItemKind,
 	ReferenceParams,
 	TextDocumentChangeEvent,
+	Range,
 } from 'vscode-languageserver'
 
 import {TextDocument} from 'vscode-languageserver-textdocument'
@@ -105,6 +106,7 @@ class CSSNaigationServer {
 			includeFileGlobPattern: file.generateGlobPatternFromExtensions(configuration.activeCSSFileExtensions)!,
 			excludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.excludeGlobPatterns) || undefined,
 			alwaysIncludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.alwaysIncludeGlobPatterns) || undefined,
+			includeImportedFiles: configuration.alwaysIncludeImportedFiles,
 			startPath: options.workspaceFolderPath,
 			ignoreSameNameCSSFile: configuration.ignoreSameNameCSSFile && configuration.activeCSSFileExtensions.length > 1 && configuration.activeCSSFileExtensions.includes('css'),
 			ignoreFilesBy: configuration.ignoreFilesBy as Ignore[],
@@ -146,46 +148,77 @@ class CSSNaigationServer {
 	async findDefinitions(positonParams: TextDocumentPositionParams): Promise<Location[] | null> {
 		let documentIdentifier = positonParams.textDocument
 		let document = documents.get(documentIdentifier.uri)
-		let position = positonParams.position	
 
 		if (!document) {
 			return null
 		}
 		
-		// Not belongs to HTML files.
-		if (!configuration.activeHTMLFileExtensions.includes(file.getPathExtension(document.uri))) {
-			return null
-		}
+		let documentExtension = file.getPathExtension(document.uri)
+		let position = positonParams.position
+		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+		let locations: Location[] = []
 
-		// Search current css selector.
-		let selector = await HTMLService.searchSimpleSelectorAt(document, position)
-		if (!selector) {
-			return null
-		}
-
-		if (configuration.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
-			return null
-		}
-
-		// If module css file not in current work space folder, create an `CSSService`.
-		if (selector.filePath) {
-			let cssService: CSSService | null = await this.cssServiceMap.get(selector.filePath) || null
-			if (!cssService) {
-				cssService = await CSSService.createFromFilePath(selector.filePath)
+		// HTML files.
+		if (isHTMLFile) {
+			// Clicking `<link rel="stylesheet" href="...">` or `<style src="...">`
+			let resolvedImportPath = await HTMLService.getImportPathAt(document, position)
+			if (resolvedImportPath) {
+				locations.push(
+					Location.create(URI.file(resolvedImportPath).toString(), Range.create(0, 0, 0, 0))
+				)
 			}
-			
-			if (cssService) {
-				return cssService.findDefinitionsMatchSelector(selector)
-			}
+
+			// Search for current css selector.
 			else {
-				return null
+				let selector = await HTMLService.getSimpleSelectorAt(document, position)
+				if (!selector) {
+					return null
+				}
+
+				// Is custom tag.
+				if (configuration.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
+					return null
+				}
+
+				// Having `@import...` in a JSX file.
+				if (selector.importURI) {
+					this.cssServiceMap.trackMoreFile(selector.importURI)
+					await this.cssServiceMap.makeFresh()
+
+					// Only find in one imported file.
+					let cssService = await this.cssServiceMap.get(selector.importURI)
+					if (cssService) {
+						return cssService.findDefinitionsMatchSelector(selector)
+					}
+					else {
+						return null
+					}
+				}
+
+				// Parse `<style src=...>` and load imported files.
+				let resolvedImportPaths = await HTMLService.scanStyleImportPaths(document)
+				for (let filePath of resolvedImportPaths) {
+					this.cssServiceMap.trackMoreFile(filePath)
+				}
+
+				// Find across all CSS files.
+				locations.push(...await this.cssServiceMap.findDefinitionsMatchSelector(selector))
+
+				// Find in inner style tags.
+				if (configuration.alsoSearchDefinitionsInStyleTag) {
+					locations.unshift(...HTMLService.findDefinitionsInInnerStyle(document, selector))
+				}
 			}
 		}
-
-		let locations = await this.cssServiceMap.findDefinitionsMatchSelector(selector)
-
-		if (configuration.alsoSearchDefinitionsInStyleTag) {
-			locations.unshift(...HTMLService.findDefinitionsInInnerStyle(document, selector))
+		else if (isCSSFile) {
+			// Clicking `@import '...';`
+			let resolvedImportPath = await CSSService.getImportPathAt(document, position)
+			if (resolvedImportPath) {
+				locations.push(
+					Location.create(URI.file(resolvedImportPath).toString(), Range.create(0, 0, 0, 0))
+				)
+			}
 		}
 
 		return locations
@@ -216,22 +249,26 @@ class CSSNaigationServer {
 			return null
 		}
 
-		if (!configuration.activeHTMLFileExtensions.includes(file.getPathExtension(document.uri))) {
+		// Not HTML files.
+		let documentExtension = file.getPathExtension(document.uri)
+		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+		if (!isHTMLFile) {
 			return null
 		}
 
-		let selector = await HTMLService.searchSimpleSelectorAt(document, position)
+		// Search for current selector.
+		let selector = await HTMLService.getSimpleSelectorAt(document, position)
 		if (!selector || selector.type === SimpleSelector.Type.Tag) {
 			return null
 		}
 
-		// If module css file not in current work space folder, create a temporary `CSSService` to load it.
-		if (selector.filePath) {
-			let cssService: CSSService | null = await this.cssServiceMap.get(selector.filePath) || null
-			if (!cssService) {
-				cssService = await CSSService.createFromFilePath(selector.filePath)
-			}
+		// Having `@import...` in a JSX file.
+		if (selector.importURI) {
+			this.cssServiceMap.trackMoreFile(selector.importURI)
+			await this.cssServiceMap.makeFresh()
 			
+			// Only find in one imported file.
+			let cssService = await this.cssServiceMap.get(selector.importURI)
 			if (cssService) {
 				let labels = cssService.findCompletionLabelsMatchSelector(selector)
 
@@ -242,7 +279,13 @@ class CSSNaigationServer {
 			}
 		}
 
+		// Get auto completion labels.
 		let labels = await this.cssServiceMap.findCompletionLabelsMatchSelector(selector)
+
+		// Find completion in inner style tags.
+		if (configuration.alsoSearchDefinitionsInStyleTag) {
+			labels.unshift(...HTMLService.findCompletionLabelsInInnerStyle(document, selector))
+		}
 
 		return this.formatLabelsToCompletionItems(labels)
 	}
@@ -265,31 +308,43 @@ class CSSNaigationServer {
 			return null
 		}
 
-		let extension = file.getPathExtension(document.uri)
-		if (configuration.activeHTMLFileExtensions.includes(extension)) {
+		let documentExtension = file.getPathExtension(document.uri)
+		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+		if (isHTMLFile) {
+			// Find HTML references inside a style tag.
 			if (configuration.alsoSearchDefinitionsInStyleTag) {
-				let filePath = URI.parse(document.uri).fsPath
-
-				let htmlService = this.htmlServiceMap ? this.htmlServiceMap.get(filePath!) : undefined
+				let htmlService = this.htmlServiceMap ? await this.htmlServiceMap.get(document.uri) : undefined
 				if (!htmlService) {
 					htmlService = HTMLService.create(document)
 				}
 
-				return HTMLService.findReferencesInInner(document, position, htmlService)
+				let locations = HTMLService.findReferencesInInnerHTML(document, position, htmlService)
+				if (locations) {
+					return locations
+				}
 			}
-			return null
 		}
 
-		if (!configuration.activeCSSFileExtensions.includes(extension)) {
-			return null
-		}
-
-		let selectors = CSSService.getSimpleSelectorAt(document, position)
+		let selectors: SimpleSelector[] = []
 		let locations: Location[] = []
 
-		this.ensureHTMLServiceMap()
+		// From HTML document.
+		if (isHTMLFile) {
+			let selector = await HTMLService.getSimpleSelectorAt(document, position)
+			if (selector) {
+				selectors.push(selector)
+			}
+		}
+
+		// From CSS document.
+		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+		if (isCSSFile) {
+			selectors.push(...CSSService.getSimpleSelectorsAt(document, position) || [])
+		}
 
 		if (selectors) {
+			this.ensureHTMLServiceMap()
+
 			for (let selector of selectors) {
 				locations.push(...await this.htmlServiceMap!.findReferencesMatchSelector(selector))
 			}

@@ -11,7 +11,8 @@ interface Configuration {
 	activeHTMLFileExtensions: string[]
 	activeCSSFileExtensions: string[]
 	excludeGlobPatterns: string[]
-	alwaysIncludeGlobPatterns: string[],
+	alwaysIncludeGlobPatterns: string[]
+	alwaysIncludeImportedFiles: boolean
 	alsoSearchDefinitionsInStyleTag: boolean
 	ignoreSameNameCSSFile: boolean
 	ignoreCustomElement: boolean

@@ -43,15 +43,13 @@ export async function walkDirectoryToMatchFiles(
 	folderPath: string,
 	includeMatcher: minimatch.IMinimatch,
 	excludeMatcher: minimatch.IMinimatch | null,
-	ignoreFilesBy: Ignore[],
-	alwaysIncludeGlobPattern: string | null
+	ignoreFilesBy: Ignore[]
 ): Promise<string[]> {
 	let filePaths = await ignoreWalk({
 		path: folderPath,
 		ignoreFiles: ignoreFilesBy,
-		includeEmpty: false, // true to include empty dirs, default false
-		follow: false, // true to follow symlink dirs, default false
-		alwaysIncludeGlobPattern,
+		includeEmpty: false, // `true` to include empty dirs, default `false`.
+		follow: false, // `true` to follow symlink dirs, default `false`
 	})
 
 	let matchedFilePaths: Set<string> = new Set()
@@ -71,11 +69,12 @@ export async function walkDirectoryToMatchFiles(
 export async function resolveImportPath(fromPath: string, toPath: string): Promise<string | null> {
 	let isModulePath = toPath.startsWith('~')
 	let fromDir = path.dirname(fromPath)
-	let fromPathExtension = path.extname(fromPath).slice(1).toLowerCase()
+	let fromPathExtension = getPathExtension(fromPath)
 
+	// `~modulename/...`
 	if (isModulePath) {
 		while (fromDir) {
-			let filePath = await resolveImportedPath(path.resolve(fromDir, 'node_modules/' + toPath.slice(1)), fromPathExtension)
+			let filePath = await fixPathExtension(path.resolve(fromDir, 'node_modules/' + toPath.slice(1)), fromPathExtension)
 			if (filePath) {
 				return filePath
 			}
@@ -89,14 +88,15 @@ export async function resolveImportPath(fromPath: string, toPath: string): Promi
 		return null
 	}
 	else {
-		return await resolveImportedPath(path.resolve(fromDir, toPath), fromPathExtension)
+		return await fixPathExtension(path.resolve(fromDir, toPath), fromPathExtension)
 	}
 }
 
 
 /** Fix imported path with extension. */
-async function resolveImportedPath(filePath: string, fromPathExtension: string): Promise<string | null> {
-	if (await fs.pathExists(filePath)) {
+async function fixPathExtension(filePath: string, fromPathExtension: string): Promise<string | null> {
+	let extension = getPathExtension(filePath)
+	if (extension && await fs.pathExists(filePath)) {
 		return filePath
 	}
 

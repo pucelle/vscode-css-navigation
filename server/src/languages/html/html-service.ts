@@ -2,9 +2,13 @@ import {Location, Position, Range} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 import {NamedRange, HTMLRangeParser} from './html-range-parser'
-import {HTMLSimpleSelectorScanner} from './html-scanner'
-import {JSXSimpleSelectorScanner} from './jsx-scanner'
+import {HTMLScanner} from './html-scanner'
+import {JSXScanner} from './jsx-scanner'
 import {CSSService} from '../css/css-service'
+import {URI} from 'vscode-uri'
+import {resolveImportPath} from '../../internal/file'
+import {file} from '../../internal'
+import {firstMatch} from '../../internal/utils'
 
 
 
@@ -35,40 +39,46 @@ export class HTMLService {
 
 export namespace HTMLService {
 	
+	/** Create a temporary HTMLService. */
 	export function create(document: TextDocument): HTMLService {
 		let ranges = new HTMLRangeParser(document).parse()
 		return new HTMLService(document, ranges)
 	}
 
-	export async function searchSimpleSelectorAt(document: TextDocument, position: Position): Promise<SimpleSelector | null> {
+	/** Search a selector from specified position in a document. */
+	export async function getSimpleSelectorAt(document: TextDocument, position: Position): Promise<SimpleSelector | null> {
 		let offset = document.offsetAt(position)
 
 		if (['javascriptreact', 'typescriptreact', 'javascript', 'typescript'].includes(document.languageId)) {
-			let selector = await new JSXSimpleSelectorScanner(document, offset).scan()
+			let selector = await new JSXScanner(document, offset).scanSelector()
 			if (selector) {
 				return selector
 			}
 		}
 
-		return new HTMLSimpleSelectorScanner(document, offset).scan()
+		return new HTMLScanner(document, offset).scanForSelector()
 	}
 
+	/** If click `goto definition` at a `<link href="...">` or `<style src="...">`. */
+	export async function getImportPathAt(document: TextDocument, position: Position): Promise<string | null> {
+		let offset = document.offsetAt(position)
+		let importPath = new HTMLScanner(document, offset).scanForImportPath()
+
+		if (importPath) {
+			return await resolveImportPath(URI.parse(document.uri).fsPath, importPath)
+		}
+		else {
+			return null
+		}
+	}
+	
+	/** Find definitions in style tag for curent document. */
 	export function findDefinitionsInInnerStyle(document: TextDocument, select: SimpleSelector): Location[] {
-		let text = document.getText()
-		let re = /<style\b(.*?)>(.*?)<\/style>|css`(.*?)`/gs
-		let match: RegExpExecArray | null
+		let services = findInnerCSSServices(document)
 		let locations: Location[] = []
 
-		while (match = re.exec(text)) {
-			let languageId = match[1] ? getLanguageIdFromPropertiesText(match[1] || '') : 'css'
-			let cssText = match[2] || match[3] || ''
-
-			let styleIndex = match[2]
-				? re.lastIndex - 8 - cssText.length	// 8 is the length of `</style>`
-				: re.lastIndex - 1 - cssText.length	// 1 is the length of `
-
-			let cssDocument = TextDocument.create('untitled.' + languageId , languageId, 0, cssText)
-			let cssLocations = CSSService.create(cssDocument).findDefinitionsMatchSelector(select)
+		for (let {document: cssDocument, service: cssService, index: styleIndex} of services) {
+			let cssLocations = cssService.findDefinitionsMatchSelector(select)
 
 			for (let location of cssLocations) {
 				let startIndexInCSS = cssDocument.offsetAt(location.range.start)
@@ -88,37 +98,129 @@ export namespace HTMLService {
 		return locations
 	}
 
-	export function findReferencesInInner(document: TextDocument, position: Position, htmlService: HTMLService): Location[] | null {
+	/** Find auto completion labels in style tag for curent document. */
+	export function findCompletionLabelsInInnerStyle(document: TextDocument, select: SimpleSelector) {
+		let services = findInnerCSSServices(document)
+		let labels: string[] = []
+
+		for (let {service: cssService} of services) {
+			labels.push(...cssService.findCompletionLabelsMatchSelector(select))
+		}
+
+		return labels
+	}
+
+	/** Get all inner CSS services. */
+	function findInnerCSSServices(document: TextDocument) {
+		let text = document.getText()
+		let re = /<style\b(.*?)>(.*?)<\/style>|\bcss`(.*?)`/gs
+		let match: RegExpExecArray | null
+		let services: {document: TextDocument, service: CSSService, index: number}[] = []
+
+		while (match = re.exec(text)) {
+			let languageId = match[1] ? getLanguageTypeFromPropertiesText(match[1] || '') : 'css'
+			let cssText = match[2] || match[3] || ''
+
+			let styleIndex = match[2]
+				? re.lastIndex - 8 - cssText.length	// 8 is the length of `</style>`
+				: re.lastIndex - 1 - cssText.length	// 1 is the length of `
+
+			let cssDocument = TextDocument.create('untitled.' + languageId , languageId, 0, cssText)
+			let service = CSSService.create(cssDocument, false)
+
+			services.push({
+				document: cssDocument,
+				service,
+				index: styleIndex,
+			})
+		}
+
+		return services
+	}
+
+	/** Find references in curent document. */
+	export function findReferencesInInnerHTML(document: TextDocument, position: Position, htmlService: HTMLService): Location[] | null {
 		let text = document.getText()
 		let re = /<style\b(.*?)>(.*?)<\/style>/gs
 		let match: RegExpExecArray | null
-		let locations: Location[] = []
 		let offset = document.offsetAt(position)
 
 		while (match = re.exec(text)) {
-			let languageId = getLanguageIdFromPropertiesText(match[1] || '')
+			let languageId = getLanguageTypeFromPropertiesText(match[1] || '')
 			let cssText = match[2]
 			let styleStartIndex = re.lastIndex - 8 - cssText.length
 			let styleEndIndex = styleStartIndex + cssText.length
+			let locations: Location[] = []
 
 			if (offset >= styleStartIndex && offset < styleEndIndex) {
 				let cssDocument = TextDocument.create('untitled.' + languageId , languageId, 0, cssText)
-				let selectors = CSSService.getSimpleSelectorAt(cssDocument, cssDocument.positionAt(offset - styleStartIndex))
+				let selectors = CSSService.getSimpleSelectorsAt(cssDocument, cssDocument.positionAt(offset - styleStartIndex))
 				if (selectors) {
 					for (let selector of selectors) {
 						locations.push(...htmlService.findLocationsMatchSelector(selector))
 					}
 				}
+
+				return locations
 			}
 		}
 
-		return locations
+		return null
 	}
 
-	function getLanguageIdFromPropertiesText(text: string): string {
+	/** Get scss / less / css language type. */
+	function getLanguageTypeFromPropertiesText(text: string): string {
 		let propertiesMatch = text.match(/\b(scss|less|css)\b/i)
 		let languageId = propertiesMatch ? propertiesMatch[1].toLowerCase() : 'css'
 	
 		return languageId
-	}	
+	}
+
+	/** Scan paths of linked or imported style files. */
+	export async function scanStyleImportPaths(document: TextDocument) {
+		let text = document.getText()
+		let re = /<link[^>]+rel\s*=\s*['"]stylesheet['"]>/g
+		let hrefRE = /\bhref\s*=['"](.*?)['"]/
+		let match: RegExpExecArray | null
+		let documentPath = URI.parse(document.uri).fsPath
+		let documentExtension = file.getPathExtension(document.uri)
+		let importFilePaths: string[] = []
+
+		while (match = re.exec(text)) {
+			let relativePath = firstMatch(match[0], hrefRE)
+			if (!relativePath) {
+				continue
+			}
+
+			let filePath = await resolveImportPath(documentPath, relativePath)
+			if (filePath) {
+				importFilePaths.push(filePath)
+			}
+		}
+
+		if (documentExtension === 'vue') {
+			importFilePaths.push(...await scanVueStyleImportPaths(document))
+		}
+
+		return importFilePaths
+	}
+
+	/** Scan paths of imported style files for vue files. */
+	async function scanVueStyleImportPaths(document: TextDocument) {
+		let text = document.getText()
+		let re = /<style[^>]+src\s*=['"](.*?)['"]>/g
+		let match: RegExpExecArray | null
+		let documentPath = URI.parse(document.uri).fsPath
+		let importFilePaths: string[] = []
+
+		while (match = re.exec(text)) {
+			let relativePath = match[1]
+			let filePath = await resolveImportPath(documentPath, relativePath)
+			if (filePath) {
+				importFilePaths.push(filePath)
+			}
+		}
+
+		return importFilePaths
+	}
 }
