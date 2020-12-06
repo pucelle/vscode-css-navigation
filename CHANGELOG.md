@@ -1,5 +1,10 @@
 # ChangeLog
 
+## [1.10.0]
+
+ - Add `enableLogLevelMessage`, removes `preloadCSSFiles`.
+ - Can goto files after clicking `<link href="...">` or `@import "..."`.
+
 
 ## [1.9.0]
 
