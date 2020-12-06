@@ -22,9 +22,9 @@ describe('Test Workspace Symbol', () => {
 	})
 
 	it('Should fix nested symbol names which start with "&"', async () => {
-		assert.deepEqual(await gws('.class1-sub'), ['.class1-sub', '.class1-sub-tail'])
-		assert.deepEqual(await gws('.class1-sub-tail'), ['.class1-sub-tail'])
-		assert.deepEqual(await gws('.class4-sub'), ['.class4-sub', '.class4-sub', '.class4-sub-sub', '.class4-sub-tail', '.class4-sub-sub-tail'])
+		assert.deepStrictEqual(await gws('.class1-sub'), ['.class1-sub', '.class1-sub-tail'])
+		assert.deepStrictEqual(await gws('.class1-sub-tail'), ['.class1-sub-tail'])
+		assert.deepStrictEqual(await gws('.class4-sub'), ['.class4-sub', '.class4-sub', '.class4-sub-sub', '.class4-sub-tail', '.class4-sub-sub-tail'])
 	})
 
 	it('Should find commands start with "@"', async () => {
@@ -32,12 +32,12 @@ describe('Test Workspace Symbol', () => {
 	})
 
 	it('Should combine selectors with spaces after eliminating sass nesting', async () => {
-		assert.deepEqual(await gws('tagnotmatch'), ['body tagnotmatch', 'body tagnotmatch'])
+		assert.deepStrictEqual(await gws('tagnotmatch'), ['body tagnotmatch', 'body tagnotmatch'])
 	})
 
 	it('Should not combine with parent selectors with space when inside "@at-root", but still need to combine when starts with "&"', async () => {
-		assert.deepEqual(await gws('.class6-sub6'), ['.class6-sub6'])
-		assert.deepEqual(await gws('.class7-sub7'), ['.class7-sub7'])
+		assert.deepStrictEqual(await gws('.class6-sub6'), ['.class6-sub6'])
+		assert.deepStrictEqual(await gws('.class7-sub7'), ['.class7-sub7'])
 	})
 })
 

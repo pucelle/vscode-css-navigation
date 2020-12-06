@@ -20,7 +20,7 @@ describe('Test CSS File Tracking', () => {
 		await sleep(1000)
 		let err
 		try{
-			assert.deepEqual(await gs(['class="', 'class-inserted-from-vscode', '"']), ['.class-inserted-from-vscode'])
+			assert.deepStrictEqual(await gs(['class="', 'class-inserted-from-vscode', '"']), ['.class-inserted-from-vscode'])
 		}
 		catch (e) {
 			err = e
@@ -39,7 +39,7 @@ describe('Test CSS File Tracking', () => {
 		await sleep(1000)
 		let err
 		try{
-			assert.deepEqual(await gs(['class="', 'class-inserted-on-disk', '"']), ['.class-inserted-on-disk'])
+			assert.deepStrictEqual(await gs(['class="', 'class-inserted-on-disk', '"']), ['.class-inserted-on-disk'])
 		}
 		catch (e) {
 			err = e
@@ -56,7 +56,7 @@ describe('Test CSS File Tracking', () => {
 		await sleep(1000)
 		let err
 		try{
-			assert.deepEqual(await gs(['<', 'html', '>']), ['html'])
+			assert.deepStrictEqual(await gs(['<', 'html', '>']), ['html'])
 		}
 		catch (e) {
 			err = e
@@ -66,7 +66,7 @@ describe('Test CSS File Tracking', () => {
 		await sleep(1000)
 		let err2
 		try{
-			assert.deepEqual(await gs(['<', 'html', '>']), [])
+			assert.deepStrictEqual(await gs(['<', 'html', '>']), [])
 		}
 		catch (e) {
 			err2 = e
@@ -77,7 +77,7 @@ describe('Test CSS File Tracking', () => {
 			throw err || err2
 		}
 		await sleep(1000)
-		assert.deepEqual(await gs(['<', 'html', '>']), ['html'])
+		assert.deepStrictEqual(await gs(['<', 'html', '>']), ['html'])
 	})
 
 	it('Should track folder renaming on disk, and should ignore `vendor` by default', async () => {
@@ -87,7 +87,7 @@ describe('Test CSS File Tracking', () => {
 		await sleep(1000)
 		let err
 		try{
-			assert.deepEqual(await gs(['<', 'html', '>']), [])
+			assert.deepStrictEqual(await gs(['<', 'html', '>']), [])
 		}
 		catch (e) {
 			err = e
@@ -97,6 +97,6 @@ describe('Test CSS File Tracking', () => {
 			throw err
 		}
 		await sleep(1000)
-		assert.deepEqual(await gs(['<', 'html', '>']), ['html'])
+		assert.deepStrictEqual(await gs(['<', 'html', '>']), ['html'])
 	})
 })

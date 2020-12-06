@@ -11,6 +11,7 @@ export function sleep(ms: number) {
 export let htmlDocument: vscode.TextDocument
 export let cssDocument: vscode.TextDocument
 export let jsxDocument: vscode.TextDocument
+export let vueDocument: vscode.TextDocument
 
 export async function prepare() {
 	if (htmlDocument) {
@@ -27,6 +28,10 @@ export async function prepare() {
 	await vscode.commands.executeCommand('workbench.action.keepEditor')
 
 	jsxDocument = await vscode.workspace.openTextDocument(getFixtureFileUri('index.jsx'))
+	await vscode.window.showTextDocument(htmlDocument)
+	await vscode.commands.executeCommand('workbench.action.keepEditor')
+
+	vueDocument = await vscode.workspace.openTextDocument(getFixtureFileUri('index.vue'))
 	await vscode.window.showTextDocument(htmlDocument)
 	await vscode.commands.executeCommand('workbench.action.keepEditor')
 
@@ -62,7 +67,7 @@ export async function searchSymbolNames([start, selector, end]: [string, string,
 	let namesOfStart = await getSymbolNamesAtPosition(ranges.in.start, document)
 	let namesOfEnd = await getSymbolNamesAtPosition(ranges.in.end, document)
 
-	assert.deepEqual(namesOfStart, namesOfEnd, 'Can find same definition from start and end position')
+	assert.deepStrictEqual(namesOfStart, namesOfEnd, 'Can find same definition from start and end position')
 
 	// Comment these because it's not right since there may be definitions for other languages exist.
 	// let namesOutOfStart = await getSymbolNamesAtPosition(ranges.out.start, document)
@@ -143,7 +148,7 @@ export async function searchReferences (searchWord: string, document: vscode.Tex
 	let namesOfStart = await getReferenceNamesAtPosition(ranges.in.start, document)
 	let namesOfEnd = await getReferenceNamesAtPosition(ranges.in.end, document)
 
-	assert.deepEqual(namesOfStart, namesOfEnd, 'Can find same references from start and end position')
+	assert.deepStrictEqual(namesOfStart, namesOfEnd, 'Can find same references from start and end position')
 
 	let namesOutOfStart = await getReferenceNamesAtPosition(ranges.out.start, document)
 	let namesOutOfEnd = await getReferenceNamesAtPosition(ranges.out.end, document)

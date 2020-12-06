@@ -11,19 +11,19 @@ describe('Test Reference', () => {
 	})
 
 	it('Should find references for id selectors', async () => {
-		assert.deepEqual(await sr('#id1'), ['<div id="id1">'])
+		assert.deepStrictEqual(await sr('#id1'), ['<div id="id1">'])
 	})
 
 	it('Should find references for class selectors even within nesting', async () => {
-		assert.deepEqual(await sr('.class1'), ['<div class="class1">'])
-		assert.deepEqual(await sr('&-sub'), ['<div class="class1-sub">'])
-		assert.deepEqual(await sr('&-tail'), ['<div class="class1-sub-tail">'])
+		assert.deepStrictEqual(await sr('.class1'), ['<div class="class1">'])
+		assert.deepStrictEqual(await sr('&-sub'), ['<div class="class1-sub">'])
+		assert.deepStrictEqual(await sr('&-tail'), ['<div class="class1-sub-tail">'])
 	})
 
 	it('Should find references for class selectors which are splited by "@at-root" or "@media" command', async () => {
-		assert.deepEqual(await sr('&-sub5'), ['<div class="class5-sub5">'])
-		assert.deepEqual(await sr('&-sub6'), ['<div class="class6-sub6">'])
-		assert.deepEqual(await sr('.class7-sub7'), ['<div class="class7-sub7">'])
+		assert.deepStrictEqual(await sr('&-sub5'), ['<div class="class5-sub5">'])
+		assert.deepStrictEqual(await sr('&-sub6'), ['<div class="class6-sub6">'])
+		assert.deepStrictEqual(await sr('.class7-sub7'), ['<div class="class7-sub7">'])
 	})
 
 	it('Should find reference in current HTML document, be aware this is not available by default', async () => {
