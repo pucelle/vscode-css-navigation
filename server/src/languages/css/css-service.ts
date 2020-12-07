@@ -1,7 +1,7 @@
 import {SymbolInformation, SymbolKind, Location, Position} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
-import {NamedRange, CSSRangeParser} from './css-range-parser'
+import {CSSNamedRange, CSSRangeParser} from './css-range-parser'
 import {CSSScanner} from './css-scanner'
 import {URI} from 'vscode-uri'
 import {resolveImportPath} from '../../internal/file'
@@ -11,10 +11,10 @@ import {resolveImportPath} from '../../internal/file'
 export class CSSService {
 
 	private uri: string
-	private ranges: NamedRange[]
+	private ranges: CSSNamedRange[]
 	private importPaths: string[]
 
-	constructor(document: TextDocument, ranges: NamedRange[], importPaths: string[]) {
+	constructor(document: TextDocument, ranges: CSSNamedRange[], importPaths: string[]) {
 		this.uri = document.uri
 		this.ranges = ranges
 		this.importPaths = importPaths

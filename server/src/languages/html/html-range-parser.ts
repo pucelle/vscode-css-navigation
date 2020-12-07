@@ -3,7 +3,7 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 
 
-export interface NamedRange {
+export interface HTMLNamedRange {
 	name: string
 	range: Range
 }
@@ -11,16 +11,16 @@ export interface NamedRange {
 
 export class HTMLRangeParser {
 
-	private document: TextDocument
+	protected document: TextDocument
 
 	constructor(document: TextDocument) {
 		this.document = document
 	}
 
 	/** Parse HTML document to ranges. */
-	parse(): NamedRange[] {
+	parse(): HTMLNamedRange[] {
 		let text = this.document.getText()
-		let ranges: NamedRange[] = []
+		let ranges: HTMLNamedRange[] = []
 
 		let re = /(?:<!--.*?-->|<\w+(.*?)>)/gs
 		/*
@@ -50,10 +50,10 @@ export class HTMLRangeParser {
 	}
 
 	/** Parse CSS range for HTML tag attribute. */
-	private getRangesFromAttribute(attribute: string, start: number, end: number): NamedRange[] {
+	protected getRangesFromAttribute(attribute: string, start: number, end: number): HTMLNamedRange[] {
 		let re = /\b(class|id)\s*=\s*(?:"(.*?)"|'(.*?)')/g
 		let match: RegExpExecArray | null
-		let ranges: NamedRange[] = []
+		let ranges: HTMLNamedRange[] = []
 
 		while (match = re.exec(attribute)) {
 			let attr = match[1].trim()

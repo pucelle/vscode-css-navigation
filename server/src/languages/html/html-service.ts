@@ -1,7 +1,7 @@
 import {Location, Position, Range} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
-import {NamedRange, HTMLRangeParser} from './html-range-parser'
+import {HTMLNamedRange, HTMLRangeParser} from './html-range-parser'
 import {HTMLScanner} from './html-scanner'
 import {JSXScanner} from './jsx-scanner'
 import {CSSService} from '../css/css-service'
@@ -9,6 +9,7 @@ import {URI} from 'vscode-uri'
 import {resolveImportPath} from '../../internal/file'
 import {file} from '../../internal'
 import {firstMatch} from '../../internal/utils'
+import {JSXRangeParser} from './jsx-range-parser'
 
 
 
@@ -16,9 +17,9 @@ import {firstMatch} from '../../internal/utils'
 export class HTMLService {
 
 	private uri: string
-	private ranges: NamedRange[]
+	private ranges: HTMLNamedRange[]
 
-	constructor(document: TextDocument, ranges: NamedRange[]) {
+	constructor(document: TextDocument, ranges: HTMLNamedRange[]) {
 		this.uri = document.uri
 		this.ranges = ranges
 	}
@@ -41,7 +42,15 @@ export namespace HTMLService {
 	
 	/** Create a temporary HTMLService. */
 	export function create(document: TextDocument): HTMLService {
-		let ranges = new HTMLRangeParser(document).parse()
+		let ranges: HTMLNamedRange[]
+
+		if (isJSXDocument(document)) {
+			ranges = new JSXRangeParser(document).parse()
+		}
+		else {
+			ranges = new HTMLRangeParser(document).parse()
+		}
+
 		return new HTMLService(document, ranges)
 	}
 
@@ -49,7 +58,7 @@ export namespace HTMLService {
 	export async function getSimpleSelectorAt(document: TextDocument, position: Position): Promise<SimpleSelector | null> {
 		let offset = document.offsetAt(position)
 
-		if (['javascriptreact', 'typescriptreact', 'javascript', 'typescript'].includes(document.languageId)) {
+		if (isJSXDocument(document)) {
 			let selector = await new JSXScanner(document, offset).scanSelector()
 			if (selector) {
 				return selector
@@ -57,6 +66,10 @@ export namespace HTMLService {
 		}
 
 		return new HTMLScanner(document, offset).scanForSelector()
+	}
+
+	function isJSXDocument(document: TextDocument) {
+		return ['javascriptreact', 'typescriptreact', 'javascript', 'typescript'].includes(document.languageId)
 	}
 
 	/** If click `goto definition` at a `<link href="...">` or `<style src="...">`. */

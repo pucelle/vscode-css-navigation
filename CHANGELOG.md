@@ -4,6 +4,8 @@
 
  - Add `enableLogLevelMessage`, removes `preloadCSSFiles`.
  - Can goto files after clicking `<link href="...">` or `@import "..."`.
+ - Supports completion for inner style tags.
+ - Can goto definition from HTML to HTML.
 
 
 ## [1.9.0]

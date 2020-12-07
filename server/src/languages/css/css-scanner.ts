@@ -2,7 +2,7 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 import {TextScanner} from '../common/text-scanner'
 import {CSSService} from './css-service'
-import {NamedRange, CSSRangeParser} from './css-range-parser'
+import {CSSNamedRange, CSSRangeParser} from './css-range-parser'
 import {firstMatch} from '../../internal/utils'
 
 
@@ -46,8 +46,8 @@ export class CSSScanner extends TextScanner {
 	/** Parse whole ranges for document and get selector. */
 	private parseAndGetSelectors(word: string): SimpleSelector[] | null {
 		let {ranges} = new CSSRangeParser(this.document).parse()
-		let currentRange: NamedRange | undefined
-		let selectorIncludedParentRange: NamedRange | undefined
+		let currentRange: CSSNamedRange | undefined
+		let selectorIncludedParentRange: CSSNamedRange | undefined
 
 		// Binary searching should be a little better, but not help much
 		for (let i = 0; i < ranges.length; i++) {
@@ -87,7 +87,7 @@ export class CSSScanner extends TextScanner {
 	}
 
 	/** Checks whether range having a selector. */
-	private isRangeHaveSelector(range: NamedRange): boolean {
+	private isRangeHaveSelector(range: CSSNamedRange): boolean {
 		return range.names.some(({mains}) => mains !== null)
 	}
 

@@ -42,14 +42,14 @@ interface FullAndMainName {
 export interface CSSRange {
 
 	/** All ranges in current CSS file. */
-	ranges: NamedRange[]
+	ranges: CSSNamedRange[]
 	
 	/** All imported paths in current CSS file. */
     importPaths: string[]
 }
 
 /** One range and it's related names. */
-export interface NamedRange {
+export interface CSSNamedRange {
 	names: FullAndMainName[]
 	range: Range
 }
@@ -340,8 +340,8 @@ export class CSSRangeParser {
 	}
 
 	/** Leaves -> name ranges. */
-	private formatToNamedRanges(leafRanges: LeafRange[]): NamedRange[] {
-		let ranges: NamedRange[] = []
+	private formatToNamedRanges(leafRanges: LeafRange[]): CSSNamedRange[] {
+		let ranges: CSSNamedRange[] = []
 
 		for (let {names, start, end} of leafRanges) {
 			ranges.push({

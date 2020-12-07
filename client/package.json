@@ -2,7 +2,7 @@
 	"name": "vscode-css-navigation",
 	"description": "Client Part",
 	"engines": {
-		"vscode": "^1.31.1"
+		"vscode": "^1.51.1"
 	},
 	"scripts": {
 		"update-vscode": "vscode-install",
