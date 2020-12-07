@@ -157,10 +157,12 @@ export class FileTracker {
 
 			// Content changed file or folder.
 			else if (change.type === FileChangeType.Changed) {
-				let stat = await fs.stat(fsPath)
-				if (stat && stat.isFile()) {
-					if (this.shouldTrackFile(fsPath)) {
-						this.retrackChangedFile(uri)
+				if (await fs.pathExists(fsPath)) {
+					let stat = await fs.stat(fsPath)
+					if (stat && stat.isFile()) {
+						if (this.shouldTrackFile(fsPath)) {
+							this.retrackChangedFile(uri)
+						}
 					}
 				}
 			}
@@ -250,11 +252,15 @@ export class FileTracker {
 			return
 		}
 
+		if (!await fs.pathExists(fsPath)) {
+			return
+		}
+
 		let stat = await fs.stat(fsPath)
-		if (stat && stat.isDirectory()) {
+		if (stat.isDirectory()) {
 			await this.trackFolder(fsPath)
 		}
-		else if (stat && stat.isFile()) {
+		else if (stat.isFile()) {
 			let filePath = fsPath
 			if (this.shouldTrackFile(filePath)) {
 				this.trackFile(filePath)
