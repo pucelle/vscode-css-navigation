@@ -42,7 +42,7 @@ Allows to search workspace symbols in CSS & Scss & Less files across all activat
 
 Provides class name and id completion for your HTML files.
 
-Not that the extension doesn't support remote sources, and doesn't follow the `<link>` tags in your HTML file to limit the completion results, it just lists all the defined class & id name in CSS & Scss & Less files in your workspace folders.
+Note that the extension doesn't support remote sources, and doesn't follow the `<link>` tags in your HTML file to limit the completion results, it just lists all the defined class & id name in CSS & Scss & Less files in your workspace folders.
 
 ![completion](images/completion.gif)
 
