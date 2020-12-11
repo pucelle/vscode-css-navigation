@@ -74,7 +74,7 @@ export class FileTracker {
 	private alwaysIncludeMatcher: minimatch.IMinimatch | null
 
 	private map: Map<string, FileTrackerItem> = new Map()
-	private ignoredFilePaths: Set<string> = new Set()
+	private ignoredFileURIs: Set<string> = new Set()
 	private allFresh: boolean = true
 	private startDataLoaded: boolean = true
 	private updating: boolean = false
@@ -360,21 +360,21 @@ export class FileTracker {
 		this.onFileTracked(uri)
 	}
 
-	/** Ignore file by path, Still keep data for ignored items. */
+	/** Ignore file, Still keep data for ignored items. */
 	ignore(uri: string) {
-		this.ignoredFilePaths.add(uri)
+		this.ignoredFileURIs.add(uri)
 		console.log(`${uri} ignored`)
 	}
 
-	/** Stop ignoring file by path. */
+	/** Stop ignoring file. */
 	notIgnore(uri: string) {
-		this.ignoredFilePaths.delete(uri)
+		this.ignoredFileURIs.delete(uri)
 		console.log(`${uri} restored from ignored`)
 	}
 
-	/** Check whether ignored file by path. */
+	/** Check whether ignored file. */
 	hasIgnored(uri: string) {
-		return this.ignoredFilePaths.size > 0 && this.ignoredFilePaths.has(uri)
+		return this.ignoredFileURIs.size > 0 && this.ignoredFileURIs.has(uri)
 	}
 
 	/** After file content changed, retrack it. */
@@ -422,8 +422,8 @@ export class FileTracker {
 	private untrackFile(uri: string) {
 		this.map.delete(uri)
 					
-		if (this.ignoredFilePaths.size > 0) {
-			this.ignoredFilePaths.delete(uri)
+		if (this.ignoredFileURIs.size > 0) {
+			this.ignoredFileURIs.delete(uri)
 		}
 		
 		console.log(`${uri} removed`)

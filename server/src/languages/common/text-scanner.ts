@@ -95,7 +95,7 @@ export class TextScanner {
 	protected readLeftWord(): string {
 		let endPosition = this.offset + 1
 
-		while (!this.isRightEOS()) {
+		while (endPosition < this.text.length) {
 			let char = this.text[endPosition]
 			if (/[\w\-]/.test(char)) {
 				endPosition++
@@ -122,7 +122,7 @@ export class TextScanner {
 	protected readRightWord(): string {
 		let startPosition = this.offset - 1
 
-		while (!this.isLeftEOS()) {
+		while (startPosition >= 0) {
 			let char = this.text[startPosition]
 			if (/[\w\-]/.test(char)) {
 				startPosition--

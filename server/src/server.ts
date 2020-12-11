@@ -262,7 +262,7 @@ class CSSNaigationServer {
 			return null
 		}
 
-		// Having `@import...` in a JSX file.
+		// Having `@import...` in a JSX file, returns results that extactly in imported document.
 		if (selector.importURI) {
 			this.cssServiceMap.trackMoreFile(selector.importURI)
 			await this.cssServiceMap.makeFresh()
