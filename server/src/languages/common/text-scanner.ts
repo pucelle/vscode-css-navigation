@@ -48,7 +48,7 @@ export class TextScanner {
 		let offset = this.offset
 		let forwardCount = 0
 
-		while (!this.isLeftEOS()) {
+		while (offset >= 0) {
 			let char = this.text.charAt(offset)
 			if (!/\s/.test(char)) {
 				if (forwardCount === forward) {
@@ -67,7 +67,7 @@ export class TextScanner {
 		let offset = this.offset
 		let forwardCount = 0
 
-		while (!this.isRightEOS()) {
+		while (offset < this.text.length) {
 			let char = this.text.charAt(offset)
 			if (!/\s/.test(char)) {
 				if (forwardCount === backward) {

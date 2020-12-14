@@ -16,11 +16,26 @@ export class JSXScanner extends TextScanner {
 			return null
 		}
 		
-		// Module CSS, e.g. `className={style.className}`.
+		
+		// `.xxx`
 		if (this.peekLeft() === '.') {
 			this.readLeft()
-			return this.scanCSSModule(attributeValue)
+
+			this.skipLeftWhiteSpaces()
+			let attributeName = this.readLeftWord()
+
+			// For Flit syntax `:class.property=...`
+			if (attributeName === 'class') {
+				let raw = '.' + attributeValue
+				return SimpleSelector.create(raw)
+			}
+
+			// Module CSS, e.g. `className={style.className}`.
+			else {
+				return this.scanCSSModule(attributeValue)
+			}
 		}
+
 
 		// Module CSS, e.g. `className={style['class-name']}`.
 		if ((this.peekLeft() === '"' || this.peekLeft() === '\'') && this.peekLeftSkipWhiteSpaces(1) === '[') {
@@ -28,25 +43,34 @@ export class JSXScanner extends TextScanner {
 			return this.scanCSSModule(attributeValue)
 		}
 
-		this.readLeftUntil(['<', '\'', '"', '`'])
+		this.readLeftUntil(['<', '\'', '"', '`', '{'])
 
-		// Compare to `html-scanner`, here should ignore `<tagName>`.
+		// Compare with `html-scanner`, here should ignore `<tagName>`.
 		if (this.peekRight(1) === '<') {
 			return null
 		}
 
-		this.skipLeftWhiteSpaces()
 
+		// Skip expression left boundary `{`.
+		this.skipLeftWhiteSpaces()
 		if (this.peekLeft() !== '=') {
+
 			// Assume it's in `className={...[HERE]...}` or `class="..."`
 			this.readLeftUntil(['<', '{', '}'])
 			if (this.peekRight(1) !== '{') {
 				return null
 			}
 
+			// Flit syntax `:class=${{property: boolean}}`.
+			if (this.peekLeftSkipWhiteSpaces() === '{' && this.peekLeftSkipWhiteSpaces(1) === '$') {
+				this.readLeftUntil(['$'])
+			}
+
 			inExpression = true
 		}
 
+
+		// Read `=`.
 		this.skipLeftWhiteSpaces()
 		if (this.readLeft() !== '=') {
 			return null

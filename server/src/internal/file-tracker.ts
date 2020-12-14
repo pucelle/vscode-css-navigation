@@ -339,10 +339,16 @@ export class FileTracker {
 			this.updateFile(uri, item)
 		}
 		else {
+			let beFreshBefore = item.fresh
+			
 			item.fresh = false
 			item.version = 0
 			this.allFresh = false
-			console.log(`${uri} expired`)
+
+			if (beFreshBefore) {
+				console.log(`${uri} expired`)
+			}
+
 			this.onFileExpired(uri)
 		}
 	}
