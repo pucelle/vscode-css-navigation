@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Allows Go to Definition from HTML to CSS / Sass / Less; provides Completion and Workspace Symbols for class & id name.",
 	"icon": "images/logo.png",
-	"version": "1.10.2",
+	"version": "1.10.3",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -112,12 +112,12 @@
 				"CSSNavigation.alwaysIncludeImportedFiles": {
 					"type": "boolean",
 					"default": true,
-					"description": "Whether always include files specified by `@import ...`, although they should be excluded aspect to `excludeGlobPatterns`, or out of workspace directory."
+					"description": "When `true` by default, will always include files specified by `@import ...`, `<link rel=stylesheet href=...>` or `<style src=...>`(only for Vue syntax), although they should be excluded aspect to `excludeGlobPatterns` option or `.gitignore` file."
 				},
 				"CSSNavigation.alsoSearchDefinitionsInStyleTag": {
 					"type": "boolean",
-					"default": false,
-					"description": "When set to `true`, also search CSS definitions in <style> tag for current document."
+					"default": true,
+					"description": "When `true` by default, will also search CSS definitions in <style> tag for current document."
 				},
 				"CSSNavigation.searchAcrossWorkspaceFolders": {
 					"type": "boolean",

@@ -11,6 +11,7 @@ process.on('unhandledRejection', function(reason) {
 
 let extension: CSSNavigationExtension
 
+/** Output interface to activate plugin. */
 export function activate(context: vscode.ExtensionContext): CSSNavigationExtension {
 	extension = new CSSNavigationExtension(context)
 
@@ -40,9 +41,11 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 	return extension
 }
 
+/** Output interface to deactivate plugin. */
 export function deactivate(): Promise<void> {
 	return extension.stopAllClients()
 }
+
 
 export class CSSNavigationExtension {
 	

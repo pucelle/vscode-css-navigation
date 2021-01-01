@@ -273,7 +273,6 @@ export class FileTracker {
 		let filePaths = await walkDirectoryToMatchFiles(folderPath, this.includeFileMatcher, this.excludeMatcher, this.ignoreFilesBy)
 
 		for (let filePath of filePaths) {
-			filePath = URI.file(filePath).fsPath
 			this.trackFile(filePath)
 		}
 	}
@@ -394,7 +393,7 @@ export class FileTracker {
 			}
 		}
 		else {
-			this.trackFile(uri)
+			this.trackFile(URI.parse(uri).fsPath)
 		}
 	}
 

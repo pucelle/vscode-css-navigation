@@ -183,7 +183,7 @@ class CSSNaigationServer {
 
 				// Having `@import...` in a JSX file.
 				if (selector.importURI) {
-					this.cssServiceMap.trackMoreFile(selector.importURI)
+					this.cssServiceMap.trackMoreFile(URI.parse(selector.importURI).fsPath)
 					await this.cssServiceMap.makeFresh()
 
 					// Only find in one imported file.
@@ -264,7 +264,7 @@ class CSSNaigationServer {
 
 		// Having `@import...` in a JSX file, returns results that extactly in imported document.
 		if (selector.importURI) {
-			this.cssServiceMap.trackMoreFile(selector.importURI)
+			this.cssServiceMap.trackMoreFile(URI.parse(selector.importURI).fsPath)
 			await this.cssServiceMap.makeFresh()
 			
 			// Only find in one imported file.

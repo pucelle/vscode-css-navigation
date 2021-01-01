@@ -19,7 +19,11 @@ function getTimeMarker() {
 
 
 
-/** Pipe messages to connection, such that all messages will be shown in output channel. */
+/** 
+ * Pipe messages to connection, such that all messages will be shown in output channel.
+ * After tested I found just using `console.xxx` can also output messages,
+ * so this piping should be useless anymore, may be removed after checking it carefully.
+ */
 export function pipeTo(connection: Connection) {
 	scopedConsole = connection.console
 }
@@ -71,7 +75,7 @@ export function timeStart(name: string) {
 export function timeEnd(name: string, message: string | null = null) {
 	let startTime = startTimeMap.get(name)
 	if (startTime === undefined) {
-		console.warn(`Timer "${name}" is not started`)
+		warn(`Timer "${name}" is not started`)
 		return
 	}
 
@@ -79,7 +83,7 @@ export function timeEnd(name: string, message: string | null = null) {
 	let timeCost = Math.round(getMillisecond() - startTime!)
 
 	if (message !== null) {
-		console.log(message + ` in ${timeCost} ms`)
+		log(message + ` in ${timeCost} ms`)
 	}
 }
 

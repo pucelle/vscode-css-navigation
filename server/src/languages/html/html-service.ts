@@ -135,8 +135,8 @@ export namespace HTMLService {
 			let cssText = match[2] || match[3] || ''
 
 			let styleIndex = match[2]
-				? re.lastIndex - 8 - cssText.length	// 8 is the length of `</style>`
-				: re.lastIndex - 1 - cssText.length	// 1 is the length of `
+				? re.lastIndex - 8 - cssText.length	// 8 is the length of '</style>'
+				: re.lastIndex - 1 - cssText.length	// 1 is the length of '`'
 
 			let cssDocument = TextDocument.create('untitled.' + languageId , languageId, 0, cssText)
 			let service = CSSService.create(cssDocument, false)
