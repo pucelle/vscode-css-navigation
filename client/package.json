@@ -1,5 +1,5 @@
 {
-	"name": "vscode-css-navigation",
+	"name": "vscode-css-navigation-client",
 	"description": "Client Part",
 	"engines": {
 		"vscode": "^1.51.1"

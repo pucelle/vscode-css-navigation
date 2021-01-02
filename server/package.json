@@ -1,15 +1,8 @@
 {
-	"name": "lsp-sample-server",
-	"description": "Example implementation of a language server in node.",
-	"version": "1.0.0",
-	"author": "Microsoft Corporation",
-	"license": "MIT",
+	"name": "vscode-css-navigation-server",
+	"description": "Server Part",
 	"engines": {
 		"node": "*"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-extension-samples"
 	},
 	"dependencies": {
 		"github:pucelle/ignore-walk": "^3.0.1",

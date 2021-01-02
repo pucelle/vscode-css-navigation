@@ -9,10 +9,14 @@ export function getOutmostWorkspaceURI(folderURI: string, allFolderURIs: string[
 	return parentURIs[0] || folderURI
 }
 
-export function getExtension(filePath: string): string {
+
+/** Get path extension in lowercase, without dot. */
+export function getPathExtension(filePath: string): string {
 	return path.extname(filePath).slice(1).toLowerCase()
 }
 
+
+/** Generate a glob pattern from file extension list. */
 export function generateGlobPatternFromExtensions(extensions: string[]): string | undefined {
 	if (extensions.length > 1) {
 		return '**/*.{' + extensions.join(',') + '}'
@@ -24,6 +28,8 @@ export function generateGlobPatternFromExtensions(extensions: string[]): string 
 	return undefined
 }
 
+
+/** Generate current time marker in `h:MM:ss` format. */
 export function getTimeMarker() {
 	let date = new Date()
 	

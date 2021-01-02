@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} from 'vscode-languageclient'
-import {getOutmostWorkspaceURI, getExtension, generateGlobPatternFromExtensions, getTimeMarker} from './util'
+import {getOutmostWorkspaceURI, getPathExtension, generateGlobPatternFromExtensions, getTimeMarker} from './util'
 
 
 process.on('unhandledRejection', function(reason) {
@@ -129,7 +129,7 @@ export class CSSNavigationExtension {
 
 		let activeHTMLFileExtensions: string[] = this.config.get('activeHTMLFileExtensions', [])
 		let activeCSSFileExtensions: string[] = this.config.get('activeCSSFileExtensions', [])
-		let extension = getExtension(document.uri.fsPath)
+		let extension = getPathExtension(document.uri.fsPath)
 		
 		if (!activeHTMLFileExtensions.includes(extension) && !activeCSSFileExtensions.includes(extension)) {
 			return
