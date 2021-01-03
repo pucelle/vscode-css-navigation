@@ -49,10 +49,10 @@ export function deactivate(): Promise<void> {
 
 export class CSSNavigationExtension {
 	
-	channel = vscode.window.createOutputChannel('CSS Navigation')
+	private channel = vscode.window.createOutputChannel('CSS Navigation')
 	private context: vscode.ExtensionContext
 	private config!: vscode.WorkspaceConfiguration
-	private clients: Map<string, LanguageClient> = new Map()	//one client for each workspace folder
+	private clients: Map<string, LanguageClient> = new Map()
 	private gitIgnoreWatchers: Map<string, vscode.FileSystemWatcher> = new Map()
 
 	constructor(context: vscode.ExtensionContext) {
@@ -66,6 +66,7 @@ export class CSSNavigationExtension {
 		this.config = vscode.workspace.getConfiguration('CSSNavigation')
 	}
 
+	/** Get configuration object. */
 	private getConfigObject(): Configuration {
 		let config = this.config
 
@@ -103,6 +104,7 @@ export class CSSNavigationExtension {
 		}
 	}
 
+	/** Make sure client to be started for workspace folder. */
 	private ensureClientForworkspace(workspaceFolder: vscode.WorkspaceFolder) {
 		let workspaceURI = workspaceFolder.uri.toString()
 		let workspaceURIs = (vscode.workspace.workspaceFolders || []).map(folder => folder.uri.toString())
@@ -135,7 +137,7 @@ export class CSSNavigationExtension {
 			return
 		}
 
-		//not in any workspace
+		// Not in any workspace.
 		let workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri)
 		if (!workspaceFolder) {
 			return
@@ -144,6 +146,7 @@ export class CSSNavigationExtension {
 		this.ensureClientForworkspace(workspaceFolder)
 	}
 
+	/** Start client & server for workspace folder. */
 	private async startClientFor(workspaceFolder: vscode.WorkspaceFolder) {
 		let workspaceFolderPath = workspaceFolder.uri.fsPath
 		let activeHTMLFileExtensions: string[] = this.config.get('activeHTMLFileExtensions', [])
@@ -154,15 +157,14 @@ export class CSSNavigationExtension {
 			path.join('server', 'out', 'server.js')
 		)
 		
-		//one port for only one server to debug should be ok
+		// One port for only one server to debug should be ok.
 		let debugOptions = {execArgv: ["--nolazy", '--inspect=6009']}
 		let serverOptions: ServerOptions = {
 			run: {module: serverModule, transport: TransportKind.ipc},
 			debug: {module: serverModule, transport: TransportKind.ipc, options: debugOptions}
 		}
 
-		//to notify open / close / content changed for html & css files in specified range 
-		//and provide language service for them
+		// To notify open / close / content changed for html & css files in specified range, and provide language service.
 		let htmlCSSPattern = generateGlobPatternFromExtensions([...activeHTMLFileExtensions, ...activeCSSFileExtensions])
 		let configuration = this.getConfigObject()
 
@@ -173,17 +175,14 @@ export class CSSNavigationExtension {
 				pattern: searchAcrossWorkspaceFolders ? htmlCSSPattern : `${workspaceFolderPath}/${htmlCSSPattern}`
 			}],
 
-			//connection.console will use this channel as output
+			// `connection.console` will use this channel as output channel.
 			outputChannel: this.channel,
 			
-			//to initialize server params rootUri & rootPath, which has been deprected. so it looks not helpful
-			//workspaceFolder,
-
 			synchronize: {
-				//same as client.register(DidChangeConfigurationNotification.type), config section changes will be captured by `onDidChangeConfiguration` in server
+				// Same as client.register(DidChangeConfigurationNotification.type), config section changes will be captured by `onDidChangeConfiguration` in server.
 				//configurationSection: 'CSSNavigation',
 				
-				//to notify the server workspace file or folder changes, no matter changes come from vscode or outside, and trigger `onDidChangeWatchedFiles`
+				// To notify the server workspace file or folder changes, no matter changes come from vscode or outside, and trigger `onDidChangeWatchedFiles`.
 				fileEvents: vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(workspaceFolderPath, `**`))
 			},
 
@@ -224,6 +223,7 @@ export class CSSNavigationExtension {
 		}
 	}
 
+	/** Push message to output channel. */
 	private showChannelMessage(message: string) {
 		this.channel.appendLine(message)
 	}
@@ -247,7 +247,7 @@ export class CSSNavigationExtension {
 		this.clients.clear()
 	}
 	
-	// Only watch `.gitignore` in root directory.
+	/** Only watch `.gitignore` in root directory. */
 	private watchGitIgnoreFile(workspaceFolder: vscode.WorkspaceFolder) {
 		this.unwatchLastWatchedGitIgnoreFile(workspaceFolder)
 
@@ -263,6 +263,7 @@ export class CSSNavigationExtension {
 		this.gitIgnoreWatchers.set(workspaceFolder.uri.fsPath, watcher)
 	}
 
+	/** unwatch `.gitignore`. */
 	private unwatchLastWatchedGitIgnoreFile(workspaceFolder: vscode.WorkspaceFolder) {
 		let watcher = this.gitIgnoreWatchers.get(workspaceFolder.uri.fsPath)
 		if (watcher) {
