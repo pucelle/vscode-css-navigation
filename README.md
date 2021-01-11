@@ -81,7 +81,7 @@ Then I found it eats so much CPU & memory. E.g., one of my project has 280 CSS f
 
 Finally I decided to implement a new css parser, which also supports Scss & Less naturally, as a result I created a new extension. The CSS parser is very simple and not 100% strict, but it's fast and very easy to extand. Now it costs about 0.8s to search files, and 0.5s to parse them. Memory usage in caching parsed results is only about 40 MB.
 
-Otherwise, all the functionality will be started only when required by default, so CSS files are loaded only when you begin to search definitions or others. You may change this behavior by specify `preloadCSSFiles` option.
+Otherwise, all the functionality will be started only when required by default, so CSS files are loaded only when you begin to search definitions or others.
 
 After files loaded, The extension will track file and directory changes, creations, removals automatically, and reload them if needed.
 
