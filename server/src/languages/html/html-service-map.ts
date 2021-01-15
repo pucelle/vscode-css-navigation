@@ -1,6 +1,6 @@
 import {Location} from 'vscode-languageserver'
 import {HTMLService} from './html-service'
-import {FileTracker} from '../../internal'
+import {FileTracker} from '../../helpers'
 import {SimpleSelector} from '../common/simple-selector'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 

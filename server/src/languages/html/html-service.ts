@@ -3,13 +3,13 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 import {HTMLNamedRange, HTMLRangeParser} from './html-range-parser'
 import {HTMLScanner} from './html-scanner'
-import {JSXScanner} from './jsx-scanner'
+import {JSXScanner} from '../jsx/jsx-scanner'
 import {CSSService} from '../css/css-service'
 import {URI} from 'vscode-uri'
-import {resolveImportPath} from '../../internal/file'
-import {file} from '../../internal'
-import {firstMatch} from '../../internal/utils'
-import {JSXRangeParser} from './jsx-range-parser'
+import {resolveImportPath} from '../../helpers/file'
+import {file} from '../../helpers'
+import {firstMatch} from '../../helpers/utils'
+import {JSXRangeParser} from '../jsx/jsx-range-parser'
 
 
 

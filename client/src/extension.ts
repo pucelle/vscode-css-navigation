@@ -49,7 +49,9 @@ export function deactivate(): Promise<void> {
 
 export class CSSNavigationExtension {
 	
-	private channel = vscode.window.createOutputChannel('CSS Navigation')
+	/** Channel public for testing. */
+	channel = vscode.window.createOutputChannel('CSS Navigation')
+
 	private context: vscode.ExtensionContext
 	private config!: vscode.WorkspaceConfiguration
 	private clients: Map<string, LanguageClient> = new Map()

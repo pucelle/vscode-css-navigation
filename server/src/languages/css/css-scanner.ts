@@ -3,7 +3,7 @@ import {SimpleSelector} from '../common/simple-selector'
 import {TextScanner} from '../common/text-scanner'
 import {CSSService} from './css-service'
 import {CSSNamedRange, CSSRangeParser} from './css-range-parser'
-import {firstMatch} from '../../internal/utils'
+import {firstMatch} from '../../helpers/utils'
 
 
 export class CSSScanner extends TextScanner {

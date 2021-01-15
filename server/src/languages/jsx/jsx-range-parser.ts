@@ -1,6 +1,6 @@
 import {Range} from 'vscode-languageserver'
 import {SimpleSelector} from '../common/simple-selector'
-import {HTMLRangeParser, HTMLNamedRange} from './html-range-parser'
+import {HTMLRangeParser, HTMLNamedRange} from '../html/html-range-parser'
 
 
 export class JSXRangeParser extends HTMLRangeParser {

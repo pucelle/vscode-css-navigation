@@ -13,7 +13,8 @@
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitAny": true,
 		"noImplicitThis": true,
-		"declaration": true
+		"declaration": true,
+		"composite": true
 	},
 	"include": ["src"],
 	"exclude": [

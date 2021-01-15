@@ -1,7 +1,7 @@
 import * as path from 'path'
 import {SymbolInformation, Location, TextDocuments} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {FileTrackerOptions, FileTracker, file} from '../../internal'
+import {FileTrackerOptions, FileTracker, file} from '../../helpers'
 import {SimpleSelector} from '../common/simple-selector'
 import {CSSService} from './css-service'
 

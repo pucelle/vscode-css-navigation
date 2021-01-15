@@ -4,7 +4,7 @@ import {SimpleSelector} from '../common/simple-selector'
 import {CSSNamedRange, CSSRangeParser} from './css-range-parser'
 import {CSSScanner} from './css-scanner'
 import {URI} from 'vscode-uri'
-import {resolveImportPath} from '../../internal/file'
+import {resolveImportPath} from '../../helpers/file'
 
 
 /** Gives CSS service for one CSS file. */

@@ -22,7 +22,7 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from './languages/common/simple-selector'
 import {HTMLService, HTMLServiceMap} from './languages/html'
 import {CSSService, CSSServiceMap} from './languages/css'
-import {file, console, Ignore} from './internal'
+import {file, console, Ignore} from './helpers'
 import {URI} from 'vscode-uri'
 
 
@@ -294,6 +294,7 @@ class CSSNaigationServer {
 		return labels.map(label => {
 			let item = CompletionItem.create(label)
 			item.kind = CompletionItemKind.Class
+	
 			return item
 		})
 	}
@@ -310,18 +311,17 @@ class CSSNaigationServer {
 
 		let documentExtension = file.getPathExtension(document.uri)
 		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-		if (isHTMLFile) {
-			// Find HTML references inside a style tag.
-			if (configuration.alsoSearchDefinitionsInStyleTag) {
-				let htmlService = this.htmlServiceMap ? await this.htmlServiceMap.get(document.uri) : undefined
-				if (!htmlService) {
-					htmlService = HTMLService.create(document)
-				}
 
-				let locations = HTMLService.findReferencesInInnerHTML(document, position, htmlService)
-				if (locations) {
-					return locations
-				}
+		// Find HTML references inside a style tag.
+		if (isHTMLFile && configuration.alsoSearchDefinitionsInStyleTag) {
+			let htmlService = this.htmlServiceMap ? await this.htmlServiceMap.get(document.uri) : undefined
+			if (!htmlService) {
+				htmlService = HTMLService.create(document)
+			}
+
+			let locations = HTMLService.findReferencesInInnerHTML(document, position, htmlService)
+			if (locations) {
+				return locations
 			}
 		}
 
@@ -342,7 +342,7 @@ class CSSNaigationServer {
 			selectors.push(...CSSService.getSimpleSelectorsAt(document, position) || [])
 		}
 
-		if (selectors) {
+		if (selectors.length > 0) {
 			this.ensureHTMLServiceMap()
 
 			for (let selector of selectors) {

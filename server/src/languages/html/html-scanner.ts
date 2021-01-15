@@ -1,4 +1,4 @@
-import {firstMatch} from '../../internal/utils'
+import {firstMatch} from '../../helpers/utils'
 import {SimpleSelector} from '../common/simple-selector'
 import {TextScanner} from '../common/text-scanner'
 

@@ -6,7 +6,8 @@
 		"rootDir": "src",
 		"lib": ["es2018"],
 		"sourceMap": true,
-		"strict": true
+		"strict": true,
+		"composite": true
 	},
 	"include": [
 		"src"

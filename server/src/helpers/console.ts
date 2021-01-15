@@ -5,6 +5,7 @@ let scopedConsole: Console | RemoteConsole = console
 let logEnabled = true
 
 
+/** Get a time marker `hh:MM:ss` for current time. */
 function getTimeMarker() {
 	let date = new Date()
 	

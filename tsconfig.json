@@ -16,7 +16,9 @@
 	},
 	"exclude": [
 		"node_modules",
-		".vscode-test"
+		".vscode-test",
+		"client",
+		"server"
 	],
 	"references": [
 		{ "path": "./client" },
