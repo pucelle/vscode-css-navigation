@@ -12,7 +12,7 @@
 		"url": "https://github.com/pucelle/vscode-css-navigation.git"
 	},
 	"bugs": {
-		"url": "https://github.com/pucelle/vscode-navigation/issues"
+		"url": "https://github.com/pucelle/vscode-css-navigation/issues"
 	},
 	"engines": {
 		"vscode": "^1.51.1"

@@ -5,8 +5,7 @@
 		"node": "*"
 	},
 	"dependencies": {
-		"github:pucelle/ignore-walk": "^3.0.1",
-		"ignore-walk": "github:pucelle/ignore-walk",
+		"@pucelle/ignore-walk": "^3.0.1",
 		"vscode-languageserver": "^6.1.1",
 		"vscode-languageserver-textdocument": "^1.0.1",
 		"vscode-uri": "^1.0.6"
