@@ -2,8 +2,7 @@ import * as path from 'path'
 import minimatch = require('minimatch')
 import {Ignore} from './file-tracker'
 import * as fs from 'fs-extra'
-const ignoreWalk = require('ignore-walk')
-
+const ignoreWalk = require('@pucelle/ignore-walk')
 
 
 export function generateGlobPatternFromPatterns(patterns: string[]): string | null {
