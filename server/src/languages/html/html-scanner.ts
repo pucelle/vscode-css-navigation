@@ -83,9 +83,9 @@ export class HTMLScanner extends TextScanner {
 
 		let code = this.readRightUntil(['>'])
 		let tag = firstMatch(code, /^<(\w+)/)
-		let linkRE = /<link[^>]+rel\s*=\s*['"]stylesheet['"]>/
+		let linkRE = /<link[^>]+rel\s*=\s*['"]stylesheet['"]/
 		let hrefRE = /\bhref\s*=['"](.*?)['"]/
-		let styleRE = /<style[^>]+src\s*=['"](.*?)['"]>/
+		let styleRE = /<style[^>]+src\s*=['"](.*?)['"]/
 
 		if (tag === 'link' && linkRE.test(code)) {
 			return firstMatch(code, hrefRE)

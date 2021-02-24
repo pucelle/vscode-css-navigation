@@ -56,6 +56,12 @@ This functionality should not be very usefull, and it needs to load and parse al
 ![reference](images/reference.gif)
 
 
+### Features miscellaneous
+
+ - Can goto referenced files after clicking `<link href="...">` or `@import "..."`.
+ - Supports auto completion, goto definitions for inner style tags or css`...` template strings.
+
+
 ## Configuration
 
 | Name                              | Description
