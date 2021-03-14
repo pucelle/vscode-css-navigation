@@ -1,4 +1,5 @@
 import style from './css/test.scss'
+import './css/test.scss'
 
 class App {
 	render() {

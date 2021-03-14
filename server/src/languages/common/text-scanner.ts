@@ -24,27 +24,27 @@ export class TextScanner {
 	}
 
 	/** Read current char, and moves to left. */
-	protected readLeft(): string {
+	protected readLeftChar(): string {
 		return this.text.charAt(this.offset--)
 	}
 
 	/** Read current char, and moves to right. */
-	protected readRight(): string {
+	protected readRightChar(): string {
 		return this.text.charAt(this.offset++)
 	}
 
 	/** Peek next char in the left. */
-	protected peekLeft(forward: number = 0): string {
+	protected peekLeftChar(forward: number = 0): string {
 		return this.text.charAt(this.offset - forward)
 	}
 
 	/** Peek next char in the right. */
-	protected peekRight(backward: number = 0): string {
+	protected peekRightChar(backward: number = 0): string {
 		return this.text.charAt(this.offset + backward)
 	}
 
 	/** Peek next char in the left, skips white spaces. */
-	protected peekLeftSkipWhiteSpaces(forward: number = 0): string {
+	protected peekLeftCharSkipWhiteSpaces(forward: number = 0): string {
 		let offset = this.offset
 		let forwardCount = 0
 
@@ -63,7 +63,7 @@ export class TextScanner {
 	}
 
 	/** Peek next char in the left, skips white spaces. */
-	protected peekRightSkipWhiteSpaces(backward: number = 0): string {
+	protected peekRightCharSkipWhiteSpaces(backward: number = 0): string {
 		let offset = this.offset
 		let forwardCount = 0
 
@@ -106,7 +106,7 @@ export class TextScanner {
 		}
 
 		while (!this.isLeftEOS()) {
-			let char = this.peekLeft()
+			let char = this.peekLeftChar()
 			if (/[\w\-]/.test(char)) {
 				this.moveLeft()
 			}
@@ -133,7 +133,7 @@ export class TextScanner {
 		}
 
 		while (!this.isRightEOS()) {
-			let char = this.peekRight()
+			let char = this.peekRightChar()
 			if (/[\w\-]/.test(char)) {
 				this.moveRight()
 			}
@@ -151,7 +151,7 @@ export class TextScanner {
 		let count = 0
 
 		while (!this.isLeftEOS() && count++ < maxCharCount) {
-			let char = this.readLeft()
+			let char = this.readLeftChar()
 			if (chars.includes(char)) {
 				break
 			}
@@ -166,7 +166,7 @@ export class TextScanner {
 		let count = 0
 
 		while (!this.isRightEOS() && count++ < maxCharCount) {
-			let char = this.readRight()
+			let char = this.readRightChar()
 			if (chars.includes(char)) {
 				break
 			}
@@ -178,7 +178,7 @@ export class TextScanner {
 	/** Skip white spaces in left position. */
 	protected skipLeftWhiteSpaces() {
 		while (!this.isLeftEOS()) {
-			let char = this.peekLeft()
+			let char = this.peekLeftChar()
 			if (/\s/.test(char)) {
 				this.moveLeft()
 			}
@@ -191,7 +191,7 @@ export class TextScanner {
 	/** Skip white spaces in right position. */
 	protected skipRightWhiteSpaces() {
 		while (!this.isRightEOS()) {
-			let char = this.peekRight()
+			let char = this.peekRightChar()
 			if (/\s/.test(char)) {
 				this.moveRight()
 			}

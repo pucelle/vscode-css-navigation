@@ -5,9 +5,13 @@ import {URI} from 'vscode-uri'
 import * as fs from 'fs-extra'
 
 
+/** 
+ * JSXScanner scans things in a js, jsx, ts, tsx document.
+ * It was used as a child service of HTMLScanner.
+ */
 export class JSXScanner extends TextScanner {
 
-	/** Scan a JSX document from a specified offset to find a CSS selector. */
+	/** Scan a JSX / JS / TS / TSX document from a specified offset to find a CSS selector. */
 	async scanSelector(): Promise<SimpleSelector | null> {
 		let inExpression = false
 
@@ -18,8 +22,8 @@ export class JSXScanner extends TextScanner {
 		
 		
 		// `.xxx`
-		if (this.peekLeft() === '.') {
-			this.readLeft()
+		if (this.peekLeftChar() === '.') {
+			this.readLeftChar()
 
 			this.skipLeftWhiteSpaces()
 			let attributeName = this.readLeftWord()
@@ -38,7 +42,7 @@ export class JSXScanner extends TextScanner {
 
 
 		// Module CSS, e.g. `className={style['class-name']}`.
-		if ((this.peekLeft() === '"' || this.peekLeft() === '\'') && this.peekLeftSkipWhiteSpaces(1) === '[') {
+		if ((this.peekLeftChar() === '"' || this.peekLeftChar() === '\'') && this.peekLeftCharSkipWhiteSpaces(1) === '[') {
 			this.readLeftUntil(['['])
 			return this.scanCSSModule(attributeValue)
 		}
@@ -46,23 +50,23 @@ export class JSXScanner extends TextScanner {
 		this.readLeftUntil(['<', '\'', '"', '`', '{'])
 
 		// Compare with `html-scanner`, here should ignore `<tagName>`.
-		if (this.peekRight(1) === '<') {
+		if (this.peekRightChar(1) === '<') {
 			return null
 		}
 
 
 		// Skip expression left boundary `{`.
 		this.skipLeftWhiteSpaces()
-		if (this.peekLeft() !== '=') {
+		if (this.peekLeftChar() !== '=') {
 
 			// Assume it's in `className={...[HERE]...}` or `class="..."`
 			this.readLeftUntil(['<', '{', '}'])
-			if (this.peekRight(1) !== '{') {
+			if (this.peekRightChar(1) !== '{') {
 				return null
 			}
 
 			// Flit syntax `:class=${{property: boolean}}`.
-			if (this.peekLeftSkipWhiteSpaces() === '{' && this.peekLeftSkipWhiteSpaces(1) === '$') {
+			if (this.peekLeftCharSkipWhiteSpaces() === '{' && this.peekLeftCharSkipWhiteSpaces(1) === '$') {
 				this.readLeftUntil(['$'])
 			}
 
@@ -72,7 +76,7 @@ export class JSXScanner extends TextScanner {
 
 		// Read `=`.
 		this.skipLeftWhiteSpaces()
-		if (this.readLeft() !== '=') {
+		if (this.readLeftChar() !== '=') {
 			return null
 		}
 		
@@ -97,7 +101,7 @@ export class JSXScanner extends TextScanner {
 		this.readLeftUntil(['{'])
 		this.skipLeftWhiteSpaces()
 
-		if (this.readLeft() !== '=') {
+		if (this.readLeftChar() !== '=') {
 			return null
 		}
 
@@ -121,13 +125,38 @@ export class JSXScanner extends TextScanner {
 
 	/** Parse `import ...`. */
 	private parseImportedPathFromVariableName(nameToMatch: string): string | null {
-		let re = /import\s+(\w+)\s+from\s+(['"])(.+?)\2/g
+		let re = /import\s+(\w+)\s+from\s+['"`](.+?)['"`]/g
 		let match: RegExpExecArray | null
 
 		while (match = re.exec(this.text)) {
 			let name = match[1]
 			if (name === nameToMatch) {
-				return match[3]
+				return match[2]
+			}
+		}
+
+		return null
+	}
+
+	/** Scan for relative import path. */
+	scanForImportPath() {
+		this.peekLeftChar
+
+		// import * from '...'
+		// import abc from '...'
+		// import '...'
+		let re = /import\s+(?:(?:\w+|\*)\s+from\s+)?['"`](.+?)['"`]/g
+		let match: RegExpExecArray | null
+
+		re.lastIndex = this.offset - 1024
+
+		while (match = re.exec(this.text)) {
+			// |'...'|, `|` marks location of start index and end index.
+			let endIndex = re.lastIndex
+			let startIndex = re.lastIndex - match[1].length - 2
+
+			if (startIndex <= this.offset && endIndex > this.offset) {
+				return match[1]
 			}
 		}
 

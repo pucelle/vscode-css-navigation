@@ -20,7 +20,7 @@ export class CSSScanner extends TextScanner {
 	/** Scan CSS selector for a CSS document from specified offset. */
 	scanForSelector(): SimpleSelector[] | null {
 		//when mouse in '|&-a', check if the next char is &
-		let nextChar = this.peekLeft(-1)
+		let nextChar = this.peekLeftChar(-1)
 		if (nextChar === '#' || nextChar === '.' || this.supportsNesting && nextChar === '&') {
 			this.moveRight()
 		}
@@ -30,7 +30,7 @@ export class CSSScanner extends TextScanner {
 			return null
 		}
 
-		let char = this.readLeft()
+		let char = this.readLeftChar()
 		if (char === '.' || char === '#') {
 			let selector = SimpleSelector.create(char + word)
 			return selector ? [selector] : null

@@ -33,13 +33,13 @@ export class HTMLScanner extends TextScanner {
 			return null
 		}
 		
-		let char = this.peekLeft()
+		let char = this.peekLeftChar()
 		if (char === '<') {
 			return SimpleSelector.create(word)
 		}
 
 		this.readLeftUntil(['<', '\'', '"'])
-		if (this.peekRight(1) === '<') {
+		if (this.peekRightChar(1) === '<') {
 			return null
 		}
 
@@ -52,12 +52,12 @@ export class HTMLScanner extends TextScanner {
 		have a very low possibility to meet '<tag a="class=" b', ignore it.
 		the good part is it can get selectors in any place, no matter the code format.
 		*/
-		if (this.peekLeft() === '\\') {
+		if (this.peekLeftChar() === '\\') {
 			this.moveLeft()
 		}
 
 		this.skipLeftWhiteSpaces()
-		if (this.readLeft() !== '=') {
+		if (this.readLeftChar() !== '=') {
 			return null
 		}
 
@@ -75,7 +75,7 @@ export class HTMLScanner extends TextScanner {
 	/** Scan for relative import path. */
 	scanForImportPath() {
 		this.readLeftUntil(['<', '>'])
-		if (this.peekRight(1) !== '<') {
+		if (this.peekRightChar(1) !== '<') {
 			return null
 		}
 

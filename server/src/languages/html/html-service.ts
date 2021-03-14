@@ -13,7 +13,7 @@ import {JSXRangeParser} from '../jsx/jsx-range-parser'
 
 
 
-//it doesn't keep document
+/** Scan html code pieces in files that can include HTML codes, like html, js, jsx, ts, tsx. */
 export class HTMLService {
 
 	private uri: string
@@ -68,21 +68,28 @@ export namespace HTMLService {
 		return new HTMLScanner(document, offset).scanForSelector()
 	}
 
+	/** Whether document is a js, jsx, ts, tsx document. */
 	function isJSXDocument(document: TextDocument) {
 		return ['javascriptreact', 'typescriptreact', 'javascript', 'typescript'].includes(document.languageId)
 	}
 
-	/** If click `goto definition` at a `<link href="...">` or `<style src="...">`. */
+	/** 
+	 * If click `goto definition` at a `<link href="...">` or `<style src="...">`.
+	 * Returned result has been resolved to an absolute path.
+	 */
 	export async function getImportPathAt(document: TextDocument, position: Position): Promise<string | null> {
 		let offset = document.offsetAt(position)
 		let importPath = new HTMLScanner(document, offset).scanForImportPath()
 
+		if (!importPath && isJSXDocument(document)) {
+			importPath = new JSXScanner(document, offset).scanForImportPath()
+		}
+
 		if (importPath) {
 			return await resolveImportPath(URI.parse(document.uri).fsPath, importPath)
 		}
-		else {
-			return null
-		}
+
+		return null
 	}
 	
 	/** Find definitions in style tag for curent document. */

@@ -77,10 +77,12 @@ export async function resolveImportPath(fromPath: string, toPath: string): Promi
 			if (filePath) {
 				return filePath
 			}
+			
 			let dir = path.dirname(fromDir)
 			if (dir === fromDir) {
 				break
 			}
+
 			fromDir = dir
 		}
 

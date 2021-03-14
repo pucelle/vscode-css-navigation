@@ -18,7 +18,7 @@ import {
 	Range,
 } from 'vscode-languageserver'
 
-import {TextDocument} from 'vscode-languageserver-textdocument'
+import {Position, TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from './languages/common/simple-selector'
 import {HTMLService, HTMLServiceMap} from './languages/html'
 import {CSSService, CSSServiceMap} from './languages/css'
@@ -157,68 +157,84 @@ class CSSNaigationServer {
 		let position = positonParams.position
 		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
 		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
-		let locations: Location[] = []
 
-		// HTML files.
 		if (isHTMLFile) {
-			// Clicking `<link rel="stylesheet" href="...">` or `<style src="...">`
-			let resolvedImportPath = await HTMLService.getImportPathAt(document, position)
-			if (resolvedImportPath) {
-				locations.push(
-					Location.create(URI.file(resolvedImportPath).toString(), Range.create(0, 0, 0, 0))
-				)
-			}
-
-			// Search for current css selector.
-			else {
-				let selector = await HTMLService.getSimpleSelectorAt(document, position)
-				if (!selector) {
-					return null
-				}
-
-				// Is custom tag.
-				if (configuration.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
-					return null
-				}
-
-				// Having `@import...` in a JSX file.
-				if (selector.importURI) {
-					this.cssServiceMap.trackMoreFile(URI.parse(selector.importURI).fsPath)
-					await this.cssServiceMap.makeFresh()
-
-					// Only find in one imported file.
-					let cssService = await this.cssServiceMap.get(selector.importURI)
-					if (cssService) {
-						return cssService.findDefinitionsMatchSelector(selector)
-					}
-					else {
-						return null
-					}
-				}
-
-				// Parse `<style src=...>` and load imported files.
-				let resolvedImportPaths = await HTMLService.scanStyleImportPaths(document)
-				for (let filePath of resolvedImportPaths) {
-					this.cssServiceMap.trackMoreFile(filePath)
-				}
-
-				// Find across all CSS files.
-				locations.push(...await this.cssServiceMap.findDefinitionsMatchSelector(selector))
-
-				// Find in inner style tags.
-				if (configuration.alsoSearchDefinitionsInStyleTag) {
-					locations.unshift(...HTMLService.findDefinitionsInInnerStyle(document, selector))
-				}
-			}
+			return await this.findDefinitionsInHTMLLikeDocument(document, position)
 		}
 		else if (isCSSFile) {
-			// Clicking `@import '...';`
-			let resolvedImportPath = await CSSService.getImportPathAt(document, position)
-			if (resolvedImportPath) {
-				locations.push(
-					Location.create(URI.file(resolvedImportPath).toString(), Range.create(0, 0, 0, 0))
-				)
+			return await this.findDefinitionsInCSSLikeDocument(document, position)
+		}
+
+		return null
+	}
+
+	/** In HTML files, or files that can include HTML codes. */
+	private async findDefinitionsInHTMLLikeDocument(document: TextDocument, position: Position): Promise<Location[] | null> {
+		let locations: Location[] = []
+
+		// Clicking `<link rel="stylesheet" href="...">` or `<style src="...">`
+		let resolvedImportPath = await HTMLService.getImportPathAt(document, position)
+		if (resolvedImportPath) {
+			locations.push(
+				Location.create(URI.file(resolvedImportPath).toString(), Range.create(0, 0, 0, 0))
+			)
+		}
+
+		// Search for current css selector.
+		else {
+			let selector = await HTMLService.getSimpleSelectorAt(document, position)
+			if (!selector) {
+				return null
 			}
+
+			// Is custom tag.
+			if (configuration.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
+				return null
+			}
+
+			// Having `@import...` in a JSX file.
+			if (selector.importURI) {
+				this.cssServiceMap.trackMoreFile(URI.parse(selector.importURI).fsPath)
+				await this.cssServiceMap.makeFresh()
+
+				// Only find in one imported file.
+				let cssService = await this.cssServiceMap.get(selector.importURI)
+				if (cssService) {
+					return cssService.findDefinitionsMatchSelector(selector)
+				}
+				else {
+					return null
+				}
+			}
+
+			// Parse `<style src=...>` and load imported files.
+			let resolvedImportPaths = await HTMLService.scanStyleImportPaths(document)
+			for (let filePath of resolvedImportPaths) {
+				this.cssServiceMap.trackMoreFile(filePath)
+			}
+
+			// Find across all CSS files.
+			locations.push(...await this.cssServiceMap.findDefinitionsMatchSelector(selector))
+
+			// Find in inner style tags.
+			if (configuration.alsoSearchDefinitionsInStyleTag) {
+				locations.unshift(...HTMLService.findDefinitionsInInnerStyle(document, selector))
+			}
+		}
+
+		return locations
+	}
+
+	/** In CSS files, or a sass file. */
+	private async findDefinitionsInCSSLikeDocument(document: TextDocument, position: Position): Promise<Location[] | null> {
+		let locations: Location[] = []
+
+		// Clicking `@import '...';` in a CSS file.
+		let resolvedImportPath = await CSSService.getImportPathAt(document, position)
+		if (resolvedImportPath) {
+			locations.push(
+				Location.create(URI.file(resolvedImportPath).toString(), Range.create(0, 0, 0, 0))
+			)
 		}
 
 		return locations
