@@ -16,6 +16,7 @@ import {
 	ReferenceParams,
 	TextDocumentChangeEvent,
 	Range,
+	TextEdit,
 } from 'vscode-languageserver'
 
 import {Position, TextDocument} from 'vscode-languageserver-textdocument'
@@ -287,8 +288,7 @@ class CSSNaigationServer {
 			let cssService = await this.cssServiceMap.get(selector.importURI)
 			if (cssService) {
 				let labels = cssService.findCompletionLabelsMatchSelector(selector)
-
-				return this.formatLabelsToCompletionItems(labels)
+				return this.formatLabelsToCompletionItems(labels, selector, document)
 			}
 			else {
 				return null
@@ -303,14 +303,19 @@ class CSSNaigationServer {
 			labels.unshift(...HTMLService.findCompletionLabelsInInnerStyle(document, selector))
 		}
 
-		return this.formatLabelsToCompletionItems(labels)
+		return this.formatLabelsToCompletionItems(labels, selector, document)
 	}
 
-	private formatLabelsToCompletionItems(labels: string[]): CompletionItem[] {
+	private formatLabelsToCompletionItems(labels: string[], selector: SimpleSelector, document: TextDocument): CompletionItem[] {
 		return labels.map(label => {
 			let item = CompletionItem.create(label)
 			item.kind = CompletionItemKind.Class
-	
+
+			item.textEdit = TextEdit.replace(
+				Range.create(document.positionAt(selector.leftOffset), document.positionAt(selector.leftOffset + selector.value.length)),
+				label,
+			)
+			
 			return item
 		})
 	}

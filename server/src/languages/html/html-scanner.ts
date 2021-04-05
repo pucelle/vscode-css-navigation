@@ -34,8 +34,10 @@ export class HTMLScanner extends TextScanner {
 		}
 		
 		let char = this.peekLeftChar()
+		let leftOffset = this.offset + 1
+
 		if (char === '<') {
-			return SimpleSelector.create(word)
+			return SimpleSelector.create(word, leftOffset)
 		}
 
 		this.readLeftUntil(['<', '\'', '"'])
@@ -66,7 +68,7 @@ export class HTMLScanner extends TextScanner {
 
 		if (attribute === 'class' || attribute === 'id') {
 			let raw = (attribute === 'class' ? '.' : '#') + word
-			return SimpleSelector.create(raw)
+			return SimpleSelector.create(raw, leftOffset)
 		}
 
 		return null

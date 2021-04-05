@@ -16,6 +16,8 @@ export class JSXScanner extends TextScanner {
 		let inExpression = false
 
 		let attributeValue = this.readLeftWord()
+		let wordLeftOffset = this.offset + 1
+
 		if (!attributeValue) {
 			return null
 		}
@@ -31,12 +33,12 @@ export class JSXScanner extends TextScanner {
 			// For Flit syntax `:class.property=...`
 			if (attributeName === 'class') {
 				let raw = '.' + attributeValue
-				return SimpleSelector.create(raw)
+				return SimpleSelector.create(raw, wordLeftOffset)
 			}
 
 			// Module CSS, e.g. `className={style.className}`.
 			else {
-				return this.scanCSSModule(attributeValue)
+				return this.scanCSSModule(attributeValue, wordLeftOffset)
 			}
 		}
 
@@ -44,7 +46,7 @@ export class JSXScanner extends TextScanner {
 		// Module CSS, e.g. `className={style['class-name']}`.
 		if ((this.peekLeftChar() === '"' || this.peekLeftChar() === '\'') && this.peekLeftCharSkipWhiteSpaces(1) === '[') {
 			this.readLeftUntil(['['])
-			return this.scanCSSModule(attributeValue)
+			return this.scanCSSModule(attributeValue, wordLeftOffset)
 		}
 
 		this.readLeftUntil(['<', '\'', '"', '`', '{'])
@@ -85,14 +87,14 @@ export class JSXScanner extends TextScanner {
 
 		if (attributeName === 'className' || attributeName === 'class' || attributeName === 'id' && !inExpression) {
 			let raw = (attributeName === 'id' ? '#' : '.') + attributeValue
-			return SimpleSelector.create(raw)
+			return SimpleSelector.create(raw, wordLeftOffset)
 		}
 
 		return null
 	}
 
 	/** Scan imported CSS module. */
-	private async scanCSSModule(attributeValue: string): Promise<SimpleSelector | null> {
+	private async scanCSSModule(attributeValue: string, wordLeftOffset: number): Promise<SimpleSelector | null> {
 		let moduleVariable = this.readLeftWord()
 		if (!moduleVariable) {
 			return null
@@ -116,11 +118,11 @@ export class JSXScanner extends TextScanner {
 		if (modulePath) {
 			let fullPath = path.resolve(path.dirname(URI.parse(this.document.uri).fsPath), modulePath)
 			if (await fs.pathExists(fullPath)) {
-				return SimpleSelector.create('.' + attributeValue, URI.file(fullPath).toString())
+				return SimpleSelector.create('.' + attributeValue, wordLeftOffset, URI.file(fullPath).toString())
 			}
 		}
 
-		return SimpleSelector.create('.' + attributeValue)
+		return SimpleSelector.create('.' + attributeValue, wordLeftOffset)
 	}
 
 	/** Parse `import ...`. */

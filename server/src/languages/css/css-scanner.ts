@@ -17,7 +17,7 @@ export class CSSScanner extends TextScanner {
 		this.startOffset = offset
 	}
 
-	/** Scan CSS selector for a CSS document from specified offset. */
+	/** Scan CSS selectors in a CSS document from specified offset. */
 	scanForSelector(): SimpleSelector[] | null {
 		//when mouse in '|&-a', check if the next char is &
 		let nextChar = this.peekLeftChar(-1)
@@ -26,25 +26,26 @@ export class CSSScanner extends TextScanner {
 		}
 
 		let word = this.readLeftWord()
+		let wordLeftOffset = this.offset + 1
 		if (!word) {
 			return null
 		}
 
 		let char = this.readLeftChar()
 		if (char === '.' || char === '#') {
-			let selector = SimpleSelector.create(char + word)
+			let selector = SimpleSelector.create(char + word, wordLeftOffset)
 			return selector ? [selector] : null
 		}
 
 		if (this.supportsNesting && char === '&') {
-			return this.parseAndGetSelectors(word)
+			return this.parseAndGetSelectors(word, wordLeftOffset)
 		}
 
 		return null
 	}
 
 	/** Parse whole ranges for document and get selector. */
-	private parseAndGetSelectors(word: string): SimpleSelector[] | null {
+	private parseAndGetSelectors(word: string, wordLeftOffset: number): SimpleSelector[] | null {
 		let {ranges} = new CSSRangeParser(this.document).parse()
 		let currentRange: CSSNamedRange | undefined
 		let selectorIncludedParentRange: CSSNamedRange | undefined
@@ -76,7 +77,7 @@ export class CSSScanner extends TextScanner {
 
 		for (let {full} of selectorIncludedParentRange.names) {
 			if (full[0] === '.' || full[0] === '#') {
-				let selector = SimpleSelector.create(full + word)
+				let selector = SimpleSelector.create(full + word, wordLeftOffset)
 				if (selector) {
 					selectors.push(selector)
 				}

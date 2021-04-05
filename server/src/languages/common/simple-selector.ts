@@ -9,6 +9,9 @@ export interface SimpleSelector {
 	/** Raw selector string. */
 	raw: string
 
+	/** Position of left offset. */
+	leftOffset: number
+
 	/** Related imported file, only available for JSX files. */
 	importURI: string | null
 }
@@ -23,7 +26,7 @@ export namespace SimpleSelector {
 	}
 	
 	/** Create a selector from raw selector string. */
-	export function create(raw: string, importURI: string | null = null): SimpleSelector | null {
+	export function create(raw: string, leftOffset: number, importURI: string | null = null): SimpleSelector | null {
 		if (!validate(raw)) {
 			return null
 		}
@@ -38,6 +41,7 @@ export namespace SimpleSelector {
 			type,
 			value,
 			raw,
+			leftOffset,
 			importURI,
 		}
 	}
