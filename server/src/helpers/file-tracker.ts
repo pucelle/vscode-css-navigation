@@ -78,7 +78,7 @@ export class FileTracker {
 	private allFresh: boolean = true
 	private startDataLoaded: boolean = true
 	private updating: boolean = false
-	private updatePromises: Promise<void>[] | null = null
+	private updatePromises: Promise<void>[] = []
 
 	constructor(documents: TextDocuments<TextDocument>, options: FileTrackerOptions) {
 		this.documents = documents
@@ -465,7 +465,7 @@ export class FileTracker {
 		let updatedCount = this.updatePromises.length
 		console.timeEnd('update', `${updatedCount} files loaded`)
 
-		this.updatePromises = null
+		this.updatePromises = []
 		this.updating = false
 		this.allFresh = true
 	}
@@ -475,7 +475,7 @@ export class FileTracker {
 		if (!this.hasIgnored(uri)) {
 			if (!item.updatePromise) {
 				item.updatePromise = this.createUpdatePromise(uri, item)
-				this.updatePromises!.push(item.updatePromise)
+				this.updatePromises.push(item.updatePromise)
 				await item.updatePromise
 				item.updatePromise = null
 			}

@@ -109,8 +109,8 @@ export class CSSRangeParser {
 		let match: RegExpExecArray | null
 
 		while (match = re.exec(text)) {
-			let chars = match[1]
-			let endChar = match[2]
+			let chars = match[1] || ''
+			let endChar = match[2] || ''
 
 			if (endChar === '{' && chars) {
 				let startIndex = re.lastIndex - chars.length - 1
