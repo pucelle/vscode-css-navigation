@@ -10,7 +10,7 @@ describe('Test Completion', () => {
 	})
 
 	it('Should find completion for class selectors, include nesting combined', async () => {
-		assert.deepStrictEqual(await sc('class1'), ['class1', 'class1-sub', 'class1-sub-tail'])
+		assert.deepStrictEqual(await sc('class1'), ['class1', 'class1-sub', 'class1-sub-tail', 'class10'])
 	})
 
 	it('Should find completion for inner style class selectors', async () => {

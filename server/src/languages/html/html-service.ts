@@ -79,17 +79,13 @@ export namespace HTMLService {
 	 */
 	export async function getImportPathAt(document: TextDocument, position: Position): Promise<string | null> {
 		let offset = document.offsetAt(position)
-		let importPath = new HTMLScanner(document, offset).scanForImportPath()
+		let importPath = await (new HTMLScanner(document, offset).scanForImportPath())
 
 		if (!importPath && isJSXDocument(document)) {
-			importPath = new JSXScanner(document, offset).scanForImportPath()
+			importPath = await (new JSXScanner(document, offset).scanForImportPath())
 		}
 
-		if (importPath) {
-			return await resolveImportPath(URI.parse(document.uri).fsPath, importPath)
-		}
-
-		return null
+		return importPath
 	}
 	
 	/** Find definitions in style tag for curent document. */

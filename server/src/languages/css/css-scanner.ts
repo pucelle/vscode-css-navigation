@@ -3,7 +3,8 @@ import {SimpleSelector} from '../common/simple-selector'
 import {TextScanner} from '../common/text-scanner'
 import {CSSService} from './css-service'
 import {CSSNamedRange, CSSRangeParser} from './css-range-parser'
-import {firstMatch} from '../../helpers/utils'
+import {resolveImportPath} from '../../helpers/file'
+import {URI} from 'vscode-uri'
 
 
 export class CSSScanner extends TextScanner {
@@ -19,26 +20,20 @@ export class CSSScanner extends TextScanner {
 
 	/** Scan CSS selectors in a CSS document from specified offset. */
 	scanForSelector(): SimpleSelector[] | null {
-		//when mouse in '|&-a', check if the next char is &
-		let nextChar = this.peekLeftChar(-1)
-		if (nextChar === '#' || nextChar === '.' || this.supportsNesting && nextChar === '&') {
-			this.moveRight()
-		}
-
-		let word = this.readLeftWord()
-		let wordLeftOffset = this.offset + 1
-		if (!word) {
+		let match = this.match(/(?<identifier>[#.&])([\w-]+)/g)
+		if (!match) {
 			return null
 		}
 
-		let char = this.readLeftChar()
-		if (char === '.' || char === '#') {
-			let selector = SimpleSelector.create(char + word, wordLeftOffset)
+		let identifier = match.groups.identifier
+
+		if (identifier === '.' || identifier === '#') {
+			let selector = SimpleSelector.create(identifier + match.text, match.index)
 			return selector ? [selector] : null
 		}
 
-		if (this.supportsNesting && char === '&') {
-			return this.parseAndGetSelectors(word, wordLeftOffset)
+		if (this.supportsNesting && identifier === '&') {
+			return this.parseAndGetSelectors(match.text, match.index)
 		}
 
 		return null
@@ -50,7 +45,7 @@ export class CSSScanner extends TextScanner {
 		let currentRange: CSSNamedRange | undefined
 		let selectorIncludedParentRange: CSSNamedRange | undefined
 
-		// Binary searching should be a little better, but not help much
+		// Binary searching should be better, but not help much.
 		for (let i = 0; i < ranges.length; i++) {
 			let range = ranges[i]
 			let start = this.document.offsetAt(range.range.start)
@@ -93,13 +88,12 @@ export class CSSScanner extends TextScanner {
 	}
 
 	/** Scan for relative import path. */
-	scanForImportPath() {
-		this.readLeftUntil([';'])
-		this.moveRight()
-
-		let code = this.readRightUntil([';'])
-		let re = /@import\s*['"](.*?)['"]/
-
-		return firstMatch(code, re)
+	async scanForImportPath() {
+		let importPath = this.match(/@import\s*['"](.*?)['"]\s*;/g)?.text
+		if (importPath) {
+			return await resolveImportPath(URI.parse(this.document.uri).fsPath, importPath)
+		}
+		
+		return null
 	}
 }

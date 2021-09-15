@@ -1,5 +1,11 @@
 # ChangeLog
 
+
+## [1.11.0]
+	- Support goto definitions for normal React syntax like: `class={'class1'}, class={['class1']}, class={[{class1: true}]}`.
+	- Support goto definitions for jQuery select syntax: `$('.class1')`.
+
+
 ## [1.10.0]
 
  - Add `enableLogLevelMessage`, removes `preloadCSSFiles`.

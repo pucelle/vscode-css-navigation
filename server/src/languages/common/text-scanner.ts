@@ -5,199 +5,143 @@ export class TextScanner {
 
 	protected document: TextDocument
 	protected text: string
-	protected offset: number
+	protected index: number
+	protected startIndex: number
+	protected endIndex: number
+	protected startText: string
 
-	constructor(document: TextDocument, offset: number) {
+	constructor(document: TextDocument, cursorOffset: number, readLeft: number = 1024, readRight: number = 1024) {
 		this.document = document
 		this.text = document.getText()
-		this.offset = offset - 1
+
+		// Assume `ABC|`, cursor in offset 3, it's related character should be `C`, which in index 2.
+		this.index = Math.max(cursorOffset - 1, 0)
+
+		this.startIndex = Math.max(this.index - readLeft, 0)
+		this.endIndex = Math.min(this.index + readRight, this.text.length)
+		this.startText = this.text.slice(this.startIndex, this.endIndex)
 	}
 
-	/** Is in the end of left. */
-	protected isLeftEOS(): boolean {
-		return this.offset === -1
-	}
+	/** 
+	 * Match a regexp sequence, each one select a text piece that include the position where current cursor at.
+	 * Note at most time each regexp should be in global mode.
+	 */
+	protected match(...reSequence: RegExp[]) {
+		let subText: string | null = this.startText
+		let startIndex = this.startIndex
+		let m: RegExpExecArray | null
+		let groups: Record<string, string> = {}
 
-	/** Is in the end of right */
-	protected isRightEOS(): boolean {
-		return this.offset === this.text.length
-	}
+		for (let re of reSequence) {
+			let nextSubText: string | null = null
+				
+			while (m = re.exec(subText)) {
+				let matchStartIndex = m.index + startIndex
+				let matchEndIndex = matchStartIndex + m[0].length
 
-	/** Read current char, and moves to left. */
-	protected readLeftChar(): string {
-		return this.text.charAt(this.offset--)
-	}
+				// Cursor in the match range.
+				// |A, if cursor is here, match A (in this.index + 1 ~ this.index + 2) will also can match.
+				if (matchStartIndex <= this.index + 1 && matchEndIndex > this.index) {
+					if (m.groups) {
+						Object.assign(groups, m.groups)
+					}
 
-	/** Read current char, and moves to right. */
-	protected readRightChar(): string {
-		return this.text.charAt(this.offset++)
-	}
+					let result = this.guessSubMatch(m, matchStartIndex)
+					if (result) {
+						nextSubText = result.text
+						startIndex = result.index
+					}
 
-	/** Peek next char in the left. */
-	protected peekLeftChar(forward: number = 0): string {
-		return this.text.charAt(this.offset - forward)
-	}
-
-	/** Peek next char in the right. */
-	protected peekRightChar(backward: number = 0): string {
-		return this.text.charAt(this.offset + backward)
-	}
-
-	/** Peek next char in the left, skips white spaces. */
-	protected peekLeftCharSkipWhiteSpaces(forward: number = 0): string {
-		let offset = this.offset
-		let forwardCount = 0
-
-		while (offset >= 0) {
-			let char = this.text.charAt(offset)
-			if (!/\s/.test(char)) {
-				if (forwardCount === forward) {
-					return char
+					break
 				}
-				forwardCount++
-			}
-			offset--
-		}
-
-		return ''
-	}
-
-	/** Peek next char in the left, skips white spaces. */
-	protected peekRightCharSkipWhiteSpaces(backward: number = 0): string {
-		let offset = this.offset
-		let forwardCount = 0
-
-		while (offset < this.text.length) {
-			let char = this.text.charAt(offset)
-			if (!/\s/.test(char)) {
-				if (forwardCount === backward) {
-					return char
+				else if (matchStartIndex > this.index + 1) {
+					break
 				}
-				forwardCount++
+
+				if (!re.global) {
+					break
+				}
 			}
-			offset++
-		}
 
-		return ''
-	}
+			subText = nextSubText
 
-	/** Moves left. */
-	protected moveLeft(forward: number = 1) {
-		this.offset -= forward
-	}
-
-	/** Moves right. */
-	protected moveRight(backward: number = 1) {
-		this.offset += backward
-	}
-
-	/** Read word at moves cursor to left word boundary. */
-	protected readLeftWord(): string {
-		let endPosition = this.offset + 1
-
-		while (endPosition < this.text.length) {
-			let char = this.text[endPosition]
-			if (/[\w\-]/.test(char)) {
-				endPosition++
-			}
-			else {
+			if (!subText) {
 				break
 			}
 		}
 
-		while (!this.isLeftEOS()) {
-			let char = this.peekLeftChar()
-			if (/[\w\-]/.test(char)) {
-				this.moveLeft()
-			}
-			else {
-				break
-			}
+		if (!subText) {
+			return null
 		}
-		
-		return this.text.slice(this.offset + 1, endPosition)
+
+		return {text: subText, index: startIndex!, groups}
 	}
 
-	/** Read word at moves cursor to right word boundary. */
-	protected readRightWord(): string {
-		let startPosition = this.offset - 1
+	/** 
+	 * Guess the global index of the sub match which include current cursor index.
+	 * Should note this is not 100% correct, it can only ensure to get a not bad result.
+	 * JS doesn't support capturing indices for sub matches, must implement one if truly needed.
+	 */
+	private guessSubMatch(m: RegExpExecArray, matchStartIndex: number) {
+		let fullMatch = m[0]
+		let groupValues = m.groups ? Object.values(m.groups) : []
 
-		while (startPosition >= 0) {
-			let char = this.text[startPosition]
-			if (/[\w\-]/.test(char)) {
-				startPosition--
+		for (let i = 1; i < m.length; i++) {
+			let subMatch = m[i]
+
+			if (!subMatch) {
+				continue
 			}
-			else {
-				break
+
+			if (groupValues.includes(subMatch)) {
+				continue
+			}
+
+			let result = this.searchEachSubMatch(fullMatch, subMatch, matchStartIndex)
+			if (result) {
+				return result
 			}
 		}
 
-		while (!this.isRightEOS()) {
-			let char = this.peekRightChar()
-			if (/[\w\-]/.test(char)) {
-				this.moveRight()
+		for (let i = 1; i < m.length; i++) {
+			let subMatch = m[i]
+
+			if (!subMatch) {
+				continue
 			}
-			else {
-				break
+
+			let result = this.searchEachSubMatch(fullMatch, subMatch, matchStartIndex)
+			if (result) {
+				return result
 			}
 		}
-		
-		return this.text.slice(startPosition + 1, this.offset)
+
+		return null
 	}
 
-	/** Read chars to left until meet any of `chars`. */
-	protected readLeftUntil(chars: string[], maxCharCount: number = 1024): string {
-		let endPosition = this.offset
-		let count = 0
+	private searchEachSubMatch(fullMatch: string, subMatch: string, matchStartIndex: number) {
+		for (let index of this.searchSubString(fullMatch, subMatch)) {
+			let subMatchStartIndex = index + matchStartIndex
+			let subMatchEndIndex = subMatchStartIndex + subMatch.length
 
-		while (!this.isLeftEOS() && count++ < maxCharCount) {
-			let char = this.readLeftChar()
-			if (chars.includes(char)) {
+			if (subMatchStartIndex <= this.index + 1 && subMatchEndIndex > this.index) {
+				return {text: subMatch, index: subMatchStartIndex}
+			}
+			else if (subMatchStartIndex > this.index + 1) {
 				break
 			}
 		}
 
-		return this.text.slice(this.offset + 1, endPosition + 1)
+		return null
 	}
 
-	/** Read chars to right until meet any of `chars`. */
-	protected readRightUntil(chars: string[], maxCharCount: number = 1024): string {
-		let startPosition = this.offset
-		let count = 0
+	private *searchSubString(s: string, sub: string) {
+		let lastIndex = 0
+		let nextIndex: number
 
-		while (!this.isRightEOS() && count++ < maxCharCount) {
-			let char = this.readRightChar()
-			if (chars.includes(char)) {
-				break
-			}
-		}
-
-		return this.text.slice(startPosition, this.offset)
-	}
-	
-	/** Skip white spaces in left position. */
-	protected skipLeftWhiteSpaces() {
-		while (!this.isLeftEOS()) {
-			let char = this.peekLeftChar()
-			if (/\s/.test(char)) {
-				this.moveLeft()
-			}
-			else {
-				break
-			}
-		}
-	}
-
-	/** Skip white spaces in right position. */
-	protected skipRightWhiteSpaces() {
-		while (!this.isRightEOS()) {
-			let char = this.peekRightChar()
-			if (/\s/.test(char)) {
-				this.moveRight()
-			}
-			else {
-				break
-			}
+		while ((nextIndex = s.indexOf(sub, lastIndex)) > -1) {
+			yield nextIndex
+			lastIndex = nextIndex + sub.length
 		}
 	}
 }

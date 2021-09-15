@@ -5,7 +5,10 @@ import {HTMLRangeParser, HTMLNamedRange} from '../html/html-range-parser'
 
 export class JSXRangeParser extends HTMLRangeParser {
 
-	/** Parse CSS range for HTML tag attribute. */
+	/** 
+	 * Parse CSS range for HTML tag attribute.
+	 * It doesn't support computed React syntax like `class={...}`
+	 */
 	protected getRangesFromAttribute(attribute: string, start: number, end: number): HTMLNamedRange[] {
 		let re = /\b(class|id|className)\s*=\s*(?:"(.*?)"|'(.*?)')/g
 		let match: RegExpExecArray | null

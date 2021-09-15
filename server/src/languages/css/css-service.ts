@@ -179,14 +179,6 @@ export namespace CSSService {
 	/** If click `goto definition` at a `<link href="...">` or `<style src="...">`. */
 	export async function getImportPathAt(document: TextDocument, position: Position): Promise<string | null> {
 		let offset = document.offsetAt(position)
-		let importPath = new CSSScanner(document, offset).scanForImportPath()
-
-		if (importPath) {
-			return await resolveImportPath(URI.parse(document.uri).fsPath, importPath)
-		}
-		else {
-			return null
-		}
+		return await (new CSSScanner(document, offset).scanForImportPath())
 	}
-	
 }

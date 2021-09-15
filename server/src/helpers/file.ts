@@ -68,13 +68,35 @@ export async function walkDirectoryToMatchFiles(
 export async function resolveImportPath(fromPath: string, toPath: string): Promise<string | null> {
 	let isModulePath = toPath.startsWith('~')
 	let fromDir = path.dirname(fromPath)
-	let fromPathExtension = getPathExtension(fromPath)
+	let beModuleImport = false
 
 	// `~modulename/...`
 	if (isModulePath) {
+		toPath = toPath.slice(1)
+		toPath = fixPathExtension(toPath, fromPath)
+		toPath = 'node_modules/' + toPath
+		beModuleImport = true
+	}
+	else {
+		toPath = fixPathExtension(toPath, fromPath)
+
+		// Import relative path.
+		let filePath = path.resolve(fromDir, toPath)
+		if (await fs.pathExists(filePath)) {
+			return filePath
+		}
+
+		// .xxx or ../xxx is not module import.
+		if (!/^\./.test(toPath)) {
+			toPath = 'node_modules/' + toPath
+			beModuleImport = true
+		}
+	}
+
+	if (beModuleImport) {
 		while (fromDir) {
-			let filePath = await fixPathExtension(path.resolve(fromDir, 'node_modules/' + toPath.slice(1)), fromPathExtension)
-			if (filePath) {
+			let filePath = path.resolve(fromDir, toPath)
+			if (await fs.pathExists(filePath)) {
 				return filePath
 			}
 			
@@ -85,39 +107,20 @@ export async function resolveImportPath(fromPath: string, toPath: string): Promi
 
 			fromDir = dir
 		}
+	}
 
-		return null
-	}
-	else {
-		return await fixPathExtension(path.resolve(fromDir, toPath), fromPathExtension)
-	}
+	return null
 }
 
 
 /** Fix imported path with extension. */
-async function fixPathExtension(filePath: string, fromPathExtension: string): Promise<string | null> {
-	let extension = getPathExtension(filePath)
-	if (extension && await fs.pathExists(filePath)) {
-		return filePath
-	}
+function fixPathExtension(toPath: string, fromPath: string): string {
+	let fromPathExtension = getPathExtension(fromPath)
 
 	if (fromPathExtension === 'scss') {
 		// @import `b` -> `b.scss`
-		if (path.extname(filePath) === '') {
-			filePath += '.scss'
-
-			if (await fs.pathExists(filePath)) {
-				return filePath
-			}
-		}
-
-		// @import `b.scss` -> `_b.scss`
-		if (path.basename(filePath)[0] !== '_') {
-			filePath = path.join(path.dirname(filePath), '_' + path.basename(filePath))
-
-			if (await fs.pathExists(filePath)) {
-				return filePath
-			}
+		if (path.extname(toPath) === '') {
+			toPath += '.scss'
 		}
 	}
 
@@ -129,5 +132,5 @@ async function fixPathExtension(filePath: string, fromPathExtension: string): Pr
 	// So we may need to validate if imported paths exist after we got definition results,
 	// although we still can't get new contents in `_b.scss`.
 
-	return null
+	return toPath
 }
