@@ -81,11 +81,16 @@ export class TextScanner {
 	 * Guess the global index of the sub match which include current cursor index.
 	 * Should note this is not 100% correct, it can only ensure to get a not bad result.
 	 * JS doesn't support capturing indices for sub matches, must implement one if truly needed.
+	 * 
+	 * An issue:
+	 * <tag id|="id">, `|` is where cursor at.
+	 * Press F12, it cause goto css defition `#id`.
 	 */
 	private guessSubMatch(m: RegExpExecArray, matchStartIndex: number) {
 		let fullMatch = m[0]
 		let groupValues = m.groups ? Object.values(m.groups) : []
 
+		// Exclude all group matches.
 		for (let i = 1; i < m.length; i++) {
 			let subMatch = m[i]
 
@@ -97,12 +102,16 @@ export class TextScanner {
 				continue
 			}
 
-			let result = this.searchEachSubMatch(fullMatch, subMatch, matchStartIndex)
-			if (result) {
-				return result
+			let subMatchStartIndex = this.searchEachSubMatch(fullMatch, subMatch, matchStartIndex)
+			if (subMatchStartIndex !== null) {
+				return {
+					text: subMatch,
+					index: subMatchStartIndex,
+				}
 			}
 		}
 
+		// If doesn't find one, not exclude group matches.
 		for (let i = 1; i < m.length; i++) {
 			let subMatch = m[i]
 
@@ -110,9 +119,12 @@ export class TextScanner {
 				continue
 			}
 
-			let result = this.searchEachSubMatch(fullMatch, subMatch, matchStartIndex)
-			if (result) {
-				return result
+			let subMatchStartIndex = this.searchEachSubMatch(fullMatch, subMatch, matchStartIndex)
+			if (subMatchStartIndex !== null) {
+				return {
+					text: subMatch,
+					index: subMatchStartIndex,
+				}
 			}
 		}
 
@@ -125,7 +137,7 @@ export class TextScanner {
 			let subMatchEndIndex = subMatchStartIndex + subMatch.length
 
 			if (subMatchStartIndex <= this.index + 1 && subMatchEndIndex > this.index) {
-				return {text: subMatch, index: subMatchStartIndex}
+				return subMatchStartIndex
 			}
 			else if (subMatchStartIndex > this.index + 1) {
 				break
