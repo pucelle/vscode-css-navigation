@@ -107,7 +107,7 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "A glob pattern, files matched will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`, or out of workspace directory."
+					"description": "A glob pattern, files match will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`, or out of workspace directory. Stronly suggest you specifies the full start path, or absolute path for the pattern, but not start with `**/`."
 				},
 				"CSSNavigation.alwaysIncludeImportedFiles": {
 					"type": "boolean",

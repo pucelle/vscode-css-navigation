@@ -11,10 +11,9 @@ import {
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import * as console from './console'
 import {URI} from 'vscode-uri'
-import {walkDirectoryToMatchFiles} from './file'
+import {walkDirectoryToMatchFiles} from './file-walker'
 import {glob} from 'glob'
 import {promisify} from 'util'
-
 
 interface FileTrackerItem {
 
@@ -77,7 +76,7 @@ export class FileTracker {
 	private ignoredFileURIs: Set<string> = new Set()
 	private allFresh: boolean = true
 	private startDataLoaded: boolean = true
-	private updating: boolean = false
+	private updating: Promise<void> | null = null
 	private updatePromises: Promise<void>[] = []
 
 	constructor(documents: TextDocuments<TextDocument>, options: FileTrackerOptions) {
@@ -270,10 +269,12 @@ export class FileTracker {
 	
 	/** Track folder. */
 	private async trackFolder(folderPath: string) {
-		let filePaths = await walkDirectoryToMatchFiles(folderPath, this.includeFileMatcher, this.excludeMatcher, this.ignoreFilesBy)
+		let filePathsGenerator = walkDirectoryToMatchFiles(folderPath, this.ignoreFilesBy)
 
-		for (let filePath of filePaths) {
-			this.trackFile(filePath)
+		for await(let absPath of filePathsGenerator) {
+			if (this.includeFileMatcher.match(absPath) && (!this.excludeMatcher || !this.excludeMatcher.match(absPath))) {
+				this.trackFile(absPath)
+			}
 		}
 	}
 
@@ -345,7 +346,7 @@ export class FileTracker {
 			this.allFresh = false
 
 			if (beFreshBefore) {
-				console.log(`${uri} expired`)
+				console.log(`${decodeURIComponent(uri)} expired`)
 			}
 
 			this.onFileExpired(uri)
@@ -361,20 +362,20 @@ export class FileTracker {
 			this.allFresh = false
 		}
 
-		console.log(`${uri} tracked`)
+		console.log(`${decodeURIComponent(uri)} tracked`)
 		this.onFileTracked(uri)
 	}
 
 	/** Ignore file, Still keep data for ignored items. */
 	ignore(uri: string) {
 		this.ignoredFileURIs.add(uri)
-		console.log(`${uri} ignored`)
+		console.log(`${decodeURIComponent(uri)} ignored`)
 	}
 
 	/** Stop ignoring file. */
 	notIgnore(uri: string) {
 		this.ignoredFileURIs.delete(uri)
-		console.log(`${uri} restored from ignored`)
+		console.log(`${decodeURIComponent(uri)} restored from ignored`)
 	}
 
 	/** Check whether ignored file. */
@@ -405,7 +406,7 @@ export class FileTracker {
 			item.document = null
 			item.version = 0
 			item.opened = false
-			console.log(`${uri} closed`)
+			console.log(`${decodeURIComponent(uri)} closed`)
 		}
 	}
 
@@ -431,7 +432,7 @@ export class FileTracker {
 			this.ignoredFileURIs.delete(uri)
 		}
 		
-		console.log(`${uri} removed`)
+		console.log(`${decodeURIComponent(uri)} removed`)
 		this.onFileUntracked(uri)
 	}
 
@@ -441,12 +442,23 @@ export class FileTracker {
 			return
 		}
 
+		if (this.updating) {
+			await this.updating
+		}
+		else {
+			this.updating = this.doUpdating()
+			await this.updating
+			this.updating = null
+			this.allFresh = true
+		}
+	}
+
+	private async doUpdating() {
 		if (!this.startDataLoaded) {
 			await this.loadStartData()
 		}
 
 		this.updatePromises = []
-		this.updating = true
 
 		console.timeStart('update')
 
@@ -466,8 +478,6 @@ export class FileTracker {
 		console.timeEnd('update', `${updatedCount} files loaded`)
 
 		this.updatePromises = []
-		this.updating = false
-		this.allFresh = true
 	}
 
 	/** Update one file, returns whether updated. */
@@ -505,7 +515,7 @@ export class FileTracker {
 				item.document = null
 			}
 
-			console.log(`${uri} loaded${item.opened ? ' from opened document' : ''}`)
+			console.log(`${decodeURIComponent(uri)} loaded${item.opened ? ' from opened document' : ''}`)
 		}
 	}
 

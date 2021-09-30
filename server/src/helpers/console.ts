@@ -54,7 +54,7 @@ export function warn(msg: string) {
 }
 
 /** Error level message. */
-export function error(msg: string | Error) {
+export function error(msg: any) {
 	scopedConsole.error(String(msg))
 }
 

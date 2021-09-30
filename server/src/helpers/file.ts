@@ -1,8 +1,5 @@
 import * as path from 'path'
-import minimatch = require('minimatch')
-import {Ignore} from './file-tracker'
 import * as fs from 'fs-extra'
-const ignoreWalk = require('@pucelle/ignore-walk')
 
 
 export function generateGlobPatternFromPatterns(patterns: string[]): string | null {
@@ -34,33 +31,6 @@ export function getPathExtension(filePath: string): string {
 
 export function replacePathExtension(filePath: string, toExtension: string): string {
 	return filePath.replace(/\.\w+$/, '.' + toExtension)
-}
-
-
-/** Will return the normalized full file path, not include folder paths. */
-export async function walkDirectoryToMatchFiles(
-	folderPath: string,
-	includeMatcher: minimatch.IMinimatch,
-	excludeMatcher: minimatch.IMinimatch | null,
-	ignoreFilesBy: Ignore[]
-): Promise<string[]> {
-	let filePaths = await ignoreWalk({
-		path: folderPath,
-		ignoreFiles: ignoreFilesBy,
-		includeEmpty: false, // `true` to include empty dirs, default `false`.
-		follow: false, // `true` to follow symlink dirs, default `false`
-	})
-
-	let matchedFilePaths: Set<string> = new Set()
-
-	for (let filePath of filePaths) {
-		let absoluteFilePath = path.join(folderPath, filePath)
-		if (includeMatcher.match(filePath) && (!excludeMatcher || !excludeMatcher.match(absoluteFilePath))) {
-			matchedFilePaths.add(absoluteFilePath)
-		}
-	}
-
-	return [...matchedFilePaths]
 }
 
 
