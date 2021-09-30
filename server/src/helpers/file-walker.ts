@@ -60,11 +60,12 @@ class FileWalker {
 			}
 		}
 
+		// May parallel to increase speed, but will break generator logic.
 		for (let fileName of fileNames) {
 			if (fileName.startsWith('.')) {
 				continue
 			}
-			
+
 			let relPath = path.join(relDir, fileName)
 			let stat = await this.readStat(relPath)
 
@@ -106,6 +107,7 @@ class FileWalker {
 		let ruleLines = text.split(/\r?\n/)
 			.filter(line => !/^#|^$/.test(line.trim()))
 
+		// Here it doesn't supports expressions like `!XXX`.
 		let rules = ruleLines.map(pattern => {
 			if (pattern.startsWith('/')) {
 				pattern = pattern.slice(1)
