@@ -21,7 +21,7 @@ export class JSXScanner extends TextScanner {
 		// 	 class="a b"
 		// >
 		let match = this.match(
-			/<\w+\s*(.*?)>/g,
+			/<\w+\s*([\s\S]*?)>/g,
 			/\b(?<type>id|class|className)\s*=\s*['"`](.*?)['"`]/g,
 			/([\w-]+)/g,
 		)

@@ -43,7 +43,7 @@ export class HTMLScanner extends TextScanner {
 		// 	 class="a b"
 		// >
 		match = this.match(
-			/<[\w-]+\s*(.*?)>/g,
+			/<[\w-]+\s*([\s\S]*?)>/g,
 			/(?<type>id|class)\s*=\s*['"](.*?)['"]/g,
 			/([\w-]+)/g,
 		)
@@ -62,7 +62,7 @@ export class HTMLScanner extends TextScanner {
 
 	/** Scan for relative import path. */
 	async scanForImportPath() {
-		let match = this.match(/<(?<tag>[\w-]+)(\s*.*?)>/g)
+		let match = this.match(/<(?<tag>[\w-]+)(\s*[\s\S]*?)>/g)
 		let importPath: string | null = null
 
 		if (match) {
