@@ -184,9 +184,9 @@ export namespace HTMLService {
 		return null
 	}
 
-	/** Get scss / less / css language type. */
+	/** Get sass / scss / less / css language type. */
 	function getLanguageTypeFromPropertiesText(text: string): string {
-		let propertiesMatch = text.match(/\b(scss|less|css)\b/i)
+		let propertiesMatch = text.match(/\b(scss|sass|less|css)\b/i)
 		let languageId = propertiesMatch ? propertiesMatch[1].toLowerCase() : 'css'
 	
 		return languageId

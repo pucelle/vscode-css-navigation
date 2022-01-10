@@ -1,7 +1,7 @@
 import {SymbolInformation, SymbolKind, Location, Position} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
-import {CSSNamedRange, CSSRangeParser} from './css-range-parser'
+import {CSSNamedRange, parseCSSRange} from './range-parsers'
 import {CSSScanner} from './css-scanner'
 import {URI} from 'vscode-uri'
 import {resolveImportPath} from '../../helpers/file'
@@ -155,7 +155,7 @@ export namespace CSSService {
 	
 	/** Create a CSSService from a CSS document. */
 	export function create(document: TextDocument, includeImportedFiles: boolean): CSSService {
-		let {ranges, importPaths} = new CSSRangeParser(document).parse()
+		let {ranges, importPaths} = parseCSSRange(document)
 
 		if (!includeImportedFiles) {
 			importPaths = []
@@ -166,7 +166,7 @@ export namespace CSSService {
 	
 	/** Check if CSS language supports nesting. */
 	export function isLanguageSupportsNesting(languageId: string): boolean {
-		let supportedNestingLanguages = ['less', 'scss']
+		let supportedNestingLanguages = ['less', 'scss', 'sass']
 		return supportedNestingLanguages.includes(languageId)
 	}
 

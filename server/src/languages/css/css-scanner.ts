@@ -2,9 +2,10 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 import {TextScanner} from '../common/text-scanner'
 import {CSSService} from './css-service'
-import {CSSNamedRange, CSSRangeParser} from './css-range-parser'
+import {CSSNamedRange} from './range-parsers/css-like'
 import {resolveImportPath} from '../../helpers/file'
 import {URI} from 'vscode-uri'
+import {parseCSSRange} from './range-parsers'
 
 
 export class CSSScanner extends TextScanner {
@@ -41,7 +42,7 @@ export class CSSScanner extends TextScanner {
 
 	/** Parse whole ranges for document and get selector. */
 	private parseAndGetSelectors(word: string, wordLeftOffset: number): SimpleSelector[] | null {
-		let {ranges} = new CSSRangeParser(this.document).parse()
+		let {ranges} = parseCSSRange(this.document)
 		let currentRange: CSSNamedRange | undefined
 		let selectorIncludedParentRange: CSSNamedRange | undefined
 

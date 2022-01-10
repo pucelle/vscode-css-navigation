@@ -1,7 +1,7 @@
 import {Range} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {console} from '../../helpers'
-import {CSSService} from './css-service'
+import {console} from '../../../helpers'
+import {CSSService} from '../css-service'
 
 
 export enum NameType{
@@ -25,7 +25,7 @@ interface LeafName {
 }
 
 /** Internal leaf node. */
-interface LeafRange {
+export interface LeafRange {
 	names: LeafName[]
 	start: number
 	end: number
@@ -38,51 +38,49 @@ interface FullAndMainName {
 	mains: string[] | null
 }
 
-/** Exported css ranges. */
-export interface CSSRange {
-
-	/** All ranges in current CSS file. */
-	ranges: CSSNamedRange[]
-	
-	/** All imported paths in current CSS file. */
-    importPaths: string[]
-}
-
 /** One range and it's related names. */
 export interface CSSNamedRange {
 	names: FullAndMainName[]
 	range: Range
 }
 
+export interface CSSRangeParseResult {
+	importPaths: string[]
+	ranges: CSSNamedRange[]
+}
+
 
 /** To parse css one css file to declarations. */
-export class CSSRangeParser {
+export class CSSLikeRangeParser {
 
-	private supportedLanguages = ['css', 'less', 'scss']
-	private supportsNesting: boolean
-	private document: TextDocument
+	protected supportedLanguages = ['css', 'less', 'scss']
+	protected supportsNesting: boolean = false
+	protected document: TextDocument
 
-	private stack: LeafRange[] = []
-	private current: LeafRange | undefined
-	private ignoreDeep: number = 0
+	protected stack: LeafRange[] = []
+	protected current: LeafRange | undefined
+	protected ignoreDeep: number = 0
 
 	/** When having `@import ...`, we need to load the imported files even they are inside `node_modules`. */
-	private importPaths: string[] = []
+	protected importPaths: string[] = []
 
 	constructor(document: TextDocument) {
-		//here mixed language and file extension, must makesure all languages supported are sames as file extensions
-		//may needs to be modified if more languages added
-		let {languageId} = document
+		this.document = document
+		this.initializeNestingSupporting()
+	}
+
+	protected initializeNestingSupporting() {
+		let {languageId} = this.document
+
 		if (!this.supportedLanguages.includes(languageId)) {
 			languageId = 'css'
-			console.warn(`Language "${languageId}" is not a declared css language, using css language instead.`)
+			console.warn(`Language "${languageId}" is not a declared css language name, using css language instead.`)
 		}
 
 		this.supportsNesting = CSSService.isLanguageSupportsNesting(languageId)
-		this.document = document
 	}
 
-	parse() {
+	parse(): CSSRangeParseResult {
 		let text = this.document.getText()
 		let ranges: LeafRange[] = []
 		
@@ -115,7 +113,7 @@ export class CSSRangeParser {
 			if (endChar === '{' && chars) {
 				let startIndex = re.lastIndex - chars.length - 1
 				let selector = chars.trimRight().replace(/\s+/g, ' ')
-				let names = this.parseToNames(selector)
+				let names = this.parseToSelectorNames(selector)
 
 				if (names.length === 0) {
 					continue
@@ -141,7 +139,7 @@ export class CSSRangeParser {
 			// `@...` command in top level
 			// parse `@import ...` to `this.importPaths`
 			else if (chars && !this.current) {
-				this.parseToNames(chars)
+				this.parseToSelectorNames(chars)
 			}
 		}
 
@@ -158,7 +156,7 @@ export class CSSRangeParser {
 	}
 
 	/** Parse selector to name array. */
-	private parseToNames(selectors: string): LeafName[] {
+	protected parseToSelectorNames(selectors: string): LeafName[] {
 		//may selectors like this: '[attr="]"]', but we are not high strictly parser
 		//if want to handle it, use /((?:\[(?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\]|\((?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\)|[\s\S])+?)(?:,|$)/g
 		selectors = this.removeComments(selectors)
@@ -194,6 +192,7 @@ export class CSSRangeParser {
 			}
 		}
 
+		// Matches a selector.
 		let re = /((?:\[.*?\]|\(.*?\)|.)+?)(?:,|$)/gs
 		/*
 			(?:
@@ -255,7 +254,7 @@ export class CSSRangeParser {
 	}
 
 	/** Create range piece. */
-	private newLeafRange(names: LeafName[], start: number): LeafRange {
+	protected newLeafRange(names: LeafName[], start: number): LeafRange {
 		if (this.supportsNesting && this.ignoreDeep === 0 && this.current && this.haveSelectorInNames(names)) {
 			names = this.combineNestingNames(names)
 		}
@@ -269,7 +268,7 @@ export class CSSRangeParser {
 			names,
 			start,
 			end: 0,
-			parent
+			parent,
 		}
 	}
 
@@ -340,7 +339,7 @@ export class CSSRangeParser {
 	}
 
 	/** Leaves -> name ranges. */
-	private formatToNamedRanges(leafRanges: LeafRange[]): CSSNamedRange[] {
+	protected formatToNamedRanges(leafRanges: LeafRange[]): CSSNamedRange[] {
 		let ranges: CSSNamedRange[] = []
 
 		for (let {names, start, end} of leafRanges) {

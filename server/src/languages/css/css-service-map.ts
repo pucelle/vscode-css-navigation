@@ -40,7 +40,10 @@ export class CSSServiceMap extends FileTracker {
 		if (this.ignoreSameNameCSSFile) {
 			let ext = path.extname(uri).slice(1).toLowerCase()
 			if (ext === 'css') {
-				let sassOrLessExist = this.has(file.replacePathExtension(uri, 'scss')) || this.has(file.replacePathExtension(uri, 'less'))
+				let sassOrLessExist = this.has(file.replacePathExtension(uri, 'scss'))
+					|| this.has(file.replacePathExtension(uri, 'less'))
+					|| this.has(file.replacePathExtension(uri, 'sass'))
+
 				if (sassOrLessExist) {
 					this.ignore(uri)
 				}

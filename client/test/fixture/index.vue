@@ -1,6 +1,3 @@
-<style src="./css/test.scss"></style>
-<style src="./node_modules/test-module/style-imported.scss"></style>
-
 <style scoped>
     .test-vue-scoped-class-normal{
         color: red;
@@ -41,6 +38,9 @@
 
 
 <script>
+import "./css/test.scss"
+import "./node_modules/test-module/style-imported.scss"
+
 export default {
     name: 'test-component',
     template: `

@@ -81,6 +81,7 @@
 					"default": [
 						"css",
 						"scss",
+						"sass",
 						"less"
 					],
 					"items": {

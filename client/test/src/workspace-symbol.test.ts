@@ -24,7 +24,7 @@ describe('Test Workspace Symbol', () => {
 	it('Should fix nested symbol names which start with "&"', async () => {
 		assert.deepStrictEqual(await gws('.class1-sub'), ['.class1-sub', '.class1-sub-tail'])
 		assert.deepStrictEqual(await gws('.class1-sub-tail'), ['.class1-sub-tail'])
-		assert.deepStrictEqual(await gws('.class4-sub'), ['.class4-sub', '.class4-sub', '.class4-sub-sub', '.class4-sub-tail', '.class4-sub-sub-tail'])
+		assert.deepStrictEqual(await gws('.class4-sub'), ['.class4-sub', '.class4-sub-sub', '.class4-sub-sub-tail', '.class4-sub-tail'])
 	})
 
 	it('Should find commands start with "@"', async () => {

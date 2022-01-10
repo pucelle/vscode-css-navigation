@@ -11,7 +11,7 @@ import {getPathExtension, resolveImportPath} from '../../helpers/file'
  */
 export class JSXScanner extends TextScanner {
 
-	private supportedLanguages = ['css', 'less', 'scss']
+	private supportedLanguages = ['css', 'less', 'scss', 'sass']
 
 	/** Scan a JSX / JS / TS / TSX document from a specified offset to find a CSS selector. */
 	async scanSelector(): Promise<SimpleSelector | null> {

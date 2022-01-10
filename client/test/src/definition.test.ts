@@ -92,7 +92,46 @@ describe('Test Finding Definition from HTML', () => {
 		assert.deepStrictEqual(await gs(['class="', 'css-class-in-style', '"']), ['.css-class-in-style'])
 		assert.deepStrictEqual(await gs(['class="', 'scss-class-in-style', '"']), ['&-in-style'])
 	})
+
+	it('Should supports less language', async () => {
+		assert.deepStrictEqual(await gs(['class="', 'less-class', '"']), ['.less-class'])
+	})
+
+	it('Should find right class definition even whthin sass nesting', async () => {
+		assert.deepStrictEqual(await gs(['class="', 'class1', '"']), ['.class1'])
+		assert.deepStrictEqual(await gs(['class="', 'class1-sub', '"']), ['&-sub'])
+		assert.deepStrictEqual(await gs(['class="', 'class1-sub-tail', '"']), ['&-tail'])
+	})
 })
+
+
+
+describe('Test Less', () => {
+	before(prepare)
+
+	it('Should supports less language', async () => {
+		assert.deepStrictEqual(await gs(['class="', 'less-class', '"']), ['.less-class'])
+	})
+
+	it('Should find right class definition even whthin sass nesting', async () => {
+		assert.deepStrictEqual(await gs(['class="', 'class1', '"']), ['.class1'])
+		assert.deepStrictEqual(await gs(['class="', 'class1-sub', '"']), ['&-sub'])
+		assert.deepStrictEqual(await gs(['class="', 'class1-sub-tail', '"']), ['&-tail'])
+	})
+})
+
+
+
+describe('Test Sass', () => {
+	before(prepare)
+
+	it('Should support sass language', async () => {
+		assert.deepStrictEqual(await gs(['class="', 'sass-class1', '"']), ['.sass-class1'])
+		assert.deepStrictEqual(await gs(['class="', 'sass-class1-sub', '"']), ['&-sub'])
+		assert.deepStrictEqual(await gs(['class="', 'sass-class1-sub-tail', '"']), ['&-tail'])
+	})
+})
+
 
 
 describe('Test Finding Definitions in `@import ...`', () => {
@@ -126,18 +165,18 @@ describe('Test Finding Definition from JSX', () => {
 })
 
 
-describe('Test Finding Definition for Vue Files', () => {
-	before(prepare)
+// describe('Test Finding Definition for Vue Files', () => {
+// 	before(prepare)
 
-	it('Should find inner class definition', async () => {
-		assert.deepStrictEqual(await gs(['"', 'test-vue-inner-class', '"'], vueDocument), ['.test-vue-inner-class'])
-	})
+// 	it('Should find inner class definition', async () => {
+// 		assert.deepStrictEqual(await gs(['"', 'test-vue-inner-class', '"'], vueDocument), ['.test-vue-inner-class'])
+// 	})
 
-	it('Should find imported class definition', async () => {
-		assert.deepStrictEqual(await gs(['"', 'test-vue-import-class', '"'], vueDocument), ['.test-vue-import-class'])
-	})
+// 	it('Should find imported class definition', async () => {
+// 		assert.deepStrictEqual(await gs(['"', 'test-vue-import-class', '"'], vueDocument), ['.test-vue-import-class'])
+// 	})
 
-	it('Should find imported class definition inside node_modules by style tag', async () => {
-		assert.deepStrictEqual(await gs(['"', 'class-style-imported', '"'], vueDocument), ['.class-style-imported'])
-	})
-})
+// 	it('Should find imported class definition inside node_modules by style tag', async () => {
+// 		assert.deepStrictEqual(await gs(['"', 'class-style-imported', '"'], vueDocument), ['.class-style-imported'])
+// 	})
+// })

@@ -123,7 +123,7 @@ async function getSymbolNamesAtPosition(position: vscode.Position, document: vsc
 async function getCodePieceFromLocation(location: vscode.Location): Promise<string> {
 	let document = await vscode.workspace.openTextDocument(location.uri)
 	let text = document.getText()
- 	return text.slice(document.offsetAt(location.range.start), document.offsetAt(location.range.end)).replace(/\s*\{[\s\S]+/, '')
+ 	return text.slice(document.offsetAt(location.range.start), document.offsetAt(location.range.end)).replace(/\s*\{[\s\S]+|\r?\n[\s\S]+/, '')
 }
 
 
