@@ -1,14 +1,18 @@
 # ChangeLog
 
 
-## [1.11.0]
-	- Support goto definitions for normal React syntax like: `class={'class1'}, class={['class1']}, class={[{class1: true}]}`.
-	- Support goto definitions for jQuery select syntax: `$('.class1')`.
+## [1.13.0]
+
+ - Supports auto completion in a CSS-like document, will complete for custom element names, class names and ids that exist in html documents.
+
+
+## [1.12.0]
+ - Supports tab-indented Sass syntax.
 
 
 ## [1.10.0]
 
- - Add `enableLogLevelMessage`, removes `preloadCSSFiles`.
+ - Adds `enableLogLevelMessage`, removes `preloadCSSFiles`.
  - Can goto files after clicking `<link href="...">` or `@import "..."`.
  - Supports completion for inner style tags.
  - Can goto definition from HTML to HTML.

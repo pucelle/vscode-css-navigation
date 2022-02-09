@@ -1,7 +1,8 @@
 import {CSSService} from '../css-service'
-import {CSSLikeRangeParser, LeafRange, NameType} from './css-like'
+import {CSSLikeRangeParser, Leaf, LeafNameType} from './css-like'
 
 
+/** Represent each line of sass document. */
 interface SassLine {
 	tabCount: number
 	content: string
@@ -20,7 +21,7 @@ export class SassRangeParser extends CSSLikeRangeParser {
 
 	parse() {
 		let text = this.document.getText()
-		let ranges: LeafRange[] = []
+		let ranges: Leaf[] = []
 		let lines = this.parseToLines()
 
 		for (let i = 0; i < lines.length; i++) {
@@ -32,17 +33,17 @@ export class SassRangeParser extends CSSLikeRangeParser {
 			//     color: red
 			if (tabCount < nextTabCount) {
 				let selector = content.trimRight().replace(/\s+/g, ' ')
-				let names = this.parseToSelectorNames(selector)
+				let names = this.parseSelectorNames(selector)
 
 				if (names.length === 0) {
 					continue
 				}
 
-				if (this.ignoreDeep > 0 || names[0].type === NameType.Keyframes) {
+				if (this.ignoreDeep > 0 || names[0].type === LeafNameType.Keyframes) {
 					this.ignoreDeep++
 				}
 
-				this.current = this.newLeafRange(names, startIndex)
+				this.current = this.newLeaf(names, startIndex)
 				ranges.push(this.current!)
 			}
 
@@ -55,7 +56,7 @@ export class SassRangeParser extends CSSLikeRangeParser {
 
 				for (let j = 0; j < tabCount - nextTabCount; j++) {
 					if (this.current) {
-						this.current.end = endIndex
+						this.current.rangeEnd = endIndex
 						this.current = this.stack.pop()
 					}
 				}
@@ -64,19 +65,19 @@ export class SassRangeParser extends CSSLikeRangeParser {
 			// `@...` command in top level
 			// parse `@import ...` to `this.importPaths`
 			else if (content && !this.current) {
-				this.parseToSelectorNames(content)
+				this.parseSelectorNames(content)
 			}
 		}
 
 		while (this.current) {
-			if (this.current.end === 0) {
-				this.current.end = text.length
+			if (this.current.rangeEnd === 0) {
+				this.current.rangeEnd = text.length
 			}
 			this.current = this.stack.pop()
 		}
 
 		return {
-			ranges: this.formatToNamedRanges(ranges),
+			ranges: this.formatLeavesToRanges(ranges),
 			importPaths: this.importPaths
 		}
 	}

@@ -1,11 +1,11 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CSSLikeRangeParser, CSSRangeParseResult} from './css-like'
+import {CSSLikeRangeParser, CSSRangeResult} from './css-like'
 import {SassRangeParser} from './sass-indented'
-export {CSSNamedRange} from './css-like'
+export {CSSDeclarationRange as CSSNamedRange} from './css-like'
 
 
-/** Parse a CSS document to ranges. */
-export function parseCSSRange(document: TextDocument): CSSRangeParseResult {
+/** Parse a CSS-like (in `{...}` syntax), or a Sass document (strict indent syntax) to ranges. */
+export function parseCSSLikeOrSassRanges(document: TextDocument): CSSRangeResult {
 	let languageId = document.languageId
 
 	if (languageId === 'sass') {

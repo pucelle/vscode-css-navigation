@@ -1,7 +1,7 @@
 import {Location, Position, Range} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
-import {HTMLNamedRange, HTMLRangeParser} from './html-range-parser'
+import {HTMLRange, HTMLRangeParser} from './html-range-parser'
 import {HTMLScanner} from './html-scanner'
 import {JSXScanner} from '../jsx/jsx-scanner'
 import {CSSService} from '../css/css-service'
@@ -17,13 +17,14 @@ import {JSXRangeParser} from '../jsx/jsx-range-parser'
 export class HTMLService {
 
 	private uri: string
-	private ranges: HTMLNamedRange[]
+	private ranges: HTMLRange[]
 
-	constructor(document: TextDocument, ranges: HTMLNamedRange[]) {
+	constructor(document: TextDocument, ranges: HTMLRange[]) {
 		this.uri = document.uri
 		this.ranges = ranges
 	}
 
+	/** Find the location in the HTML document for specified selector label. */
 	findLocationsMatchSelector(selector: SimpleSelector): Location[] {
 		let locations: Location[] = []
 
@@ -35,6 +36,20 @@ export class HTMLService {
 
 		return locations
 	}
+
+	/** Find completion label for a CSS document, from selectors in HTML document. */
+	findCompletionLabelsMatchSelector(selector: SimpleSelector): string[] {
+		let labelSet: Set<string> = new Set()
+
+		for (let range of this.ranges) {
+			if (range.name.startsWith(selector.raw)) {
+				let label = range.name
+				labelSet.add(label)
+			}
+		}
+
+		return [...labelSet.values()]
+	}
 }
 
 
@@ -42,7 +57,7 @@ export namespace HTMLService {
 	
 	/** Create a temporary HTMLService. */
 	export function create(document: TextDocument): HTMLService {
-		let ranges: HTMLNamedRange[]
+		let ranges: HTMLRange[]
 
 		if (isJSXDocument(document)) {
 			ranges = new JSXRangeParser(document).parse()
@@ -154,7 +169,7 @@ export namespace HTMLService {
 		return services
 	}
 
-	/** Find references in curent document. */
+	/** Find references in current HTML document, from inner style declaration in <style>. */
 	export function findReferencesInInnerHTML(document: TextDocument, position: Position, htmlService: HTMLService): Location[] | null {
 		let text = document.getText()
 		let re = /<style\b(.*?)>(.*?)<\/style>/gs

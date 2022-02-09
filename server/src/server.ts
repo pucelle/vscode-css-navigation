@@ -12,11 +12,9 @@ import {
 	SymbolInformation,
 	Connection,
 	CompletionItem,
-	CompletionItemKind,
 	ReferenceParams,
 	TextDocumentChangeEvent,
 	Range,
-	TextEdit,
 } from 'vscode-languageserver'
 
 import {Position, TextDocument} from 'vscode-languageserver-textdocument'
@@ -25,6 +23,7 @@ import {HTMLService, HTMLServiceMap} from './languages/html'
 import {CSSService, CSSServiceMap} from './languages/css'
 import {file, console, Ignore} from './helpers'
 import {URI} from 'vscode-uri'
+import {formatLabelsToCompletionItems, removeReferencePrefix} from './utils'
 
 
 
@@ -173,7 +172,7 @@ class CSSNaigationServer {
 	private async findDefinitionsInHTMLLikeDocument(document: TextDocument, position: Position): Promise<Location[] | null> {
 		let locations: Location[] = []
 
-		// Clicking `<link rel="stylesheet" href="...">` or `<style src="...">`
+		// After Clicking `<link rel="stylesheet" href="...">` or `<style src="...">`
 		let resolvedImportPath = await HTMLService.getImportPathAt(document, position)
 		if (resolvedImportPath) {
 			locations.push(
@@ -181,7 +180,7 @@ class CSSNaigationServer {
 			)
 		}
 
-		// Search for current css selector.
+		// Searching for normal css selector.
 		else {
 			let selector = await HTMLService.getSimpleSelectorAt(document, position)
 			if (!selector) {
@@ -189,7 +188,7 @@ class CSSNaigationServer {
 			}
 
 			// Is custom tag.
-			if (configuration.ignoreCustomElement && selector.type === SimpleSelector.Type.Tag && selector.value.includes('-')) {
+			if (configuration.ignoreCustomElement && SimpleSelector.isCustomTag(selector)) {
 				return null
 			}
 
@@ -256,7 +255,7 @@ class CSSNaigationServer {
 		return await this.cssServiceMap.findSymbolsMatchQuery(query)
 	}
 
-	/** Provide auto completion service. */
+	/** Provide auto completion service for HTML or CSS document. */
 	async provideCompletion(params: TextDocumentPositionParams): Promise<CompletionItem[] | null> {
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
@@ -266,12 +265,23 @@ class CSSNaigationServer {
 			return null
 		}
 
-		// Not HTML files.
+		// HTML or CSS file.
 		let documentExtension = file.getPathExtension(document.uri)
 		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-		if (!isHTMLFile) {
-			return null
+		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+
+		if (isHTMLFile) {
+			return await this.provideHTMLDocumentCompletion(document, position)
 		}
+		else if (isCSSFile) {
+			return await this.provideCSSDocumentCompletion(document, position)
+		}
+
+		return null
+	}
+
+	/** Provide completion for HTML document. */
+	private async provideHTMLDocumentCompletion(document: TextDocument, position: Position): Promise<CompletionItem[] | null> {
 
 		// Search for current selector.
 		let selector = await HTMLService.getSimpleSelectorAt(document, position)
@@ -288,7 +298,7 @@ class CSSNaigationServer {
 			let cssService = await this.cssServiceMap.get(selector.importURI)
 			if (cssService) {
 				let labels = cssService.findCompletionLabelsMatchSelector(selector)
-				return this.formatLabelsToCompletionItems(labels, selector, document)
+				return formatLabelsToCompletionItems(labels, selector.startOffset, selector.raw.length, document)
 			}
 			else {
 				return null
@@ -303,21 +313,39 @@ class CSSNaigationServer {
 			labels.unshift(...HTMLService.findCompletionLabelsInInnerStyle(document, selector))
 		}
 
-		return this.formatLabelsToCompletionItems(labels, selector, document)
+		return formatLabelsToCompletionItems(labels, selector.startOffset, selector.raw.length, document)
 	}
 
-	private formatLabelsToCompletionItems(labels: string[], selector: SimpleSelector, document: TextDocument): CompletionItem[] {
-		return labels.map(label => {
-			let item = CompletionItem.create(label)
-			item.kind = CompletionItemKind.Class
+	/** Provide completion for CSS document. */
+	private async provideCSSDocumentCompletion(document: TextDocument, position: Position): Promise<CompletionItem[] | null> {
 
-			item.textEdit = TextEdit.replace(
-				Range.create(document.positionAt(selector.leftOffset), document.positionAt(selector.leftOffset + selector.value.length)),
-				label,
-			)
-			
-			return item
-		})
+		// Searching for css selectors in current position.
+		let selectorResults = CSSService.getSimpleSelectorResultsAt(document, position)
+		if (!selectorResults) {
+			return null
+		}
+
+		this.ensureHTMLServiceMap()
+
+		let completionItems: CompletionItem[] = []
+		let havingReference = selectorResults.raw.startsWith('&')
+		let parentSelectorNames = selectorResults.parentSelectors?.map(s => s.raw) || null
+
+		for (let selector of selectorResults.selectors) {
+			let labels = await this.htmlServiceMap!.findCompletionLabelsMatchSelector(selector)
+
+			// `.a-bc`, parent `.a`,  -> `&-b`.
+			if (labels.length > 0 && havingReference && parentSelectorNames) {
+				labels = labels.map(label => {
+					return removeReferencePrefix(label, parentSelectorNames!)
+				}).flat()
+			}
+
+			let items = formatLabelsToCompletionItems(labels, selector.startOffset, selectorResults.raw.length, document)
+			completionItems.push(...items)
+		}
+
+		return completionItems
 	}
 
 	/** Provide finding reference service. */
@@ -349,7 +377,7 @@ class CSSNaigationServer {
 		let selectors: SimpleSelector[] = []
 		let locations: Location[] = []
 
-		// From HTML document.
+		// From current HTML document.
 		if (isHTMLFile) {
 			let selector = await HTMLService.getSimpleSelectorAt(document, position)
 			if (selector) {
@@ -357,12 +385,13 @@ class CSSNaigationServer {
 			}
 		}
 
-		// From CSS document.
+		// From current CSS document.
 		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 		if (isCSSFile) {
 			selectors.push(...CSSService.getSimpleSelectorsAt(document, position) || [])
 		}
 
+		// From HTML documents.
 		if (selectors.length > 0) {
 			this.ensureHTMLServiceMap()
 

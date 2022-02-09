@@ -1,11 +1,18 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 import {TextScanner} from '../common/text-scanner'
-import {CSSService} from './css-service'
-import {CSSNamedRange} from './range-parsers/css-like'
+import {CSSDeclarationRange} from './range-parsers/css-like'
 import {resolveImportPath} from '../../helpers/file'
 import {URI} from 'vscode-uri'
-import {parseCSSRange} from './range-parsers'
+import {parseCSSLikeOrSassRanges} from './range-parsers'
+import {CSSService} from './css-service'
+
+
+export interface CSSSelectorResults {
+	selectors: SimpleSelector[]
+	parentSelectors: SimpleSelector[] | null
+	raw: string
+}
 
 
 export class CSSScanner extends TextScanner {
@@ -20,31 +27,69 @@ export class CSSScanner extends TextScanner {
 	}
 
 	/** Scan CSS selectors in a CSS document from specified offset. */
-	scanForSelector(): SimpleSelector[] | null {
-		let match = this.match(/(?<identifier>[#.&])([\w-]+)/g)
+	scanForSelectorResults(): CSSSelectorResults | null {
+
+		// Will not match css properties.
+		let propertyMatch = this.match(/([\w-]+)\s*:\s*([^;]+)/g)
+		if (propertyMatch) {
+			return null
+		}
+
+		let match = this.match(/((?:[#.&])?[\w-]+)/g)
 		if (!match) {
 			return null
 		}
 
-		let identifier = match.groups.identifier
+		let mayIdentifier = match.text[0]
+		let selectors: SimpleSelector[] = []
+		let parentSelectors: SimpleSelector[] | null = null
 
-		if (identifier === '.' || identifier === '#') {
-			let selector = SimpleSelector.create(identifier + match.text, match.index)
-			return selector ? [selector] : null
+		if (mayIdentifier === '.' || mayIdentifier === '#') {
+			let selector = SimpleSelector.create(match.text, match.index)!
+			selectors.push(selector)
 		}
 
-		if (this.supportsNesting && identifier === '&') {
-			return this.parseAndGetSelectors(match.text, match.index)
+		else if (this.supportsNesting && mayIdentifier === '&') {
+			parentSelectors = this.parseParentSelectors()
+
+			if (parentSelectors) {
+				selectors.push(...this.makeReferenceSelectors(parentSelectors, match.text, match.index))
+			}
 		}
 
-		return null
+		else {
+			let selector = SimpleSelector.create(match.text, match.index)!
+			selectors.push(selector)
+		}
+
+		if (selectors.length === 0) {
+			return null
+		}
+
+		return {
+			selectors,
+			parentSelectors,
+			raw: match.text,
+		}
+	}
+
+	/** Scan CSS selectors in a CSS document from specified offset. */
+	scanForSelectors(): SimpleSelector[] | null {
+		return this.scanForSelectorResults()?.selectors || null
 	}
 
 	/** Parse whole ranges for document and get selector. */
-	private parseAndGetSelectors(word: string, wordLeftOffset: number): SimpleSelector[] | null {
-		let {ranges} = parseCSSRange(this.document)
-		let currentRange: CSSNamedRange | undefined
-		let selectorIncludedParentRange: CSSNamedRange | undefined
+	private makeReferenceSelectors(parentSelectors: SimpleSelector[], rawReferenceText: string, startIndex: number): SimpleSelector[] {
+		return parentSelectors.map(s => {
+			return SimpleSelector.create(s.raw + rawReferenceText.slice(1), startIndex)!
+		})
+	}
+
+	/** Parse whole ranges for document and get selector. */
+	private parseParentSelectors(): SimpleSelector[] | null {
+		let {ranges} = parseCSSLikeOrSassRanges(this.document)
+		let currentRange: CSSDeclarationRange | undefined
+		let closestParentRange: CSSDeclarationRange | undefined
 
 		// Binary searching should be better, but not help much.
 		for (let i = 0; i < ranges.length; i++) {
@@ -52,10 +97,10 @@ export class CSSScanner extends TextScanner {
 			let start = this.document.offsetAt(range.range.start)
 			let end = this.document.offsetAt(range.range.end)
 			
-			// Is a ancestor and has selector
+			// Is an ancestor and has selector.
 			if (this.startOffset >= start && this.startOffset < end) {
 				if (currentRange && this.isRangeHaveSelector(currentRange)) {
-					selectorIncludedParentRange = currentRange
+					closestParentRange = currentRange
 				}
 				currentRange = range
 			}
@@ -65,15 +110,18 @@ export class CSSScanner extends TextScanner {
 			}
 		}
 
-		if (!selectorIncludedParentRange) {
+		// May `.a{.b}`, `.b` doesn't make range.
+		closestParentRange = closestParentRange || currentRange
+
+		if (!closestParentRange) {
 			return null
 		}
 
 		let selectors = []
 
-		for (let {full} of selectorIncludedParentRange.names) {
+		for (let {full} of closestParentRange.names) {
 			if (full[0] === '.' || full[0] === '#') {
-				let selector = SimpleSelector.create(full + word, wordLeftOffset)
+				let selector = SimpleSelector.create(full, 0)
 				if (selector) {
 					selectors.push(selector)
 				}
@@ -83,8 +131,8 @@ export class CSSScanner extends TextScanner {
 		return selectors
 	}
 
-	/** Checks whether range having a selector. */
-	private isRangeHaveSelector(range: CSSNamedRange): boolean {
+	/** Checks whether the range have a selector. */
+	private isRangeHaveSelector(range: CSSDeclarationRange): boolean {
 		return range.names.some(({mains}) => mains !== null)
 	}
 

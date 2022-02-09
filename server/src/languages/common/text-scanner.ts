@@ -23,8 +23,9 @@ export class TextScanner {
 	}
 
 	/** 
-	 * Match a regexp sequence, each one select a text piece that include the position where current cursor at.
-	 * Note at most time each regexp should be in global mode.
+	 * Match a regexp sequence, each one should include some sub matches,
+	 * and cursor must between one of the sub matches.
+	 * Note that at most time each regexp should be in global mode.
 	 */
 	protected match(...reSequence: RegExp[]) {
 		let subText: string | null = this.startText

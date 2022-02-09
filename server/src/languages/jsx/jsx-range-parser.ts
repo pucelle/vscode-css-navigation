@@ -1,18 +1,19 @@
 import {Range} from 'vscode-languageserver'
 import {SimpleSelector} from '../common/simple-selector'
-import {HTMLRangeParser, HTMLNamedRange} from '../html/html-range-parser'
+import {HTMLRangeParser, HTMLRange} from '../html/html-range-parser'
 
 
 export class JSXRangeParser extends HTMLRangeParser {
 
 	/** 
-	 * Parse CSS range for HTML tag attribute.
+	 * Parse CSS ranges for HTML tag attribute.
+	 * It parses `className=...` additional.
 	 * It doesn't support computed React syntax like `class={...}`
 	 */
-	protected getRangesFromAttribute(attribute: string, start: number, end: number): HTMLNamedRange[] {
-		let re = /\b(class|id|className)\s*=\s*(?:"(.*?)"|'(.*?)')/g
+	protected makeRangesFromAttribute(attribute: string, start: number, end: number): HTMLRange[] {
+		let re = /\b(class|id|className)(?:[\S]*?)\s*=\s*(?:"(.*?)"|'(.*?)')/g
 		let match: RegExpExecArray | null
-		let ranges: HTMLNamedRange[] = []
+		let ranges: HTMLRange[] = []
 
 		while (match = re.exec(attribute)) {
 			let attr = match[1].trim()

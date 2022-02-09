@@ -1,8 +1,8 @@
 import {SymbolInformation, SymbolKind, Location, Position} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
-import {CSSNamedRange, parseCSSRange} from './range-parsers'
-import {CSSScanner} from './css-scanner'
+import {CSSNamedRange, parseCSSLikeOrSassRanges} from './range-parsers'
+import {CSSScanner, CSSSelectorResults} from './css-scanner'
 import {URI} from 'vscode-uri'
 import {resolveImportPath} from '../../helpers/file'
 
@@ -155,7 +155,7 @@ export namespace CSSService {
 	
 	/** Create a CSSService from a CSS document. */
 	export function create(document: TextDocument, includeImportedFiles: boolean): CSSService {
-		let {ranges, importPaths} = parseCSSRange(document)
+		let {ranges, importPaths} = parseCSSLikeOrSassRanges(document)
 
 		if (!includeImportedFiles) {
 			importPaths = []
@@ -170,10 +170,22 @@ export namespace CSSService {
 		return supportedNestingLanguages.includes(languageId)
 	}
 
-	/** Get current selector from CSS document at position. */
+	/** 
+	 * Get current selector from a CSS document and the cursor position.
+	 * May return multiple selectors because of nesting.
+	 */
 	export function getSimpleSelectorsAt(document: TextDocument, position: Position): SimpleSelector[] | null {
 		let offset = document.offsetAt(position)
-		return new CSSScanner(document, offset).scanForSelector()
+		return new CSSScanner(document, offset).scanForSelectors()
+	}
+
+	/** 
+	 * Get current selector and raw text from a CSS document and the cursor position.
+	 * May return multiple selectors because of nesting.
+	 */
+	export function getSimpleSelectorResultsAt(document: TextDocument, position: Position): CSSSelectorResults | null	{
+		let offset = document.offsetAt(position)
+		return new CSSScanner(document, offset).scanForSelectorResults()
 	}
 
 	/** If click `goto definition` at a `<link href="...">` or `<style src="...">`. */

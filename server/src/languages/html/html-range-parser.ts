@@ -3,7 +3,7 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 
 
-export interface HTMLNamedRange {
+export interface HTMLRange {
 	name: string
 	range: Range
 }
@@ -18,11 +18,11 @@ export class HTMLRangeParser {
 	}
 
 	/** Parse HTML document to ranges. */
-	parse(): HTMLNamedRange[] {
+	parse(): HTMLRange[] {
 		let text = this.document.getText()
-		let ranges: HTMLNamedRange[] = []
+		let ranges: HTMLRange[] = []
 
-		let re = /(?:<!--.*?-->|<\w+(.*?)>)/gs
+		let re = /(?:<!--.*?-->|<([\w-]+)(.*?)>)/gs
 		/*
 			\s* - match white spaces in left
 			(?:
@@ -35,25 +35,44 @@ export class HTMLRangeParser {
 		let match: RegExpExecArray | null
 
 		while (match = re.exec(text)) {
-			let attribute = match[1]
-			if (!attribute) {
-				continue
-			}
-
+			let tag = match[1]
+			let attribute = match[2]
 			let startIndex = match.index
 			let endIndex = re.lastIndex
 
-			ranges.push(...this.getRangesFromAttribute(attribute, startIndex, endIndex))
+			let tagRange = this.makeRangesFromTag(tag, startIndex, endIndex)
+			if (tagRange) {
+				ranges.push(tagRange)
+			}
+
+			if (attribute) {
+				ranges.push(...this.makeRangesFromAttribute(attribute, startIndex, endIndex))
+			}
 		}
 		
 		return ranges
 	}
 
-	/** Parse CSS range for HTML tag attribute. */
-	protected getRangesFromAttribute(attribute: string, start: number, end: number): HTMLNamedRange[] {
+	/** Make a CSS range for HTML tag. */
+	protected makeRangesFromTag(tag: string, start: number, end: number): HTMLRange | null {
+		let selector = SimpleSelector.create(tag, )
+
+		// Must be custom tag.
+		if (!selector || !SimpleSelector.isCustomTag(selector)) {
+			return null
+		}
+
+		return {
+			name: tag,
+			range: Range.create(this.document.positionAt(start), this.document.positionAt(end))
+		}
+	}
+
+	/** Make a CSS range for HTML tag attribute. */
+	protected makeRangesFromAttribute(attribute: string, start: number, end: number): HTMLRange[] {
 		let re = /\b(class|id)\s*=\s*(?:"(.*?)"|'(.*?)')/g
 		let match: RegExpExecArray | null
-		let ranges: HTMLNamedRange[] = []
+		let ranges: HTMLRange[] = []
 
 		while (match = re.exec(attribute)) {
 			let attr = match[1].trim()
