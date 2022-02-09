@@ -16,6 +16,7 @@ The places you can find definitions:
 
  - HTML (or files whose extension specified by `activeHTMLFileExtensions` option): *<*`html-tag`*>*, *class=*"`class-name`*"*, *id="*`id-name`*"*.
  - JSX & TSX: *className="*`class-name`*"*, *className={"*`class-name`*"}*.
+ - CSS-like Document: `custom-tag`, `.class-name`, `#id`.
 
 Note that the JSX template doesn't provide completion for attribute value by default, you may trigger it manually by clicking `Ctrl + Space`, or change settings:
 

@@ -31,13 +31,11 @@ export class HTMLScanner extends TextScanner {
 
 	/** Scan a HTML document from a specified offset to find a CSS selector. */
 	scanForSelector(): SimpleSelector | null {
-		// <custom-tag...>
+		// <tag...>
 		let match = this.match(/<([\w-]+)/g)
 		if (match) {
 			let selector = SimpleSelector.create(match.text, match.index)
 			return selector
-
-			return null
 		}
 
 		// <tag

@@ -38,11 +38,11 @@ export class HTMLService {
 	}
 
 	/** Find completion label for a CSS document, from selectors in HTML document. */
-	findCompletionLabelsMatchSelector(selector: SimpleSelector): string[] {
+	findCompletionLabelsMatch(prefix: string): string[] {
 		let labelSet: Set<string> = new Set()
 
 		for (let range of this.ranges) {
-			if (range.name.startsWith(selector.raw)) {
+			if (range.name.startsWith(prefix)) {
 				let label = range.name
 				labelSet.add(label)
 			}

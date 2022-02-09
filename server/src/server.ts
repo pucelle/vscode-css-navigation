@@ -298,7 +298,7 @@ class CSSNaigationServer {
 			let cssService = await this.cssServiceMap.get(selector.importURI)
 			if (cssService) {
 				let labels = cssService.findCompletionLabelsMatchSelector(selector)
-				return formatLabelsToCompletionItems(labels, selector.startOffset, selector.raw.length, document)
+				return formatLabelsToCompletionItems(labels, selector.startIndex, selector.raw.length, document)
 			}
 			else {
 				return null
@@ -313,7 +313,7 @@ class CSSNaigationServer {
 			labels.unshift(...HTMLService.findCompletionLabelsInInnerStyle(document, selector))
 		}
 
-		return formatLabelsToCompletionItems(labels, selector.startOffset, selector.raw.length, document)
+		return formatLabelsToCompletionItems(labels, selector.startIndex, selector.raw.length, document)
 	}
 
 	/** Provide completion for CSS document. */
@@ -331,18 +331,25 @@ class CSSNaigationServer {
 		let havingReference = selectorResults.raw.startsWith('&')
 		let parentSelectorNames = selectorResults.parentSelectors?.map(s => s.raw) || null
 
-		for (let selector of selectorResults.selectors) {
-			let labels = await this.htmlServiceMap!.findCompletionLabelsMatchSelector(selector)
-
-			// `.a-bc`, parent `.a`,  -> `&-b`.
-			if (labels.length > 0 && havingReference && parentSelectorNames) {
-				labels = labels.map(label => {
-					return removeReferencePrefix(label, parentSelectorNames!)
-				}).flat()
-			}
-
-			let items = formatLabelsToCompletionItems(labels, selector.startOffset, selectorResults.raw.length, document)
+		if (selectorResults.raw === '.' || selectorResults.raw === '#') {
+			let labels = await this.htmlServiceMap!.findCompletionLabelsMatch(selectorResults.raw)
+			let items = formatLabelsToCompletionItems(labels, selectorResults.startIndex, selectorResults.raw.length, document)
 			completionItems.push(...items)
+		}
+		else {
+			for (let selector of selectorResults.selectors) {
+				let labels = await this.htmlServiceMap!.findCompletionLabelsMatch(selector.raw)
+
+				// `.a-bc`, parent `.a`,  -> `&-b`.
+				if (labels.length > 0 && havingReference && parentSelectorNames) {
+					labels = labels.map(label => {
+						return removeReferencePrefix(label, parentSelectorNames!)
+					}).flat()
+				}
+
+				let items = formatLabelsToCompletionItems(labels, selector.startIndex, selectorResults.raw.length, document)
+				completionItems.push(...items)
+			}
 		}
 
 		return completionItems

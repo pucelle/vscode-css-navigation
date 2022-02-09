@@ -12,6 +12,7 @@ export interface CSSSelectorResults {
 	selectors: SimpleSelector[]
 	parentSelectors: SimpleSelector[] | null
 	raw: string
+	startIndex: number
 }
 
 
@@ -35,7 +36,7 @@ export class CSSScanner extends TextScanner {
 			return null
 		}
 
-		let match = this.match(/((?:[#.&])?[\w-]+)/g)
+		let match = this.match(/([\w-]+|[#.&][\w-]*)/g)
 		if (!match) {
 			return null
 		}
@@ -45,8 +46,10 @@ export class CSSScanner extends TextScanner {
 		let parentSelectors: SimpleSelector[] | null = null
 
 		if (mayIdentifier === '.' || mayIdentifier === '#') {
-			let selector = SimpleSelector.create(match.text, match.index)!
-			selectors.push(selector)
+			let selector = SimpleSelector.create(match.text, match.index)
+			if (selector) {
+				selectors.push(selector)
+			}
 		}
 
 		else if (this.supportsNesting && mayIdentifier === '&') {
@@ -59,17 +62,17 @@ export class CSSScanner extends TextScanner {
 
 		else {
 			let selector = SimpleSelector.create(match.text, match.index)!
-			selectors.push(selector)
+			if (selector) {
+				selectors.push(selector)
+			}
 		}
 
-		if (selectors.length === 0) {
-			return null
-		}
-
+		// `selectors` may be empty.
 		return {
 			selectors,
 			parentSelectors,
 			raw: match.text,
+			startIndex: match.index
 		}
 	}
 

@@ -40,13 +40,13 @@ export class HTMLServiceMap extends FileTracker {
 	}
 
 	/** Find completion label in for CSS document, from selectors in HTML document. */
-	async findCompletionLabelsMatchSelector(selector: SimpleSelector): Promise<string[]> {
+	async findCompletionLabelsMatch(prefix: string): Promise<string[]> {
 		await this.makeFresh()
 		
 		let labels: string[] = []
 
 		for (let htmlService of this.serviceMap.values()) {
-			labels.push(...htmlService.findCompletionLabelsMatchSelector(selector))
+			labels.push(...htmlService.findCompletionLabelsMatch(prefix))
 		}
 
 		return labels

@@ -13,7 +13,7 @@ export interface SimpleSelector {
 	label: string
 
 	/** Position of left offset. */
-	startOffset: number
+	startIndex: number
 
 	/** Related imported file, only available for JSX files. */
 	importURI: string | null
@@ -45,7 +45,7 @@ export namespace SimpleSelector {
 			raw,
 			identifier: type === Type.Tag ? '' : raw[0],
 			label,
-			startOffset,
+			startIndex: startOffset,
 			importURI,
 		}
 	}
