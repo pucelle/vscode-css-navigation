@@ -35,14 +35,16 @@ export class HTMLRangeParser {
 		let match: RegExpExecArray | null
 
 		while (match = re.exec(text)) {
-			let tag = match[1]
-			let attribute = match[2]
+			let tag = match[1] as string | undefined
+			let attribute = match[2] as string | undefined
 			let startIndex = match.index
 			let endIndex = re.lastIndex
 
-			let tagRange = this.makeRangesFromTag(tag, startIndex, endIndex)
-			if (tagRange) {
-				ranges.push(tagRange)
+			if (tag) {
+				let tagRange = this.makeRangesFromTag(tag, startIndex, endIndex)
+				if (tagRange) {
+					ranges.push(tagRange)
+				}
 			}
 
 			if (attribute) {
@@ -55,7 +57,7 @@ export class HTMLRangeParser {
 
 	/** Make a CSS range for HTML tag. */
 	protected makeRangesFromTag(tag: string, start: number, end: number): HTMLRange | null {
-		let selector = SimpleSelector.create(tag, )
+		let selector = SimpleSelector.create(tag)
 
 		// Must be custom tag.
 		if (!selector || !SimpleSelector.isCustomTag(selector)) {
