@@ -30,15 +30,12 @@ export class CSSScanner extends TextScanner {
 	/** Scan CSS selectors in a CSS document from specified offset. */
 	scanForSelectorResults(): CSSSelectorResults | null {
 
-		// Will not match css property value.
-		let propertyMatch = this.match(/[\w-]+\s*:\s*(\S+|.+;)/g)
-		if (propertyMatch) {
-			return null
-		}
-
-		// Will not match selectors like `[...]`, `(...)`, doesn't handle multiple bracket nesting `(())`.
-		let bracketMatch = this.match(/(:\S+|\[[^\]]*?\]|\([^)]*?\))/g)
-		if (bracketMatch) {
+		// Not match:
+		// `:property value`.
+		// `:` or `::` presudo, which also should be excluded.
+		// selector parts like `[...]`, `(...)`, doesn't handle multiple bracket nesting `(())`.
+		let dontMatch = this.match(/(:\s*\S+|:.+;|::\s*\S+|\[[^\]]*?\]|\([^)]*?\))/g)
+		if (dontMatch) {
 			return null
 		}
 
