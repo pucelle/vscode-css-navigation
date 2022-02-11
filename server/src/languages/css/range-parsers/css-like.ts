@@ -134,6 +134,8 @@ export class CSSLikeRangeParser {
 		while (match = re.exec(text)) {
 			let chars = match[1] || ''
 			let endChar = match[2] || ''
+
+			// Note here it's not `match.index`.
 			let rangeStartIndex = re.lastIndex - chars.length - 1
 
 			if (endChar === '{' && chars) {
