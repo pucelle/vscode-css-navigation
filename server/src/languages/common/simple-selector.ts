@@ -3,7 +3,7 @@ export interface SimpleSelector {
 	/** Selector type. */
 	type: SimpleSelector.Type
 
-	/** Raw selector string. */
+	/** Raw selector string, includes identifier like `.`, `#`. */
 	raw: string
 
 	/** `.`, `#`, or empty string. */

@@ -298,7 +298,11 @@ class CSSNaigationServer {
 			let cssService = await this.cssServiceMap.get(selector.importURI)
 			if (cssService) {
 				let labels = cssService.findCompletionLabelsMatchSelector(selector)
-				return formatLabelsToCompletionItems(labels, selector.startIndex, selector.raw.length, document)
+
+				// Note the complete label doesn't include identifier.
+				let completeLength = selector.label.length
+
+				return formatLabelsToCompletionItems(labels, selector.startIndex, completeLength, document)
 			}
 			else {
 				return null
@@ -313,7 +317,9 @@ class CSSNaigationServer {
 			labels.unshift(...HTMLService.findCompletionLabelsInInnerStyle(document, selector))
 		}
 
-		return formatLabelsToCompletionItems(labels, selector.startIndex, selector.raw.length, document)
+		let completeLength = selector.label.length
+
+		return formatLabelsToCompletionItems(labels, selector.startIndex, completeLength, document)
 	}
 
 	/** Provide completion for CSS document. */
@@ -333,7 +339,11 @@ class CSSNaigationServer {
 
 		if (selectorResults.raw === '.' || selectorResults.raw === '#') {
 			let labels = await this.htmlServiceMap!.findCompletionLabelsMatch(selectorResults.raw)
-			let items = formatLabelsToCompletionItems(labels, selectorResults.startIndex, selectorResults.raw.length, document)
+			
+			// Note the complete label includes identifier.
+			let completeLength = selectorResults.raw.length
+
+			let items = formatLabelsToCompletionItems(labels, selectorResults.startIndex, completeLength, document)
 			completionItems.push(...items)
 		}
 		else {
@@ -347,7 +357,10 @@ class CSSNaigationServer {
 					}).flat()
 				}
 
-				let items = formatLabelsToCompletionItems(labels, selector.startIndex, selectorResults.raw.length, document)
+				// Note the complete label includes identifier.
+				let completeLength = selectorResults.raw.length
+
+				let items = formatLabelsToCompletionItems(labels, selector.startIndex, completeLength, document)
 				completionItems.push(...items)
 			}
 		}

@@ -1,5 +1,6 @@
 import style from './css/test.scss'
 import './css/test.scss'
+import './css/app.css'
 
 class App {
 	render() {
@@ -11,6 +12,7 @@ class App {
 				<div class="class1" />
 				<div styleName="class1" />
 				<div className="class2" />
+				<div className="App-Logo" />
 				<div className={'class3'} />
 				<div className={`any-other-class class4`} />
 				<div className={`any-other-class ` + any_variable_or_expression + ` class5`} />
