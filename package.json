@@ -69,7 +69,8 @@
 						"jsx",
 						"tsx",
 						"vue",
-						"twig"
+						"twig",
+						"svelte"
 					],
 					"items": {
 						"type": "string"
