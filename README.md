@@ -5,7 +5,6 @@
 
 Allows **Go to Definition** from HTML to CSS / Sass / Less, provides **Completion** and **Workspace Symbols** for class & id name, and supports **Find References** from CSS to HTML.
 
-
 ## Features
 
 ### Go to Definition and Peek Definition
@@ -14,9 +13,9 @@ In a HTML document, choose `Go to definition` or `Peek definition`, the extensio
 
 The places you can find definitions:
 
- - HTML (or files whose extension specified by `activeHTMLFileExtensions` option): *<*`html-tag`*>*, *class=*"`class-name`*"*, *id="*`id-name`*"*.
- - JSX & TSX: *className="*`class-name`*"*, *className={"*`class-name`*"}*.
- - CSS-like Document: `custom-tag`, `.class-name`, `#id`.
+- HTML (or files whose extension specified by `activeHTMLFileExtensions` option): _<_`html-tag`_>_, _class=_"`class-name`_"_, _id="_`id-name`_"_.
+- JSX & TSX: _className="_`class-name`_"_, _className={"_`class-name`_"}_.
+- CSS-like Document: `custom-tag`, `.class-name`, `#id`.
 
 Note that the JSX template doesn't provide completion for attribute value by default, you may trigger it manually by clicking `Ctrl + Space`, or change settings:
 
@@ -28,16 +27,13 @@ editor.quickSuggestions": {
 },
 ```
 
-
 ![nesting](images/nesting.gif)
-
 
 ### Workspace symbols
 
 Allows to search workspace symbols in CSS & Scss & Less files across all activated workspace folders.
 
 ![workspace-symbol](images/workspace-symbol.gif)
-
 
 ### Class Name and ID Completion
 
@@ -47,7 +43,6 @@ Note that the extension doesn't support remote sources, and doesn't follow the `
 
 ![completion](images/completion.gif)
 
-
 ### Find All References and Peek References
 
 Supports looking for CSS selector references in your HTML files.
@@ -56,15 +51,14 @@ This functionality should not be very usefull, and it needs to load and parse al
 
 ![reference](images/reference.gif)
 
-
 ### Features miscellaneous
 
- - Can goto referenced files after clicking `<link href="...">` or `@import "..."`.
- - Supports auto completion, goto definitions for inner style tags or css`...` template strings.
-
+- Can goto referenced files after clicking `<link href="...">` or `@import "..."`.
+- Supports auto completion, goto definitions for inner style tags or css`...` template strings.
 
 ## Configuration
 
+<!-- prettier-ignore -->
 | Name                              | Description
 | ---                               | ---
 | `activeHTMLFileExtensions`        | The languages of the html files, in where you can `go to definition`. Default value is `["html", "ejs", "erb", "php", "hbs", "js", "ts", "jsx", "tsx", "vue", "twig"]`.
@@ -78,7 +72,6 @@ This functionality should not be very usefull, and it needs to load and parse al
 | `ignoreCustomElement`             | When `true` by default, custom element definitions in CSS will be ignored, such that it will go to it's defined place directly.
 | `ignoreFilesBy`                   | Specifies this to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions. Default value is `[".gitignore"]`.
 | `enableLogLevelMessage`           | Whether enables log level message, set it to `true` for debugging.
-
 
 ## Why started this project
 
@@ -96,13 +89,11 @@ Further more, I found the extension can support class name and id completion by 
 
 Finding references uses another core, I implement it because my work have a heavy CSS part, and I love refactoring CSS codes. I believe few people would need it.
 
-
 ## Stress Test & Performance
 
 I loaded 100 MB (0.9 M declarations, 2.8 M lines) CSS files for stress test, it took 8s to parse them, and used about 850 MB memory. After 1 minute, the memory usage fell back to 550 MB. Searching definitions across all 0.9 M declarations cost about 50ms, searching workspace symbols cost about 500ms, and searching completions cost about 230ms.
 
 My environment is Win10, MacBook Pro 2014 version, with power on.
-
 
 ## Plans & More
 
@@ -112,7 +103,6 @@ I have plans to make this extension grow, I hope it can serve more frontend deve
 
 So please give me your feedback. Thanks.
 
-
 ## FAQ
 
 ### Can I change definition order to make sass files always before the css files?
@@ -121,20 +111,17 @@ No, VSCode always sort the definition results, seems in name order. If you don't
 
 From version 1.3.0 there is a `ignoreFilesBy` option, you may specify to ignore css files listed in your `.gitignore`.
 
-
 ### Can't get definitions across all workspace folders.
 
 By default, definition searching is **limited in the same workspace folder**, that means when you choose `Go to definition` in a html file, the definitions you got are always come from the same workspace folder where the html file in. Searching references, completions also works like this.
 
 If you have more than one folders in your workspace, and you definitely need to find definitions across them, set `searchAcrossWorkspaceFolders` to `true`.
 
-
 ### Missed some workspace symbols.
 
 Workspace symbols are always come from multiple workspace folders, but for each workspace folder, you need to open one HTML or CSS file to **activate** it, then it will return results belong to it.
 
 Set `searchAcrossWorkspaceFolders` to `true` will also activate services for all workspace folders as soon as possibile, then you will get full workspace symbols always.
-
 
 ### How the extension filter selectors?
 
@@ -148,7 +135,6 @@ Searching completion works in the same way.
 
 Searching workspace symbols have a more strict rule than other extensions, which requires the start word boundary must match.
 
-
 ### Many duplicate definotions got. Can you limit the results to only in files specified by `<link>` tags, or check parent nodes to ensure the whole selector match?
 
 It sounds like a good idea. For a complete static project, It should be very easy to follow `<link>` tags, matching whole selector is much harder, but it can also be done.
@@ -158,7 +144,6 @@ But the Web architecture is extremely complex today, all you got in your hand ma
 My suggestion is using unique class name, avoid nesting, which would be also helpful for the code quality of you project.
 
 If you prefer scoped style, and write html and css codes in the same file, searching definitions should be less important for you. But checking option `alsoSearchDefinitionsInStyleTag` will help you to search css definitions in the `<style>` inside your current document.
-
 
 ## License
 
