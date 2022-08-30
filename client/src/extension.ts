@@ -96,7 +96,7 @@ export class CSSNavigationExtension {
 
 		if (searchAcrossWorkspaceFolders) {
 			for (let workspaceFolder of vscode.workspace.workspaceFolders || []) {
-				this.ensureClientForworkspace(workspaceFolder)
+				this.ensureClientForWorkspace(workspaceFolder)
 			}
 		}
 		else {
@@ -107,7 +107,7 @@ export class CSSNavigationExtension {
 	}
 
 	/** Make sure client to be started for workspace folder. */
-	private ensureClientForworkspace(workspaceFolder: vscode.WorkspaceFolder) {
+	private ensureClientForWorkspace(workspaceFolder: vscode.WorkspaceFolder) {
 		let workspaceURI = workspaceFolder.uri.toString()
 		let workspaceURIs = (vscode.workspace.workspaceFolders || []).map(folder => folder.uri.toString())
 		let outmostWorkspaceURI = getOutmostWorkspaceURI(workspaceURI, workspaceURIs)
@@ -145,7 +145,7 @@ export class CSSNavigationExtension {
 			return
 		}
 
-		this.ensureClientForworkspace(workspaceFolder)
+		this.ensureClientForWorkspace(workspaceFolder)
 	}
 
 	/** Start client & server for workspace folder. */

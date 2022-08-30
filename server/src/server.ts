@@ -30,7 +30,7 @@ import {formatLabelsToCompletionItems, removeReferencePrefix} from './utils'
 let connection: Connection = createConnection(ProposedFeatures.all)
 let configuration: Configuration
 let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument)
-let server: CSSNaigationServer
+let server: CSSNavigationServer
 
 
 
@@ -38,7 +38,7 @@ let server: CSSNaigationServer
 connection.onInitialize((params: InitializeParams) => {
 	let options: InitializationOptions = params.initializationOptions
 	configuration = options.configuration
-	server = new CSSNaigationServer(options)
+	server = new CSSNavigationServer(options)
 
 
 	// Initialize console channel and log level.
@@ -46,7 +46,7 @@ connection.onInitialize((params: InitializeParams) => {
 	console.pipeTo(connection)
 
 
-	// Print error messages after unprojected promise.
+	// Print error messages after unhandled rejection promise.
 	process.on('unhandledRejection', function(reason) {
 		console.warn("Unhandled Rejection: " + reason)
 	})
@@ -83,7 +83,7 @@ connection.onInitialized(() => {
 	}
 
 	if (configuration.enableFindAllReferences) {
-		connection.onReferences(console.logListQuerierExecutedTime(server.findRefenerces.bind(server), 'reference'))
+		connection.onReferences(console.logListQuerierExecutedTime(server.findReferences.bind(server), 'reference'))
 	}
 })
 
@@ -92,7 +92,7 @@ connection.listen()
 
 
 
-class CSSNaigationServer {
+class CSSNavigationServer {
 
 	private options: InitializationOptions
 	private cssServiceMap: CSSServiceMap
@@ -145,8 +145,8 @@ class CSSNaigationServer {
 	}
 
 	/** Provide finding definition service. */
-	async findDefinitions(positonParams: TextDocumentPositionParams): Promise<Location[] | null> {
-		let documentIdentifier = positonParams.textDocument
+	async findDefinitions(positionParams: TextDocumentPositionParams): Promise<Location[] | null> {
+		let documentIdentifier = positionParams.textDocument
 		let document = documents.get(documentIdentifier.uri)
 
 		if (!document) {
@@ -154,7 +154,7 @@ class CSSNaigationServer {
 		}
 		
 		let documentExtension = file.getPathExtension(document.uri)
-		let position = positonParams.position
+		let position = positionParams.position
 		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
 		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
@@ -289,7 +289,7 @@ class CSSNaigationServer {
 			return null
 		}
 
-		// Having `@import...` in a JSX file, returns results that extactly in imported document.
+		// Having `@import...` in a JSX file, returns results that exactly in imported document.
 		if (selector.importURI) {
 			this.cssServiceMap.trackMoreFile(URI.parse(selector.importURI).fsPath)
 			await this.cssServiceMap.makeFresh()
@@ -369,7 +369,7 @@ class CSSNaigationServer {
 	}
 
 	/** Provide finding reference service. */
-	async findRefenerces(params: ReferenceParams): Promise<Location[] | null> {
+	async findReferences(params: ReferenceParams): Promise<Location[] | null> {
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
 		let position = params.position

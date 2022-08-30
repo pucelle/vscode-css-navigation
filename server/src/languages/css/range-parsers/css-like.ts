@@ -44,10 +44,10 @@ export interface CSSDeclarationName {
 	full: string
 
 	/** 
-	 * Main names, exlude `:` or `[...].`, only last part exist.
+	 * Main names, exclude `:` or `[...].`, only last part exist.
 	 * e.g., selectors below will returns `.a`:
 	 * 	.a[...]
-	 * 	.a:actived
+	 * 	.a:active
 	 * 	.a::before
 	 * 	.a.b
 	 */
@@ -115,7 +115,7 @@ export class CSSLikeRangeParser {
 			(?:
 				\/\/.*				--- match comment line
 				|
-				\/\*[\s\S]*?\*\/	--- match comment seagment
+				\/\*[\s\S]*?\*\/	--- match comment segment
 				|
 				(?:
 					\(.*?\)			--- (...), sass code may include @include fn(${name})
@@ -434,7 +434,7 @@ export class CSSLikeRangeParser {
 	 * Returns the start of the right most descendant as the main part.
 	 * e.g., selectors below will returns `.a`:
 	 * 	.a[...]
-	 * 	.a:actived
+	 * 	.a:active
 	 * 	.a::before
 	 * 	.a.b
 	 */

@@ -56,7 +56,7 @@ export namespace SimpleSelector {
 		return label
 	}
 
-	/** Whether a stirng is a valid selector. */
+	/** Whether a string is a valid selector. */
 	export function validate(raw: string): boolean {
 		return /^[#.]?\w[\w-]*$/i.test(raw)
 	}
