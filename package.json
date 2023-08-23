@@ -176,6 +176,6 @@
 	"dependencies": {
 		"fs-extra": "^9.0.1",
 		"glob": "^7.1.6",
-		"minimatch": "^3.0.4"
+		"minimatch": "^3.0.5"
 	}
 }
