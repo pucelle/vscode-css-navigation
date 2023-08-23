@@ -14,3 +14,16 @@ client/node_modules/**
 client/test/**
 images/*.gif
 images/*.svg
+
+# under node_modules
+**/.github/**
+**/node_modules/**/.*
+**/node_modules/**/@types/**
+**/node_modules/**/test/**
+**/node_modules/**/*.md
+**/node_modules/**/LICENSE
+**/node_modules/**/license
+**/node_modules/**/README
+**/node_modules/**/readme
+**/node_modules/**/CHANGELOG
+**/node_modules/**/changelog

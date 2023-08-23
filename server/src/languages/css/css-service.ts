@@ -58,7 +58,7 @@ export class CSSService {
 	}
 
 	/**
-	 * Query symbols from a wildmatch query string.
+	 * Query symbols from a wild match query string.
      *
 	 * Query string 'p' will match:
 	 *	p* as tag name
@@ -87,7 +87,7 @@ export class CSSService {
 		return symbols
 	}
 	
-	/** Test if one selector match a symbol query string, they will match when left word boundaris matched. */
+	/** Test if one selector match a symbol query string, they will match when left word boundaries matched. */
 	private isMatchQuery(selector: string, query: string): boolean {
 		let lowerSelector = selector.toLowerCase()
 		let index = lowerSelector.indexOf(query)

@@ -28,7 +28,7 @@ export class HTMLRangeParser {
 			(?:
 				<!--.*?--> - match html comment
 				|
-				<\w+(.+?)> - match tag, $1 is the arrtibutes
+				<\w+(.+?)> - match tag, $1 is the attributes
 			)
 		*/
 

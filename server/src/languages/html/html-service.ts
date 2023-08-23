@@ -103,7 +103,7 @@ export namespace HTMLService {
 		return importPath
 	}
 	
-	/** Find definitions in style tag for curent document. */
+	/** Find definitions in style tag for current document. */
 	export function findDefinitionsInInnerStyle(document: TextDocument, select: SimpleSelector): Location[] {
 		let services = findInnerCSSServices(document)
 		let locations: Location[] = []
@@ -129,7 +129,7 @@ export namespace HTMLService {
 		return locations
 	}
 
-	/** Find auto completion labels in style tag for curent document. */
+	/** Find auto completion labels in style tag for current document. */
 	export function findCompletionLabelsInInnerStyle(document: TextDocument, select: SimpleSelector) {
 		let services = findInnerCSSServices(document)
 		let labels: string[] = []

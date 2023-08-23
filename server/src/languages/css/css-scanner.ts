@@ -34,8 +34,8 @@ export class CSSScanner extends TextScanner {
 		// `:property value`.
 		// `:` or `::` presudo, which also should be excluded.
 		// selector parts like `[...]`, `(...)`, doesn't handle multiple bracket nesting `(())`.
-		let dontMatch = this.match(/(:\s*\S+|:.+;|::\s*\S+|\[[^\]]*?\]|\([^)]*?\))/g)
-		if (dontMatch) {
+		let notMatch = this.match(/(:\s*\S+|:.+;|::\s*\S+|\[[^\]]*?\]|\([^)]*?\))/g)
+		if (notMatch) {
 			return null
 		}
 

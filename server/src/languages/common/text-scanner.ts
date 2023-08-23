@@ -85,7 +85,7 @@ export class TextScanner {
 	 * 
 	 * An issue:
 	 * <tag id|="id">, `|` is where cursor at.
-	 * Press F12, it cause goto css defition `#id`.
+	 * Press F12, it cause goto css definition `#id`.
 	 */
 	private guessSubMatch(m: RegExpExecArray, matchStartIndex: number) {
 		let fullMatch = m[0]
