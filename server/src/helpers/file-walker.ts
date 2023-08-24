@@ -13,9 +13,6 @@ export interface FileWalkerOptions {
 
 	/** Whether follow symbol links, default value is `false`. */
 	followSymbolLinks: boolean
-
-	/** Whether output absolute paths, default value is `false`. */
-	outputAbsolutePaths?: boolean
 }
 
 

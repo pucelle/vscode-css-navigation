@@ -38,6 +38,8 @@
 
 
 <script>
+
+// Import in a <script> is not working recently.
 import "./css/test.scss"
 import "./node_modules/test-module/style-imported.scss"
 

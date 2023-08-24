@@ -52,7 +52,7 @@ export async function resolveImportPath(fromPath: string, toPath: string): Promi
 
 		// Import relative path.
 		let filePath = path.resolve(fromDir, toPath)
-		if (await fs.pathExists(filePath)) {
+		if (await fs.pathExists(filePath) && (await fs.stat(filePath)).isFile()) {
 			return filePath
 		}
 
@@ -66,7 +66,7 @@ export async function resolveImportPath(fromPath: string, toPath: string): Promi
 	if (beModuleImport) {
 		while (fromDir) {
 			let filePath = path.resolve(fromDir, toPath)
-			if (await fs.pathExists(filePath)) {
+			if (await fs.pathExists(filePath) && (await fs.stat(filePath)).isFile()) {
 				return filePath
 			}
 			
