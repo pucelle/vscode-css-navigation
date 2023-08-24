@@ -60,7 +60,19 @@ export class CSSScanner extends TextScanner {
 			parentSelectors = this.parseParentSelectors()
 
 			if (parentSelectors) {
-				selectors.push(...this.makeReferenceSelectors(parentSelectors, match.text, match.index))
+				let refText = match.text.slice(1)
+				let mayIdentifier = match.text[1]
+
+				// p {&.class {}}
+				if (mayIdentifier === '.' || mayIdentifier === '#') {
+					parentSelectors = null
+					selectors.push(SimpleSelector.create(refText, match.index)!)
+				}
+
+				// .p {&-class {}}
+				else {
+					selectors.push(...this.makeReferenceSelectors(parentSelectors, refText, match.index))
+				}
 			}
 		}
 
@@ -76,7 +88,7 @@ export class CSSScanner extends TextScanner {
 			selectors,
 			parentSelectors,
 			raw: match.text,
-			startIndex: match.index
+			startIndex: match.index,
 		}
 	}
 
@@ -86,9 +98,9 @@ export class CSSScanner extends TextScanner {
 	}
 
 	/** Parse whole ranges for document and get selector. */
-	private makeReferenceSelectors(parentSelectors: SimpleSelector[], rawReferenceText: string, startIndex: number): SimpleSelector[] {
+	private makeReferenceSelectors(parentSelectors: SimpleSelector[], refText: string, startIndex: number): SimpleSelector[] {
 		return parentSelectors.map(s => {
-			return SimpleSelector.create(s.raw + rawReferenceText.slice(1), startIndex)!
+			return SimpleSelector.create(s.raw + refText, startIndex)!
 		})
 	}
 

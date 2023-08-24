@@ -33,10 +33,12 @@ body tagnotmatch{
 	color: red;
 }
 
-.class1{
-	&-sub{
-		&-tail{
-			color: red
+div{
+	&.class1{
+		&-sub{
+			&-tail{
+				color: red
+			}
 		}
 	}
 }

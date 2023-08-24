@@ -407,7 +407,7 @@ export class CSSLikeRangeParser {
 			}
 		}
 
-		// If raw selector is like `&:...`, ignore processing the main.
+		// If raw selector is like `&:...`, it's the same as parent selector, ignore processing the main.
 		let shouldHaveMain = !this.hasSingleReferenceInRightMostDescendant(raw)
 		if (!shouldHaveMain) {
 			return {
@@ -427,12 +427,13 @@ export class CSSLikeRangeParser {
 	/** Checks whether having a reference tag `&` in right most part, returns `true` for '&:hover', 'a &:hover'. */
 	private hasSingleReferenceInRightMostDescendant(selector: string): boolean {
 		let rightMost = this.getRightMostDescendant(selector)
-		return /^&(?:[^\w-]|$)/.test(rightMost)
+		return /^&:(?:[^\w-]|$)/.test(rightMost)
 	}
 
 	/**
 	 * Returns the start of the right most descendant as the main part.
 	 * e.g., selectors below will returns `.a`:
+	 *  p.a
 	 * 	.a[...]
 	 * 	.a:active
 	 * 	.a::before
@@ -446,14 +447,16 @@ export class CSSLikeRangeParser {
 		
 		let match = rightMost.match(/^\w[\w-]*/)
 		if (match) {
-			//if main is a tag selector, it must be the only
+
+			// if is a tag selector, it must be the only
 			if (match[0].length === selector.length) {
 				return match
 			}
+
 			rightMost = rightMost.slice(match[0].length)
 		}
 		
-		//class and id selectors must followed each other
+		// class and id selectors must followed each other
 		let mains: string[] = []
 		while (match = rightMost.match(/^[#.]\w[\w-]*/)) {
 			mains.push(match[0])

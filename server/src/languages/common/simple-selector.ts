@@ -34,11 +34,8 @@ export namespace SimpleSelector {
 			return null
 		}
 
-		let type = raw[0] === '.' ? Type.Class
-			: raw[0] === '#' ? Type.Id
-			: Type.Tag
-
-		let label = getLabel(raw, type)
+		let type = getType(raw)
+		let label = getLabelKnownType(raw, type)
 
 		return {
 			type,
@@ -50,8 +47,17 @@ export namespace SimpleSelector {
 		}
 	}
 
+	/** Get type. */
+	export function getType(raw: string): Type {
+		let type = raw[0] === '.' ? Type.Class
+			: raw[0] === '#' ? Type.Id
+			: Type.Tag
+
+		return type
+	}
+
 	/** Removes `.` and `#` at start position. */
-	function getLabel(raw: string, type: Type): string {
+	function getLabelKnownType(raw: string, type: Type): string {
 		let label = type === Type.Tag ? raw : raw.slice(1)
 		return label
 	}
