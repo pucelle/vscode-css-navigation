@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Allows Go to Definition from HTML to CSS / Sass / Less; provides Completion and Workspace Symbols for class & id name.",
 	"icon": "images/logo.png",
-	"version": "1.13.2",
+	"version": "1.14.0",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -28,7 +28,7 @@
 		"Sass, Less"
 	],
 	"activationEvents": [
-		"*"
+		"onLanguage"
 	],
 	"main": "./client/out/extension",
 	"contributes": {
