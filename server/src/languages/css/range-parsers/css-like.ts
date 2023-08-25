@@ -424,10 +424,10 @@ export class CSSLikeRangeParser {
 		}
 	}
 
-	/** Checks whether having a reference tag `&` in right most part, returns `true` for '&:hover', 'a &:hover'. */
+	/** Checks whether having a reference tag `&` in right most part, returns `true` for '&:hover', '&[...]'. */
 	private hasSingleReferenceInRightMostDescendant(selector: string): boolean {
 		let rightMost = this.getRightMostDescendant(selector)
-		return /^&:(?:[^\w-]|$)/.test(rightMost)
+		return /^&(?:[:\[]|$)/.test(rightMost)
 	}
 
 	/**

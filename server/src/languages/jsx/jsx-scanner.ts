@@ -3,6 +3,7 @@ import {TextScanner} from '../common/text-scanner'
 import * as path from 'path'
 import {URI} from 'vscode-uri'
 import {getPathExtension, resolveImportPath} from '../../helpers/file'
+import {ImportPath} from '../common/import-path'
 
 
 /** 
@@ -28,10 +29,10 @@ export class JSXScanner extends TextScanner {
 
 		if (match) {
 			if (match.groups.type === 'id') {
-				return SimpleSelector.create('#' + match.text, match.index)
+				return SimpleSelector.create('#' + match.text, match.index, this.document)
 			}
 			else if (match.groups.type === 'class' || match.groups.type === 'className') {
-				return SimpleSelector.create('.' + match.text, match.index)
+				return SimpleSelector.create('.' + match.text, match.index, this.document)
 			}
 		}
 
@@ -39,7 +40,7 @@ export class JSXScanner extends TextScanner {
 		// Syntax `:class.property=...`
 		match = this.match(/\bclass\.([\w-]+)/g)
 		if (match) {
-			return SimpleSelector.create('.' + match.text, match.index)
+			return SimpleSelector.create('.' + match.text, match.index, this.document)
 		}
 
 
@@ -49,7 +50,7 @@ export class JSXScanner extends TextScanner {
 			/(\w+)\s*:/g,
 		)
 		if (match) {
-			return SimpleSelector.create('.' + match.text, match.index)
+			return SimpleSelector.create('.' + match.text, match.index, this.document)
 		}
 
 
@@ -62,7 +63,7 @@ export class JSXScanner extends TextScanner {
 			/([\w-]+)/g,
 		)
 		if (match) {
-			return SimpleSelector.create('.' + match.text, match.index)
+			return SimpleSelector.create('.' + match.text, match.index, this.document)
 		}
 
 
@@ -74,7 +75,7 @@ export class JSXScanner extends TextScanner {
 			/(\w+)\s*:/g,
 		)
 		if (match) {
-			return SimpleSelector.create('.' + match.text, match.index)
+			return SimpleSelector.create('.' + match.text, match.index, this.document)
 		}
 
 
@@ -110,10 +111,10 @@ export class JSXScanner extends TextScanner {
 		)
 		if (match) {
 			if (match.groups.identifier === '#' || match.groups.identifier === '.') {
-				return SimpleSelector.create(match.groups.identifier + match.text, match.index)
+				return SimpleSelector.create(match.groups.identifier + match.text, match.index, this.document)
 			}
 			else {
-				return SimpleSelector.create(match.text, match.index)
+				return SimpleSelector.create(match.text, match.index, this.document)
 			}
 		}
 
@@ -127,11 +128,11 @@ export class JSXScanner extends TextScanner {
 		if (modulePath) {
 			let fullPath = await resolveImportPath(path.dirname(URI.parse(this.document.uri).fsPath), modulePath)
 			if (fullPath) {
-				return SimpleSelector.create('.' + moduleProperty, wordLeftOffset, URI.file(fullPath).toString())
+				return SimpleSelector.create('.' + moduleProperty, wordLeftOffset, this.document, URI.file(fullPath).toString())
 			}
 		}
 
-		return SimpleSelector.create('.' + moduleProperty, wordLeftOffset)
+		return SimpleSelector.create('.' + moduleProperty, wordLeftOffset, this.document)
 	}
 
 	/** Parse `import ...`. */
@@ -155,11 +156,11 @@ export class JSXScanner extends TextScanner {
 		if (modulePath) {
 			let fullPath = await resolveImportPath(path.dirname(URI.parse(this.document.uri).fsPath), modulePath)
 			if (fullPath) {
-				return SimpleSelector.create('.' + moduleProperty, wordLeftOffset, URI.file(fullPath).toString())
+				return SimpleSelector.create('.' + moduleProperty, wordLeftOffset, this.document, URI.file(fullPath).toString())
 			}
 		}
 
-		return SimpleSelector.create('.' + moduleProperty, wordLeftOffset)
+		return SimpleSelector.create('.' + moduleProperty, wordLeftOffset, this.document)
 	}
 
 	/** Parse `import '....css'`. */
@@ -179,15 +180,23 @@ export class JSXScanner extends TextScanner {
 	}
 
 	/** Scan for relative import path. */
-	async scanForImportPath() {
+	async scanForImportPath(): Promise<ImportPath | null> {
 
 		// import * from '...'
 		// import abc from '...'
 		// import '...'
 
-		let modulePath = this.match(/import\s+(?:(?:\w+|\*)\s+from\s+)?['"`](.+?)['"`]/g)?.text || null
-		if (modulePath) {
-			return await resolveImportPath(path.dirname(URI.parse(this.document.uri).fsPath), modulePath)
+		let match = this.match(/import\s+(?:(?:\w+|\*)\s+from\s+)?['"`](.+?)['"`]/g)
+		if (match) {
+			let currentPath = path.dirname(URI.parse(this.document.uri).fsPath)
+			let importPath = await resolveImportPath(currentPath, match.text)
+
+			if (importPath) {
+				let startIndex = match.index
+				let endIndex = startIndex + match.text.length
+
+				return new ImportPath(importPath, startIndex, endIndex, this.document)
+			}
 		}
 
 		return null

@@ -6,6 +6,8 @@ import {resolveImportPath} from '../../helpers/file'
 import {URI} from 'vscode-uri'
 import {parseCSSLikeOrSassRanges} from './range-parsers'
 import {CSSService} from './css-service'
+import * as path from 'path'
+import {ImportPath} from '../common/import-path'
 
 
 export interface CSSSelectorResults {
@@ -50,7 +52,7 @@ export class CSSScanner extends TextScanner {
 		let parentSelectors: SimpleSelector[] | null = null
 
 		if (mayIdentifier === '.' || mayIdentifier === '#') {
-			let selector = SimpleSelector.create(match.text, match.index)
+			let selector = SimpleSelector.create(match.text, match.index, this.document)
 			if (selector) {
 				selectors.push(selector)
 			}
@@ -66,7 +68,7 @@ export class CSSScanner extends TextScanner {
 				// p {&.class {}}
 				if (mayIdentifier === '.' || mayIdentifier === '#') {
 					parentSelectors = null
-					selectors.push(SimpleSelector.create(refText, match.index)!)
+					selectors.push(SimpleSelector.create(refText, match.index, this.document)!)
 				}
 
 				// .p {&-class {}}
@@ -77,7 +79,7 @@ export class CSSScanner extends TextScanner {
 		}
 
 		else {
-			let selector = SimpleSelector.create(match.text, match.index)!
+			let selector = SimpleSelector.create(match.text, match.index, this.document)!
 			if (selector) {
 				selectors.push(selector)
 			}
@@ -100,7 +102,7 @@ export class CSSScanner extends TextScanner {
 	/** Parse whole ranges for document and get selector. */
 	private makeReferenceSelectors(parentSelectors: SimpleSelector[], refText: string, startIndex: number): SimpleSelector[] {
 		return parentSelectors.map(s => {
-			return SimpleSelector.create(s.raw + refText, startIndex)!
+			return SimpleSelector.create(s.raw + refText, startIndex, this.document)!
 		})
 	}
 
@@ -140,7 +142,7 @@ export class CSSScanner extends TextScanner {
 
 		for (let {full} of closestParentRange.names) {
 			if (full[0] === '.' || full[0] === '#') {
-				let selector = SimpleSelector.create(full, 0)
+				let selector = SimpleSelector.create(full, 0, this.document)
 				if (selector) {
 					selectors.push(selector)
 				}
@@ -156,10 +158,19 @@ export class CSSScanner extends TextScanner {
 	}
 
 	/** Scan for relative import path. */
-	async scanForImportPath() {
-		let importPath = this.match(/@import\s*['"](.*?)['"]\s*;/g)?.text
-		if (importPath) {
-			return await resolveImportPath(URI.parse(this.document.uri).fsPath, importPath)
+	async scanForImportPath(): Promise<ImportPath | null> {
+		let match = this.match(/@import\s*['"](.*?)['"]\s*;/g)
+		
+		if (match) {
+			let currentPath = path.dirname(URI.parse(this.document.uri).fsPath)
+			let importPath = await resolveImportPath(currentPath, match.text)
+
+			if (importPath) {
+				let startIndex = match.index
+				let endIndex = startIndex + match.text.length
+
+				return new ImportPath(importPath, startIndex, endIndex, this.document)
+			}
 		}
 		
 		return null

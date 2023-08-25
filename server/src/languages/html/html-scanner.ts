@@ -1,5 +1,5 @@
 import {resolveImportPath} from '../../helpers/file'
-import {firstMatch} from '../../helpers/utils'
+import {ImportPath} from '../common/import-path'
 import {SimpleSelector} from '../common/simple-selector'
 import {TextScanner} from '../common/text-scanner'
 import * as path from 'path'
@@ -34,7 +34,7 @@ export class HTMLScanner extends TextScanner {
 		// <tag...>
 		let match = this.match(/<([\w-]+)/g)
 		if (match) {
-			let selector = SimpleSelector.create(match.text, match.index)
+			let selector = SimpleSelector.create(match.text, match.index, this.document)
 			return selector
 		}
 
@@ -51,10 +51,10 @@ export class HTMLScanner extends TextScanner {
 
 		if (match) {
 			if (match.groups.type === 'id') {
-				return SimpleSelector.create('#' + match.text, match.index)
+				return SimpleSelector.create('#' + match.text, match.index, this.document)
 			}
 			else if (match.groups.type === 'class') {
-				return SimpleSelector.create('.' + match.text, match.index)
+				return SimpleSelector.create('.' + match.text, match.index, this.document)
 			}
 		}
 
@@ -62,27 +62,36 @@ export class HTMLScanner extends TextScanner {
 	}
 
 	/** Scan for relative import path. */
-	async scanForImportPath() {
+	async scanForImportPath(): Promise<ImportPath | null> {
 		let match = this.match(/<(?<tag>[\w-]+)(\s*[\s\S]*?)>/g)
-		let importPath: string | null = null
 
 		if (match) {
 			let tag = match.groups.tag
 			let linkStyleRE = /\brel\s*=\s*['"]stylesheet['"]/
 			let srcRE = /\bsrc\s*=['"](.*?)['"]/
 			let hrefRE = /\bhref\s*=['"](.*?)['"]/
+			let subMatch: RegExpMatchArray | null = null
+			let importPath: string | null = null
 
 			if (tag === 'link' && linkStyleRE.test(match.text)) {
-				importPath = firstMatch(match.text, hrefRE)
+				subMatch = match.text.match(hrefRE)
 			}
 
 			if (tag === 'style') {
-				importPath = firstMatch(match.text, srcRE)
+				subMatch = match.text.match(srcRE)
 			}
-		}
 
-		if (importPath) {
-			return await resolveImportPath(path.dirname(URI.parse(this.document.uri).fsPath), importPath)
+			if (subMatch) {
+				let currentPath = path.dirname(URI.parse(this.document.uri).fsPath)
+				importPath = await resolveImportPath(currentPath, subMatch[1])
+			}
+							
+			if (importPath) {
+				let startIndex = match.index + subMatch!.index!
+				let endIndex = startIndex + subMatch![1].length
+				
+				return new ImportPath(importPath, startIndex, endIndex, this.document)
+			}
 		}
 
 		return null

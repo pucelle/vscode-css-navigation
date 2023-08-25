@@ -14,7 +14,7 @@ import {
 	CompletionItem,
 	ReferenceParams,
 	TextDocumentChangeEvent,
-	Range,
+	LocationLink,
 } from 'vscode-languageserver'
 
 import {Position, TextDocument} from 'vscode-languageserver-textdocument'
@@ -157,27 +157,28 @@ class CSSNavigationServer {
 		let position = positionParams.position
 		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
 		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+		let locations: LocationLink[] | null = null
 
 		if (isHTMLFile) {
-			return await this.findDefinitionsInHTMLLikeDocument(document, position)
+			locations = await this.findDefinitionsInHTMLLikeDocument(document, position)
 		}
 		else if (isCSSFile) {
-			return await this.findDefinitionsInCSSLikeDocument(document, position)
+			locations = await this.findDefinitionsInCSSLikeDocument(document, position)
 		}
 
-		return null
+		return locations?.map(l => {
+			return Location.create(l.targetUri, l.targetRange)
+		}) || null
 	}
 
 	/** In HTML files, or files that can include HTML codes. */
-	private async findDefinitionsInHTMLLikeDocument(document: TextDocument, position: Position): Promise<Location[] | null> {
-		let locations: Location[] = []
+	private async findDefinitionsInHTMLLikeDocument(document: TextDocument, position: Position): Promise<LocationLink[] | null> {
+		let locations: LocationLink[] = []
 
 		// After Clicking `<link rel="stylesheet" href="...">` or `<style src="...">`
 		let resolvedImportPath = await HTMLService.getImportPathAt(document, position)
 		if (resolvedImportPath) {
-			locations.push(
-				Location.create(URI.file(resolvedImportPath).toString(), Range.create(0, 0, 0, 0))
-			)
+			locations.push(resolvedImportPath.toLocationLink())
 		}
 
 		// Searching for normal css selector.
@@ -188,7 +189,7 @@ class CSSNavigationServer {
 			}
 
 			// Is custom tag.
-			if (configuration.ignoreCustomElement && SimpleSelector.isCustomTag(selector)) {
+			if (configuration.ignoreCustomElement && selector.isCustomTag()) {
 				return null
 			}
 
@@ -226,15 +227,13 @@ class CSSNavigationServer {
 	}
 
 	/** In CSS files, or a sass file. */
-	private async findDefinitionsInCSSLikeDocument(document: TextDocument, position: Position): Promise<Location[] | null> {
-		let locations: Location[] = []
+	private async findDefinitionsInCSSLikeDocument(document: TextDocument, position: Position): Promise<LocationLink[] | null> {
+		let locations: LocationLink[] = []
 
 		// Clicking `@import '...';` in a CSS file.
 		let resolvedImportPath = await CSSService.getImportPathAt(document, position)
 		if (resolvedImportPath) {
-			locations.push(
-				Location.create(URI.file(resolvedImportPath).toString(), Range.create(0, 0, 0, 0))
-			)
+			locations.push(resolvedImportPath.toLocationLink())
 		}
 
 		return locations

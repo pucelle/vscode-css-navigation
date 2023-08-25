@@ -1,4 +1,4 @@
-import {Location, Position, Range} from 'vscode-languageserver'
+import {Location, LocationLink, Position, Range} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 import {HTMLRange, HTMLRangeParser} from './html-range-parser'
@@ -10,6 +10,7 @@ import {resolveImportPath} from '../../helpers/file'
 import {file} from '../../helpers'
 import {firstMatch} from '../../helpers/utils'
 import {JSXRangeParser} from '../jsx/jsx-range-parser'
+import {ImportPath} from '../common/import-path'
 
 
 
@@ -92,7 +93,7 @@ export namespace HTMLService {
 	 * If click `goto definition` at a `<link href="...">` or `<style src="...">`.
 	 * Returned result has been resolved to an absolute path.
 	 */
-	export async function getImportPathAt(document: TextDocument, position: Position): Promise<string | null> {
+	export async function getImportPathAt(document: TextDocument, position: Position): Promise<ImportPath | null> {
 		let offset = document.offsetAt(position)
 		let importPath = await (new HTMLScanner(document, offset).scanForImportPath())
 
@@ -104,25 +105,28 @@ export namespace HTMLService {
 	}
 	
 	/** Find definitions in style tag for current document. */
-	export function findDefinitionsInInnerStyle(document: TextDocument, select: SimpleSelector): Location[] {
+	export function findDefinitionsInInnerStyle(document: TextDocument, selector: SimpleSelector): LocationLink[] {
 		let services = findInnerCSSServices(document)
-		let locations: Location[] = []
+		let locations: LocationLink[] = []
 
 		for (let {document: cssDocument, service: cssService, index: styleIndex} of services) {
-			let cssLocations = cssService.findDefinitionsMatchSelector(select)
+			let cssLocations = cssService.findDefinitionsMatchSelector(selector)
 
 			for (let location of cssLocations) {
-				let startIndexInCSS = cssDocument.offsetAt(location.range.start)
-				let endIndexInCSS = cssDocument.offsetAt(location.range.end)
+				let startIndexInCSS = cssDocument.offsetAt(location.targetRange.start)
+				let endIndexInCSS = cssDocument.offsetAt(location.targetRange.end)
 				let startIndexInHTML = startIndexInCSS + styleIndex
 				let endIndexInHTML = endIndexInCSS + styleIndex
 
-				locations.push(
-					Location.create(document.uri, Range.create(
-						document.positionAt(startIndexInHTML),
-						document.positionAt(endIndexInHTML)
-					))
+				let targetRange = Range.create(
+					document.positionAt(startIndexInHTML),
+					document.positionAt(endIndexInHTML)
 				)
+				
+				let selectionRange = Range.create(targetRange.start, targetRange.start)
+				let htmlLocation = LocationLink.create(document.uri, targetRange, selectionRange, selector.toRange())
+
+				locations.push(htmlLocation)
 			}
 		}
 

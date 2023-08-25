@@ -1,10 +1,11 @@
-import {SymbolInformation, SymbolKind, Location, Position} from 'vscode-languageserver'
+import {SymbolInformation, SymbolKind, Position, LocationLink, Range} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {SimpleSelector} from '../common/simple-selector'
 import {CSSNamedRange, parseCSSLikeOrSassRanges} from './range-parsers'
 import {CSSScanner, CSSSelectorResults} from './css-scanner'
 import {URI} from 'vscode-uri'
 import {resolveImportPath} from '../../helpers/file'
+import {ImportPath} from '../common/import-path'
 
 
 /** Gives CSS service for one CSS file. */
@@ -40,8 +41,8 @@ export class CSSService {
 	}
 
 	/** Find definitions match one selector. */
-	findDefinitionsMatchSelector(selector: SimpleSelector): Location[] {
-		let locations: Location[] = []
+	findDefinitionsMatchSelector(selector: SimpleSelector): LocationLink[] {
+		let locations: LocationLink[] = []
 		let selectorRaw = selector.raw
 
 		for (let range of this.ranges) {
@@ -50,7 +51,11 @@ export class CSSService {
 			})
 
 			if (isMatch) {
-				locations.push(Location.create(this.uri, range.range))
+				let targetRange = range.range
+				let selectionRange = Range.create(targetRange.start, targetRange.start)
+				let fromRange = selector.toRange()
+
+				locations.push(LocationLink.create(this.uri, range.range, selectionRange, fromRange))
 			}
 		}
 
@@ -189,7 +194,7 @@ export namespace CSSService {
 	}
 
 	/** If click `goto definition` at a `<link href="...">` or `<style src="...">`. */
-	export async function getImportPathAt(document: TextDocument, position: Position): Promise<string | null> {
+	export async function getImportPathAt(document: TextDocument, position: Position): Promise<ImportPath | null> {
 		let offset = document.offsetAt(position)
 		return await (new CSSScanner(document, offset).scanForImportPath())
 	}

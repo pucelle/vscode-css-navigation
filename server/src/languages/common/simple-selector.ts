@@ -1,22 +1,49 @@
-export interface SimpleSelector {
+import {Range} from 'vscode-languageserver'
+import {TextDocument} from 'vscode-languageserver-textdocument'
+
+
+export class SimpleSelector {
 
 	/** Selector type. */
-	type: SimpleSelector.Type
+	readonly type: SimpleSelector.Type
 
 	/** Raw selector string, includes identifier like `.`, `#`. */
-	raw: string
+	readonly raw: string
 
 	/** `.`, `#`, or empty string. */
-	identifier: string
+	readonly identifier: string
 
 	/** Selector string exclude identifier. */
-	label: string
+	readonly label: string
 
 	/** Position of left offset. */
-	startIndex: number
+	readonly startIndex: number
+
+	/** Text document that current selector attach at. */
+	readonly document: TextDocument
 
 	/** Related imported file, only available for JSX files. */
 	importURI: string | null
+
+	constructor(type: SimpleSelector.Type, raw: string, identifier: string, label: string, startIndex: number, document: TextDocument, importURI: string | null) {
+		this.type = type
+		this.raw = raw
+		this.identifier = identifier
+		this.label = label
+		this.startIndex = startIndex
+		this.document = document
+		this.importURI = importURI
+	}
+
+	/** Whether a custom tag. */
+	isCustomTag(): boolean {
+		return this.type === SimpleSelector.Type.Tag && this.label.includes('-')
+	}
+
+	/** Get a range from its related document. */
+	toRange(): Range {
+		return Range.create(this.document.positionAt(this.startIndex), this.document.positionAt(this.startIndex + this.raw.length))
+	}
 }
 
 export namespace SimpleSelector {
@@ -29,22 +56,23 @@ export namespace SimpleSelector {
 	}
 	
 	/** Create a selector from raw selector string. */
-	export function create(raw: string, startOffset: number = 0, importURI: string | null = null): SimpleSelector | null {
+	export function create(raw: string, startOffset: number = 0, document: TextDocument, importURI: string | null = null): SimpleSelector | null {
 		if (!validate(raw)) {
 			return null
 		}
 
 		let type = getType(raw)
-		let label = getLabelKnownType(raw, type)
+		let label = type === Type.Tag ? raw : raw.slice(1)
 
-		return {
+		return new SimpleSelector(
 			type,
 			raw,
-			identifier: type === Type.Tag ? '' : raw[0],
+			type === Type.Tag ? '' : raw[0],
 			label,
-			startIndex: startOffset,
+			startOffset,
+			document,
 			importURI,
-		}
+		)
 	}
 
 	/** Get type. */
@@ -56,24 +84,8 @@ export namespace SimpleSelector {
 		return type
 	}
 
-	/** Removes `.` and `#` at start position. */
-	function getLabelKnownType(raw: string, type: Type): string {
-		let label = type === Type.Tag ? raw : raw.slice(1)
-		return label
-	}
-
 	/** Whether a string is a valid selector. */
 	export function validate(raw: string): boolean {
 		return /^[#.]?\w[\w-]*$/i.test(raw)
-	}
-
-	/** Whether a tag, but not custom tag. */
-	export function isNonCustomTag(selector: SimpleSelector): boolean {
-		return selector.type === Type.Tag && !selector.label.includes('-')
-	}
-
-	/** Whether a custom tag. */
-	export function isCustomTag(selector: SimpleSelector): boolean {
-		return selector.type === Type.Tag && selector.label.includes('-')
 	}
 }

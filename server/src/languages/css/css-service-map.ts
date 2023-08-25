@@ -1,5 +1,5 @@
 import * as path from 'path'
-import {SymbolInformation, Location, TextDocuments} from 'vscode-languageserver'
+import {SymbolInformation, TextDocuments, LocationLink} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {FileTrackerOptions, FileTracker, file} from '../../helpers'
 import {SimpleSelector} from '../common/simple-selector'
@@ -91,10 +91,10 @@ export class CSSServiceMap extends FileTracker {
 		}
 	}
 
-	async findDefinitionsMatchSelector(selector: SimpleSelector): Promise<Location[]> {
+	async findDefinitionsMatchSelector(selector: SimpleSelector): Promise<LocationLink[]> {
 		await this.makeFresh()
 		
-		let locations: Location[] = []
+		let locations: LocationLink[] = []
 		for (let cssService of this.iterateAvailableCSSServices()) {
 			locations.push(...cssService.findDefinitionsMatchSelector(selector))
 		}

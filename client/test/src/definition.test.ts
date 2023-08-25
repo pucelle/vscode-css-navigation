@@ -85,7 +85,7 @@ describe('Test Finding Definition from HTML', () => {
 	})
 
 	it('Should not find definition when it use "&" as single part, without more words joined, like "&:hover"', async () => {
-		assert.deepStrictEqual(await gs(['class="', 'class-sub-not-match', '"']), ['.class-sub-not-match'])
+		assert.deepStrictEqual(await gs(['class="', 'class-sub-not-match', '"']), ['.class-sub-not-match', '&.class-any'])
 	})
 
 	it('Should find definition inside <style> tag, be aware this is not available by default', async () => {

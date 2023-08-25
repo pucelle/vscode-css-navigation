@@ -57,10 +57,10 @@ export class HTMLRangeParser {
 
 	/** Make a CSS range for HTML tag. */
 	protected makeRangesFromTag(tag: string, start: number, end: number): HTMLRange | null {
-		let selector = SimpleSelector.create(tag)
+		let selector = SimpleSelector.create(tag, 0, this.document)
 
 		// Must be custom tag.
-		if (!selector || !SimpleSelector.isCustomTag(selector)) {
+		if (!selector || !selector.isCustomTag()) {
 			return null
 		}
 
