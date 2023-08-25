@@ -43,12 +43,14 @@ export class HTMLServiceMap extends FileTracker {
 	async findCompletionLabelsMatch(prefix: string): Promise<string[]> {
 		await this.makeFresh()
 		
-		let labels: string[] = []
+		let labelSet: Set<string> = new Set()
 
 		for (let htmlService of this.serviceMap.values()) {
-			labels.push(...htmlService.findCompletionLabelsMatch(prefix))
+			for (let label of htmlService.findCompletionLabelsMatch(prefix)) {
+				labelSet.add(label)
+			}
 		}
 
-		return labels
+		return [...labelSet]
 	}
 }
