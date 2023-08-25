@@ -433,7 +433,10 @@ class CSSNavigationServer {
 			this.htmlServiceMap = new HTMLServiceMap(documents, {
 				includeFileGlobPattern: file.generateGlobPatternFromExtensions(configuration.activeHTMLFileExtensions)!,
 				excludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.excludeGlobPatterns) || undefined,
-				startPath: options.workspaceFolderPath
+				startPath: options.workspaceFolderPath,
+
+				// Track at most 1000 html like files.
+				mostFileCount: 1000,
 			})
 
 			this.serviceMaps.push(this.htmlServiceMap)

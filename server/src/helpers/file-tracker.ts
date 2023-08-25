@@ -58,6 +58,9 @@ export interface FileTrackerOptions {
 
 	/** Start directory to track files. */
 	startPath?: string
+
+	/** Most count of files to track, default value is `Infinity`. */
+	mostFileCount?: number
 }
 
 /** Class to track one type of files in a directory. */
@@ -67,6 +70,7 @@ export class FileTracker {
 	private alwaysIncludeGlobPattern: string | null
 	private ignoreFilesBy: Ignore[]
 	private startPath: string | null
+	private mostFileCount: number
 
 	private includeFileMatcher: minimatch.IMinimatch
 	private excludeMatcher: minimatch.IMinimatch | null
@@ -88,6 +92,7 @@ export class FileTracker {
 		this.excludeMatcher = options.excludeGlobPattern ? new minimatch.Minimatch(options.excludeGlobPattern) : null
 		this.alwaysIncludeMatcher = this.alwaysIncludeGlobPattern ? new minimatch.Minimatch(this.alwaysIncludeGlobPattern) : null
 		this.startPath = options.startPath || null
+		this.mostFileCount = options.mostFileCount ?? Infinity
 
 		if (this.startPath) {
 			this.allFresh = false
@@ -223,21 +228,15 @@ export class FileTracker {
 		return true
 	}
 
-	/** Returns whether should track one file or folder. */
-	private shouldTrackFileOrFolder(fsPath: string): boolean {
-		if (this.shouldExcludeFileOrFolder(fsPath)) {
-			return false
-		}
-
-		return true
-	}
-
 	/** Returns whether should exclude file or folder. */
 	private shouldExcludeFileOrFolder(fsPath: string) {
+
+		// Not always include.
 		if (this.alwaysIncludeMatcher && this.alwaysIncludeMatcher.match(fsPath)) {
 			return false
 		}
 
+		// Be exclude.
 		if (this.excludeMatcher && this.excludeMatcher.match(fsPath)) {
 			return true
 		}
@@ -247,7 +246,7 @@ export class FileTracker {
 
 	/** Track file or folder. */
 	private async trackFileOrFolder(fsPath: string) {
-		if (!this.shouldTrackFileOrFolder(fsPath)) {
+		if (this.shouldExcludeFileOrFolder(fsPath)) {
 			return
 		}
 
@@ -269,10 +268,10 @@ export class FileTracker {
 	
 	/** Track folder. */
 	private async trackFolder(folderPath: string) {
-		let filePathsGenerator = walkDirectoryToMatchFiles(folderPath, this.ignoreFilesBy)
+		let filePathsGenerator = walkDirectoryToMatchFiles(folderPath, this.ignoreFilesBy, this.mostFileCount)
 
 		for await(let absPath of filePathsGenerator) {
-			if (this.includeFileMatcher.match(absPath) && (!this.excludeMatcher || !this.excludeMatcher.match(absPath))) {
+			if (this.shouldTrackFile(absPath)) {
 				this.trackFile(absPath)
 			}
 		}
@@ -299,6 +298,8 @@ export class FileTracker {
 
 	/** Track more file like imported file. although it may not in `startPath`. */
 	trackMoreFile(filePath: string) {
+
+		// Not validate `alwaysIncludeMatcher` and `excludeMatcher` here.
 		if (this.includeFileMatcher.match(filePath)) {
 			this.trackFile(filePath)
 		}
