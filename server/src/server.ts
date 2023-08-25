@@ -336,6 +336,7 @@ class CSSNavigationServer {
 		let havingReference = selectorResults.raw.startsWith('&')
 		let parentSelectorNames = selectorResults.parentSelectors?.map(s => s.raw) || null
 
+		// Unique selector.
 		if (selectorResults.raw === '.' || selectorResults.raw === '#') {
 			let labels = await this.htmlServiceMap!.findCompletionLabelsMatch(selectorResults.raw)
 			
@@ -345,6 +346,8 @@ class CSSNavigationServer {
 			let items = formatLabelsToCompletionItems(labels, selectorResults.startIndex, completeLength, document)
 			completionItems.push(...items)
 		}
+
+		// Has parent, must be processed to remove prefix.
 		else {
 			for (let selector of selectorResults.selectors) {
 				let labels = await this.htmlServiceMap!.findCompletionLabelsMatch(selector.raw)
