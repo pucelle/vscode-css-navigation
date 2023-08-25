@@ -194,8 +194,11 @@ export class JSXScanner extends TextScanner {
 			if (importPath) {
 				let startIndex = match.index
 				let endIndex = startIndex + match.text.length
+				let extension = getPathExtension(importPath)
 
-				return new ImportPath(importPath, startIndex, endIndex, this.document)
+				if (this.supportedLanguages.includes(extension)) {
+					return new ImportPath(importPath, startIndex, endIndex, this.document)
+				}
 			}
 		}
 
