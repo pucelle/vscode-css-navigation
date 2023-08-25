@@ -1,5 +1,7 @@
 node_modules
 out
 .vscode-test
-tsconfig.tsbuildinfo
+**/*.tsbuildinfo
+**/package-lock.json
 *.vsix
+
