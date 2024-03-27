@@ -77,7 +77,7 @@ connection.onInitialized(() => {
 	if (configuration.enableWorkspaceSymbols) {
 		connection.onWorkspaceSymbol(console.logListQuerierExecutedTime(server.findSymbolsMatchQueryParam.bind(server), 'workspace symbol'))
 	}
-	
+
 	if (configuration.enableIdAndClassNameCompletion) {
 		connection.onCompletion(console.logListQuerierExecutedTime(server.provideCompletion.bind(server), 'completion'))
 	}
@@ -139,7 +139,7 @@ class CSSNavigationServer {
 				map.onWatchedFileOrFolderChanged(params)
 			}
 		})
-		
+
 
 		console.log(`Server for workspace folder "${path.basename(this.options.workspaceFolderPath)}" started`)
 	}
@@ -152,7 +152,7 @@ class CSSNavigationServer {
 		if (!document) {
 			return null
 		}
-		
+
 		let documentExtension = file.getPathExtension(document.uri)
 		let position = positionParams.position
 		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
@@ -166,9 +166,28 @@ class CSSNavigationServer {
 			locations = await this.findDefinitionsInCSSLikeDocument(document, position)
 		}
 
+		// Sort by the longest common subsequence.
+		locations?.sort((a, b) => {
+			const aPath = a.targetUri;
+			const bPath = b.targetUri;
+			return this.longestCommonSubsequence(bPath, documentIdentifier.uri) - this.longestCommonSubsequence(aPath, documentIdentifier.uri);
+		});
+
 		return locations?.map(l => {
 			return Location.create(l.targetUri, l.targetRange)
 		}) || null
+	}
+
+	longestCommonSubsequence(a, b) {
+		const m = a.length;
+		const n = b.length;
+		const len = Math.min(m, n);
+		for (let i = 0; i < len; i++) {
+			if (a[i] !== b[i]) {
+				return i;
+			}
+		}
+		return len;
 	}
 
 	/** In HTML files, or files that can include HTML codes. */
@@ -292,7 +311,7 @@ class CSSNavigationServer {
 		if (selector.importURI) {
 			this.cssServiceMap.trackMoreFile(URI.parse(selector.importURI).fsPath)
 			await this.cssServiceMap.makeFresh()
-			
+
 			// Only find in one imported file.
 			let cssService = await this.cssServiceMap.get(selector.importURI)
 			if (cssService) {
@@ -339,7 +358,7 @@ class CSSNavigationServer {
 		// Unique selector.
 		if (selectorResults.raw === '.' || selectorResults.raw === '#') {
 			let labels = await this.htmlServiceMap!.findCompletionLabelsMatch(selectorResults.raw)
-			
+
 			// Note the complete label includes identifier.
 			let completeLength = selectorResults.raw.length
 
