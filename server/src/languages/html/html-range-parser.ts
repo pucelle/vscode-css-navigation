@@ -86,6 +86,10 @@ export class HTMLRangeParser {
 
 			if (attr === 'class') {
 				for (let name of value.split(/\s+/)) {
+					
+					// Vue syntax `:class="a.b"` -> `b`.
+					name = name.replace(/^.+[^\w-]/, '')
+
 					name = '.' + name
 
 					if (SimpleSelector.validate(name)) {

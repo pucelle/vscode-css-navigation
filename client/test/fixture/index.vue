@@ -34,6 +34,8 @@
 
     <div class="test-vue-import-class">Test Text</div>
     <div class="class-style-imported">Test Text</div>
+
+    <div :class="s.class6"></div>
 </template>
 
 
