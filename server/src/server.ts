@@ -23,7 +23,7 @@ import {HTMLService, HTMLServiceMap} from './languages/html'
 import {CSSService, CSSServiceMap} from './languages/css'
 import {file, console, Ignore} from './helpers'
 import {URI} from 'vscode-uri'
-import {formatLabelsToCompletionItems, removeReferencePrefix} from './utils'
+import {formatLabelsToCompletionItems, getLongestCommonSubsequenceLength, removeReferencePrefix} from './utils'
 
 
 
@@ -167,27 +167,18 @@ class CSSNavigationServer {
 		}
 
 		// Sort by the longest common subsequence.
-		locations?.sort((a, b) => {
-			const aPath = a.targetUri;
-			const bPath = b.targetUri;
-			return this.longestCommonSubsequence(bPath, documentIdentifier.uri) - this.longestCommonSubsequence(aPath, documentIdentifier.uri);
-		});
+		if (locations) {
+			locations.sort((a, b) => {
+				const aPath = a.targetUri
+				const bPath = b.targetUri
+
+				return getLongestCommonSubsequenceLength(bPath, documentIdentifier.uri) - getLongestCommonSubsequenceLength(aPath, documentIdentifier.uri)
+			})
+		}
 
 		return locations?.map(l => {
 			return Location.create(l.targetUri, l.targetRange)
 		}) || null
-	}
-
-	longestCommonSubsequence(a, b) {
-		const m = a.length;
-		const n = b.length;
-		const len = Math.min(m, n);
-		for (let i = 0; i < len; i++) {
-			if (a[i] !== b[i]) {
-				return i;
-			}
-		}
-		return len;
 	}
 
 	/** In HTML files, or files that can include HTML codes. */

@@ -1,6 +1,12 @@
 # ChangeLog
 
 
+## [1.14.1]
+
+- Merge codes from `wolfsilver@github`, goto definition will always pick closest path of current path.
+- Can find references like `:class="x.x"` that located in `vue` files.
+
+
 ## [1.14.0]
 
 - Fixes many bugs, reduce package size.
