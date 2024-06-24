@@ -22,6 +22,10 @@ interface IgnoreRule {
 }
 
 
+/** Can only read at most 1000 files. */
+const ReadFileCountLimit = 1000
+
+
 class FileWalker {
 
 	/** Current working directory, default value is `CWD`. */
@@ -41,12 +45,14 @@ class FileWalker {
 
 	/** Generate relative paths relative to current directory. */
 	async *walk(): AsyncGenerator<string> {
-		for await(let relPath of this.walkRecursively('')) {
+		let count: {value: number} = {value: 0}
+
+		for await(let relPath of this.walkRecursively('', [], count)) {
 			yield relPath
 		}
 	}
 
-	private async *walkRecursively(relDir: string, ignoreRules: IgnoreRule[] = []): AsyncGenerator<string> {
+	private async *walkRecursively(relDir: string, ignoreRules: IgnoreRule[], count: {value: number}): AsyncGenerator<string> {
 		let fileNames = await fs.readdir(path.join(this.currentDir, relDir))
 
 		for (let fileName of fileNames) {
@@ -71,12 +77,17 @@ class FileWalker {
 			}
 
 			if (stat.isDirectory()) {
-				for await(let subRelPath of this.walkRecursively(relPath, ignoreRules)) {
+				for await(let subRelPath of this.walkRecursively(relPath, ignoreRules, count)) {
 					yield subRelPath
 				}
 			}
 			else {
 				yield relPath
+				count.value++
+
+				if (count.value > ReadFileCountLimit) {
+					break
+				}
 			}
 		}
 	}

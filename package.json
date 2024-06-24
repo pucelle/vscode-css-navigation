@@ -101,7 +101,7 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "A glob pattern, which always use `/` as a path separator, defines paths to exclude when searching for CSS definitions."
+					"description": "A glob pattern, which always use `/` as a path separator, defines paths to exclude when searching for CSS definitions or references."
 				},
 				"CSSNavigation.alwaysIncludeGlobPatterns": {
 					"type": "array",
