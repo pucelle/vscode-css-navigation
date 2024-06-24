@@ -65,6 +65,10 @@ class FileWalker {
 
 		// May parallel to increase speed, but will break generator logic.
 		for (let fileName of fileNames) {
+			if (count.value > ReadFileCountLimit) {
+				break
+			}
+
 			if (fileName.startsWith('.')) {
 				continue
 			}
@@ -84,10 +88,6 @@ class FileWalker {
 			else {
 				yield relPath
 				count.value++
-
-				if (count.value > ReadFileCountLimit) {
-					break
-				}
 			}
 		}
 	}
