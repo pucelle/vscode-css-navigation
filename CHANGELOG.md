@@ -1,6 +1,12 @@
 # ChangeLog
 
 
+## [1.15.0]
+
+- Can only read at most 1000 files when doing finding definitions or references, this can avoid searching stuck when a workspace have too many..., e.g., pre-rendered HTML files.
+- Changes README by #91.
+
+
 ## [1.14.1]
 
 - Merge codes from `wolfsilver@github`, goto definition will always pick closest path of current path.
