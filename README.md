@@ -23,7 +23,7 @@ Note that the JSX template doesn't provide completion for attribute value by def
 editor.quickSuggestions": {
     "other": true,
     "comments": false,
-    "strings": false
+    "strings": true
 },
 ```
 
