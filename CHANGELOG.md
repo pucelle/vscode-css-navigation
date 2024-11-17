@@ -1,5 +1,9 @@
 # ChangeLog
 
+## [1.15.1]
+
+- Fix #93, will not miss sass nesting selectors when selector name contains interpolation `#{...}`.
+
 
 ## [1.15.0]
 

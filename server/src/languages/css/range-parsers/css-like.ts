@@ -6,11 +6,9 @@ import {CSSService} from '../css-service'
 
 export enum LeafNameType{
 	Selector,
-	Keyframes,
-	Import,
-	AtRoot,
-	OtherCommand,
-	Others
+	Command,
+	Interpolation, // Sass interpolation #{...}
+	Others,
 }
 
 /** `.a, .b` will be split as 2 leaves. */
@@ -19,10 +17,13 @@ export interface LeafName {
 	/** CSS leaf piece type. */
 	type: LeafNameType
 
-	/** Raw selector before processing nesting, may have a `&` in left. */
+	/** Raw selector before processing nesting, may have a `&` on left. */
 	raw: string
 
-	/** Full selector after processing nesting, `&` was fixed and removed. */
+	/** 
+	 * Full selector after processing nesting, `&` will be joined with parent selected.
+	 * Will be initialized to current selector, later join with parent selectors.
+	 */
 	full: string
 }
 
@@ -31,10 +32,14 @@ export interface LeafName {
  * Cascade in the same rule of nesting.
  */
 export interface Leaf {
+
+	/** `names` may be empty list. */
 	names: LeafName[]
+
 	rangeStart: number
 	rangeEnd: number
 	parent: Leaf | undefined
+	skipDeeply: boolean
 }
 
 /** One selector name. */
@@ -82,7 +87,6 @@ export class CSSLikeRangeParser {
 	protected leaves: Leaf[] = []
 	protected stack: Leaf[] = []
 	protected current: Leaf | undefined
-	protected ignoreDeep: number = 0
 
 	/** 
 	 * When having `@import ...`, we need to load the imported files even they are inside `node_modules`.
@@ -109,7 +113,7 @@ export class CSSLikeRangeParser {
 
 	private parseAsLeaves() {
 		let text = this.document.getText()
-		let re = /\s*(?:\/\/.*|\/\*[\s\S]*?\*\/|((?:\(.*?\)|".*?"|'.*?'|\/\/.*|\/\*[\s\S]*?\*\/|[\s\S])*?)([;{}]))/g
+		let re = /\s*(?:\/\/.*|\/\*[\s\S]*?\*\/|((?:\(.*?\)|".*?"|'.*?'|\/\/.*|\/\*[\s\S]*?\*\/|#\{[\s\S]*?\}|[\s\S])*?)([;{}]))/g
 		/*
 			\s*						--- match white spaces in left
 			(?:
@@ -123,9 +127,11 @@ export class CSSLikeRangeParser {
 					|
 					'.*?'			--- double quote string
 					|
+					#\{[\s\S]*?\}	--- Sass variable
+					|
 					[\s\S]			--- others
 				)*?					--- declaration or selector
-				([;{}])
+				([;{}])             --- part end char, or match brackets
 			)
 		*/
 
@@ -140,23 +146,11 @@ export class CSSLikeRangeParser {
 
 			if (endChar === '{' && chars) {
 				let names = this.parseSelectorNames(chars)
-				if (names.length === 0) {
-					continue
-				}
-
-				if (this.ignoreDeep > 0 || names[0].type === LeafNameType.Keyframes) {
-					this.ignoreDeep++
-				}
-
 				this.current = this.newLeaf(names, rangeStartIndex)
 				this.leaves.push(this.current!)
 			}
 			
 			else if (endChar === '}') {
-				if (this.ignoreDeep > 0) {
-					this.ignoreDeep--
-				}
-
 				if (this.current) {
 					this.current.rangeEnd = re.lastIndex
 					this.current = this.stack.pop()
@@ -164,7 +158,7 @@ export class CSSLikeRangeParser {
 			}
 
 			// Likes `@...` command in top level.
-			// Will only parse `@import ...` and push them to `importPaths` property.
+			// Here only parse `@import ...` and push them to `importPaths` property.
 			else if (chars && !this.current) {
 				this.parseSelectorNames(chars)
 			}
@@ -188,9 +182,9 @@ export class CSSLikeRangeParser {
 	/** Parse selector to name array. */
 	protected parseSelectorNames(selectorString: string): LeafName[] {
 
-		// May selectors like this: '[attr="]"]', but this is not a very strict parser.
+		// May selectors like this: '[attr="]"]', so this is not a strict parser RE.
 		// If want to handle it, use `/((?:\[(?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\]|\((?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\)|[\s\S])+?)(?:,|$)/g`
-		let re = /(@[\w-]+)|\/\/.*|\/\*[\s\S]*?\*\/|((?:\[.*?\]|\(.*?\)|.)+?)(?:,|$)/g
+		let re = /(@[\w-]+)|\/\/.*|\/\*[\s\S]*?\*\/|((?:\[.*?\]|\(.*?\)|.|#\{.*?\})+?)(?:,|$)/g
 		/*
 			^\s*@[\w-]+ 		--- Matches like `@at-root`
 			|
@@ -201,6 +195,8 @@ export class CSSLikeRangeParser {
 				\[.*?\] 		--- Matches [...]
 				|
 				\(.*?\) 		--- Matches (...)
+				|
+				#\{.*?\}		--- Matches Sass interpolation #{...}
 				|
 				. 				--- Matches other characters
 			)
@@ -217,61 +213,55 @@ export class CSSLikeRangeParser {
 
 			// Parse a command.
 			if (command) {
-				let type = this.getCommandType(command)
+				let commandName = command.slice(1)
 
-				if (type === LeafNameType.Import) {
+				if (commandName === 'import') {
 					this.parseImportPaths(selectorString)
 				}
 
+				names.push({
+					type: LeafNameType.Command,
+					raw: selectorString,
+					full: selectorString,
+				})
+
 				// `@at-root` may still have selectors followed.
-				if (type === LeafNameType.AtRoot) {
-					names.push({
-						type,
-						raw: command,
-						full: command,
-					})
-				}
-
-				// Otherwise commands eat off whole line.
-				else {
-					names.push({
-						type,
-						raw: selectorString,
-						full: selectorString,
-					})
-
+				if (commandName !== 'at-root') {
 					break
 				}
 			}
-
+			
 			// Parse selectors.
-			else if (selector) {
+			else if (this.current?.skipDeeply) {
 				names.push({
-					type: this.ignoreDeep === 0 ? LeafNameType.Selector : LeafNameType.Others,
+					type: LeafNameType.Others,
 					raw: selector,
 					full: selector,
 				})
 			}
+
+			// Parse selectors.
+			else if (selector) {
+
+				// Sass variable, ignore it.
+				if (/\#\{[\s\S]*?\}/.test(selector)) {
+					names.push({
+						type: LeafNameType.Interpolation,
+						raw: selector,
+						full: selector,
+					})
+				}
+				else {
+					names.push({
+						type: LeafNameType.Selector,
+						raw: selector,
+						full: selector,
+					})
+				}
+			}
 		}
 
 		return names
-	}
-
-	/** Get command type. */
-	private getCommandType(command: string): LeafNameType {
-		switch (command) {
-			case '@at-root':
-				return LeafNameType.AtRoot
-
-			case '@keyframes':
-				return LeafNameType.Keyframes
-			
-			case '@import':
-				return LeafNameType.Import
-			
-			default:
-				return LeafNameType.OtherCommand
-		}
 	}
 
 	/** Parse `@import ...` to `importPaths` properties. */
@@ -287,13 +277,20 @@ export class CSSLikeRangeParser {
 
 	/** Create a leaf node. */
 	protected newLeaf(names: LeafName[], rangeStart: number): Leaf {
-		if (this.supportsNesting && this.ignoreDeep === 0 && this.current && this.haveSelectorInNames(names)) {
+		if (this.supportsNesting && this.current && this.haveSelectorInNames(names)) {
 			names = this.combineNestingNames(names)
 		}
 
 		let parent = this.current
+
+		// Skips whole keyframes declaration.
+		let skipDeeply = names.length > 0
+			&& names[0].type === LeafNameType.Command
+			&& names[0].raw.startsWith('@keyframes')
+
 		if (parent) {
 			this.stack.push(parent)
+			skipDeeply = skipDeeply || parent.skipDeeply
 		}
 
 		return {
@@ -301,6 +298,7 @@ export class CSSLikeRangeParser {
 			rangeStart,
 			rangeEnd: 0,
 			parent,
+			skipDeeply,
 		}
 	}
 
@@ -313,33 +311,40 @@ export class CSSLikeRangeParser {
 	private combineNestingNames(oldNames: LeafName[]): LeafName[] {
 		let re = /(?<=^|[\s+>~])&/g
 		let names: LeafName[] = []
+
+		// @at-root a{...}
+		let atRoot = oldNames.length > 0
+			&& oldNames[0].type === LeafNameType.Command
+			&& oldNames[0].raw.startsWith('@at-root')
+
 		let parentFullNames = this.getClosestSelectorFullNames()
-		let currentCommandType: LeafNameType | undefined
 
 		for (let oldName of oldNames) {
 
 			// When not a selector.
 			if (oldName.type !== LeafNameType.Selector) {
 				names.push(oldName)
-				currentCommandType = oldName.type
 			}
 
-			// `a{&-b` -> `a-b`, not handle joining multiply & when several `&` exist.
-			else if (parentFullNames && re.test(oldName.full)) {
-				for (let parentFullName of parentFullNames) {
-					let full = oldName.full.replace(re, parentFullName)
-					names.push({
-						type: LeafNameType.Selector,
-						full,
-						raw: oldName.raw,
-					})
+			// `a{&-b}` -> `a-b`, not handle joining multiply & when several `&` exist.
+			else if (re.test(oldName.full)) {
+				if (parentFullNames) {
+					for (let parentFullName of parentFullNames) {
+						let full = oldName.full.replace(re, parentFullName)
+						names.push({
+							type: LeafNameType.Selector,
+							full,
+							raw: oldName.raw,
+						})
+					}
 				}
 			}
 
-			// `a{b}` -> `a b`, but doesn't handle `@at-root a{b}`.
-			else if (currentCommandType !== LeafNameType.AtRoot && parentFullNames) {
+			// `a{b}` -> `a b`.
+			else if (parentFullNames && !atRoot) {
 				for (let parentFullName of parentFullNames) {
 					let full = parentFullName + ' ' + oldName.full
+
 					names.push({
 						type: LeafNameType.Selector,
 						full,
@@ -363,6 +368,19 @@ export class CSSLikeRangeParser {
 			if (this.haveSelectorInNames(parent.names)) {
 				break
 			}
+
+			// Sass Interpolation, break names extending.
+			if (parent.names.some(n => n.type === LeafNameType.Interpolation)) {
+				return null
+			}
+
+			// @at-root {...}, breaks too names nesting.
+			if (parent.names.some(n => n.type === LeafNameType.Command
+				&& n.raw.startsWith('@at-root'))
+			) {
+				return null
+			}
+
 			parent = parent.parent
 		}
 
@@ -383,13 +401,35 @@ export class CSSLikeRangeParser {
 
 	/** Leaves -> ranges. */
 	protected formatLeavesToRanges(leaves: Leaf[]): CSSDeclarationRange[] {
-		return leaves.map(leaf => this.formatOneLeafToRange(leaf))
+		let ranges: CSSDeclarationRange[] = []
+
+		for (let leaf of leaves) {
+			let range = this.formatOneLeafToRange(leaf)
+			if (range) {
+				ranges.push(range)
+			}
+		}
+
+		return ranges
 	}
 
 	/** Leaf -> ranges. */
-	protected formatOneLeafToRange(leaf: Leaf): CSSDeclarationRange {
+	protected formatOneLeafToRange(leaf: Leaf): CSSDeclarationRange | null {
+		let declNames: CSSDeclarationName[] = []
+
+		for (let leafName of leaf.names) {
+			let declName = this.formatLeafNameToDeclarationName(leafName)
+			if (declName) {
+				declNames.push(declName)
+			}
+		}
+
+		if (declNames.length === 0) {
+			return null
+		}
+
 		return {
-			names: leaf.names.map(leafName => this.formatLeafNameToDeclarationName(leafName)),
+			names: declNames,
 
 			// `positionAt` uses a binary search algorithm, it should be fast enough,
 			// we should have no need to count lines here to mark line and column number here,
@@ -399,12 +439,18 @@ export class CSSLikeRangeParser {
 	}
 
 	/** Leaf name -> names. */
-	private formatLeafNameToDeclarationName({raw, full, type}: LeafName): CSSDeclarationName {
-		if (type !== LeafNameType.Selector) {
+	private formatLeafNameToDeclarationName({raw, full, type}: LeafName): CSSDeclarationName | null {
+
+		// Can be searched by symbol name.
+		if (type === LeafNameType.Command) {
 			return {
 				full,
-				mains: null
+				mains: null,
 			}
+		}
+
+		if (type !== LeafNameType.Selector) {
+			return null
 		}
 
 		// If raw selector is like `&:...`, it's the same as parent selector, ignore processing the main.

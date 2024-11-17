@@ -1,5 +1,5 @@
 import * as assert from 'assert'
-import {prepare, searchSymbolNames as gs, jsxDocument, vueDocument} from './helper'
+import {prepare, searchSymbolNames as gs, jsxDocument} from './helper'
 
 
 describe('Test Finding Definition from HTML', () => {
@@ -17,7 +17,7 @@ describe('Test Finding Definition from HTML', () => {
 		assert.deepStrictEqual(await gs(['<', 'tag-not-match', '>']), [])
 	})
 
-	it('Should ignore tag definition when its not the unique part splited by space', async () => {
+	it('Should ignore tag definition when its not the unique part splitted by space', async () => {
 		assert.deepStrictEqual(await gs(['<', 'tagnotmatch', '>']), [])
 	})
 
@@ -33,13 +33,13 @@ describe('Test Finding Definition from HTML', () => {
 		assert.deepStrictEqual(await gs(['id="', 'id1', '"']), ['#id1'])
 	})
 
-	it('Should find right class definition even whthin sass nesting', async () => {
+	it('Should find right class definition even within sass nesting', async () => {
 		assert.deepStrictEqual(await gs(['class="', 'class1', '"']), ['.class1'])
 		assert.deepStrictEqual(await gs(['class="', 'class1-sub', '"']), ['&-sub'])
 		assert.deepStrictEqual(await gs(['class="', 'class1-sub-tail', '"']), ['&-tail'])
 	})
 
-	it('Should find right class definition whthin sass nesting when have multiple parent selectors', async () => {
+	it('Should find right class definition within sass nesting when have multiple parent selectors', async () => {
 		assert.deepStrictEqual(await gs(['class="', 'class2-sub', '"']), ['&-sub'])
 		assert.deepStrictEqual(await gs(['class="', 'class3-sub', '"']), ['&-sub'])
 	})
@@ -52,12 +52,12 @@ describe('Test Finding Definition from HTML', () => {
 		assert.deepStrictEqual(await gs(['class="', 'class4-sub-sub-tail', '"']), ['&-tail'])
 	})
 
-	it('Should combine to eliminate "&" when parts splited by commands', async () => {
+	it('Should combine to eliminate "&" when parts splitted by commands', async () => {
 		assert.deepStrictEqual(await gs(['class="', 'class5-sub5', '"']), ['&-sub5'])
 		assert.deepStrictEqual(await gs(['class="', 'class6-sub6', '"']), ['@at-root &-sub6'])
 	})
 
-	it('Should not combine with space when splited by "@at-root"', async () => {
+	it('Should not combine with space when splitted by "@at-root"', async () => {
 		assert.deepStrictEqual(await gs(['class="', 'class7-sub7', '"']), ['@at-root .class7-sub7'])
 	})
 
@@ -97,10 +97,14 @@ describe('Test Finding Definition from HTML', () => {
 		assert.deepStrictEqual(await gs(['class="', 'less-class', '"']), ['.less-class'])
 	})
 
-	it('Should find right class definition even whthin sass nesting', async () => {
+	it('Should find right class definition even within sass nesting', async () => {
 		assert.deepStrictEqual(await gs(['class="', 'class1', '"']), ['.class1'])
 		assert.deepStrictEqual(await gs(['class="', 'class1-sub', '"']), ['&-sub'])
 		assert.deepStrictEqual(await gs(['class="', 'class1-sub-tail', '"']), ['&-tail'])
+	})
+
+	it('Should find right class definition when contains sass variable', async () => {
+		assert.deepStrictEqual(await gs(['class="', 'scss-class-contains-variable', '"']), ['&-contains-variable'])
 	})
 })
 
@@ -113,7 +117,7 @@ describe('Test Less', () => {
 		assert.deepStrictEqual(await gs(['class="', 'less-class', '"']), ['.less-class'])
 	})
 
-	it('Should find right class definition even whthin sass nesting', async () => {
+	it('Should find right class definition even within sass nesting', async () => {
 		assert.deepStrictEqual(await gs(['class="', 'class1', '"']), ['.class1'])
 		assert.deepStrictEqual(await gs(['class="', 'class1-sub', '"']), ['&-sub'])
 		assert.deepStrictEqual(await gs(['class="', 'class1-sub-tail', '"']), ['&-tail'])

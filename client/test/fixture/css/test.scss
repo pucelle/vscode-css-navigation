@@ -170,3 +170,14 @@ div.class-match10{
 .c-footer-logo{
 	color: red;
 }
+
+$variable: 'abc';
+.scss-class {
+    #{$variable} {
+		color: red;
+    }
+
+    &-contains-variable {
+		color: red;
+    }
+}

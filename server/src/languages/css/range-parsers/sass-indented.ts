@@ -1,5 +1,5 @@
 import {CSSService} from '../css-service'
-import {CSSLikeRangeParser, Leaf, LeafNameType} from './css-like'
+import {CSSLikeRangeParser, Leaf} from './css-like'
 
 
 /** Represent each line of sass document. */
@@ -35,14 +35,6 @@ export class SassRangeParser extends CSSLikeRangeParser {
 				let selector = content.trimRight().replace(/\s+/g, ' ')
 				let names = this.parseSelectorNames(selector)
 
-				if (names.length === 0) {
-					continue
-				}
-
-				if (this.ignoreDeep > 0 || names[0].type === LeafNameType.Keyframes) {
-					this.ignoreDeep++
-				}
-
 				this.current = this.newLeaf(names, startIndex)
 				ranges.push(this.current!)
 			}
@@ -50,10 +42,6 @@ export class SassRangeParser extends CSSLikeRangeParser {
 			//     color: red
 			// |.class1
 			else if (tabCount > nextTabCount) {
-				if (this.ignoreDeep > 0) {
-					this.ignoreDeep += tabCount - nextTabCount
-				}
-
 				for (let j = 0; j < tabCount - nextTabCount; j++) {
 					if (this.current) {
 						this.current.rangeEnd = endIndex
