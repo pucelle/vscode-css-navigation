@@ -6,20 +6,56 @@ import {hasQuotes} from './utils'
 /** Part types. */
 export enum PartType {
 
-	/** Shared. */
+	////
 	Import,
 
-	/** From HTML. */
+
+	//// From HTML.
+
 	Id,
 	Tag,
 	Class,
 	ClassBinding,
 
-	/** From CSS. */
+	/** 
+	 * Import 'file.css'
+	 * Import name from 'file.css'
+	 */
+	CSSImportPath,
+
+	/**
+	 * `class={style.className}`
+	 * `class={style['class-name']}`
+	*/
+	ReactImportedCSSModuleName,
+	ReactImportedCSSModuleProperty,
+
+	/**
+	 * import 'xx.css'
+	 * `styleName="class-name"`
+	*/
+	ReactDefaultImportedCSSModule,
+
+	/**
+	 * `querySelect('.class-name')`
+	 * `$('.class-name')`
+	 */
+	SelectorQuery,
+
+	/** `style.setProperty('--variable-name', ...)` */
+	CSSVariableAssignment,
+
+
+	//// From CSS.
+
 	IdSelector,
 	TagSelector,
 	ClassSelector,
+
+	/** `--variable-name: ...;` */
 	CSSVariableDeclaration,
+
+	/** `property: var(--variable-name);` */
 	CSSVariableReference,
 }
 
@@ -83,6 +119,30 @@ export class Part {
 			text = text.slice(1, -1)
 			start++
 			
+			return new Part(this.type, text, start)
+		}
+		else {
+			return this
+		}
+	}
+
+	/** Trim text. */
+	trim(): Part {
+		let text = this.text
+		let start = this.start
+
+		if (/^\s+/.test(text)) {
+			text = text.trimLeft()
+			start += this.text.length - text.length
+			
+			return new Part(this.type, text, start)
+		}
+
+		if (/\s+$/.test(text)) {
+			text = text.trimRight()
+		}
+
+		if (text !== this.text) {
 			return new Part(this.type, text, start)
 		}
 		else {

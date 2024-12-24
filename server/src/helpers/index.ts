@@ -1,8 +1,4 @@
+export * from './console'
 export * from './file-tracker'
-
-import * as file from './file'
-import * as console from './console'
-export {
-	file,
-	console,
-}
+export * from './file-walker'
+export * from './file'

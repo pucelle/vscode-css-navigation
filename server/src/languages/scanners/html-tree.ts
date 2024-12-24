@@ -1,7 +1,8 @@
 import {HTMLToken, HTMLTokenScanner, HTMLTokenType} from './html'
 import {Part, PartType} from './part'
 import {mayBeExpression, removeQuotes} from './utils'
-import {WordsPicker} from './words-picker'
+import {Picker} from './picker'
+import {isCSSLikePath} from '../../helpers'
 
 
 /** 
@@ -105,111 +106,14 @@ export class HTMLTokenNode {
 			}
 		}
 	}
-
-	*walkParts(): Iterable<Part> {
-		for (let node of this.walk()) {
-			yield* this.walkNodePart(node)
-		}
-	}
-
-	protected *walkNodePart(node: HTMLTokenNode): Iterable<Part> {
-
-		// Root node.
-		if (node.token.start === -1) {
-			return
-		}
-
-		if (node.token.type === HTMLTokenType.StartTagName) {
-			yield new Part(PartType.Tag, node.token.text, node.token.start)
-
-			for (let attr of node.attrs!) {
-				yield* this.walkAttrPart(attr.name, attr.value)
-			}
-
-			yield* this.walkImport(node)
-		}
-	}
-
-	/** For attribute part. */
-	protected *walkAttrPart(attrName: HTMLToken, attrValue: HTMLToken | null): Iterable<Part> {
-		let name = attrName.text
-
-		if (name === 'id') {
-			if (attrValue) {
-				yield new Part(PartType.Id, attrValue.text, attrValue.start).removeQuotes()
-			}
-		}
-
-		// For `Lupos.js`, completion `:class.|name|`
-		else if (name.startsWith(':class.')) {
-			yield new Part(PartType.ClassBinding, attrName.text.slice(7), attrName.start + 7)
-		}
-
-		// For `JSX`, `Lupos.js`, `Vue.js`
-		else if (name === 'class' || name === 'className' || name === ':class') {
-			if (attrValue) {
-				let value = attrValue.text
-
-				// Probable expression.
-				if (mayBeExpression(value)) {
-					for (let word of WordsPicker.pickWordsFromExpression(value)) {
-						yield new Part(PartType.Class, word.text, attrValue.start + word.start)
-					}
-				}
-				else {
-					for (let word of WordsPicker.pickWords(value)) {
-						yield new Part(PartType.Class, word.text, attrValue.start + word.start)
-					}
-				}
-			}
-		}
-	}
-
-	/** For import path. */
-	protected *walkImport(node: HTMLTokenNode): Iterable<Part> {
-		let tagName = node.token.text
-
-		if (tagName === 'link') {
-			if (node.getAttributeValue('rel') === 'stylesheet') {
-				let href = node.getAttribute('href')
-				if (href) {
-					yield new Part(PartType.Import, href.text, href.start).removeQuotes()
-				}
-			}
-		}
-		else if (tagName === 'style') {
-			let src = node.getAttribute('src')
-			if (src) {
-				yield new Part(PartType.Import, src.text, src.start).removeQuotes()
-			}
-		}
-	}
-
-	findPart(offset: number): Part | undefined {
-		for (let node of this.walk()) {
-			if (node.tagStart > offset) {
-				break
-			}
-
-			if (node.tagEnd <= offset) {
-				for (let part of this.walkNodePart(node)) {
-					if (part.start >= offset && part.end <= offset) {
-						return part
-					}
-				}
-			}
-		}
-
-		return undefined
-	}
 }
 
 
 export class HTMLTokenTree extends HTMLTokenNode {
 
 	/** Make a token tree by tokens. */
-	static fromTokens(tokens: Iterable<HTMLToken>): HTMLTokenTree {
-		let tree = new HTMLTokenTree()
+	static fromTokens(tokens: Iterable<HTMLToken>, isJSLikeSyntax: boolean = false): HTMLTokenTree {
+		let tree = new HTMLTokenTree(isJSLikeSyntax)
 		let current: HTMLTokenNode | null = tree
 		let currentAttr: {name: HTMLToken, value: HTMLToken | null} | null = null
 
@@ -287,22 +191,184 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	}
 
 	/** Make a HTML token tree by string. */
-	static fromString(string: string): HTMLTokenTree {
+	static fromString(string: string, isJSLikeSyntax: boolean = false): HTMLTokenTree {
 		let tokens = new HTMLTokenScanner(string).parseToTokens()
-		return HTMLTokenTree.fromTokens(tokens)
+		return HTMLTokenTree.fromTokens(tokens, isJSLikeSyntax)
 	}
 
 	/** Make a partial HTML token tree by string and offset. */
-	static fromStringAndOffset(string: string, offset: number): HTMLTokenTree {
+	static fromStringAtOffset(string: string, offset: number, isJSLikeSyntax: boolean = false): HTMLTokenTree {
 		let tokens = new HTMLTokenScanner(string).parsePartialTokens(offset)
-		return HTMLTokenTree.fromTokens(tokens)
+		return HTMLTokenTree.fromTokens(tokens, isJSLikeSyntax)
 	}
 
-	constructor() {
+
+	readonly isJSLikeSyntax: boolean
+
+	constructor(isJSLikeSyntax: boolean) {
 		super({
 			type: HTMLTokenType.StartTagName,
 			text: 'root',
 			start: -1,
 		}, null)
+
+		this.isJSLikeSyntax = isJSLikeSyntax
+	}
+	
+	*walkParts(): Iterable<Part> {
+		for (let node of this.walk()) {
+			
+			// Root node.
+			if (node.token.start === -1) {
+				return
+			}
+
+			yield* this.parseNodeParts(node)
+		}
+	}
+
+	protected *parseNodeParts(node: HTMLTokenNode): Iterable<Part> {
+		if (node.token.type === HTMLTokenType.StartTagName) {
+			yield new Part(PartType.Tag, node.token.text, node.token.start)
+
+			for (let attr of node.attrs!) {
+				yield* this.parseAttrPart(attr.name, attr.value)
+			}
+
+			yield* this.parseImportPart(node)
+		}
+		else if (node.token.type === HTMLTokenType.Text) {
+			yield* this.parseTextParts(node)
+		}
+	}
+
+	/** For attribute part. */
+	protected *parseAttrPart(attrName: HTMLToken, attrValue: HTMLToken | null): Iterable<Part> {
+		let name = attrName.text
+
+		if (name === 'id') {
+			if (attrValue) {
+				yield new Part(PartType.Id, attrValue.text, attrValue.start).removeQuotes()
+			}
+		}
+
+		// For `Lupos.js`, completion `:class.|name|`
+		else if (this.isJSLikeSyntax && name.startsWith(':class.')) {
+			yield new Part(PartType.ClassBinding, attrName.text.slice(7), attrName.start + 7)
+		}
+
+		// For `JSX`, `Lupos.js`, `Vue.js`
+		else if (name === 'class' || name === 'className' || name === ':class') {
+			if (attrValue) {
+				let value = attrValue.text
+
+				// Probably expression.
+				if (this.isJSLikeSyntax && mayBeExpression(value)) {
+					for (let word of Picker.pickWordsFromExpression(value)) {
+						yield new Part(PartType.Class, word.text, attrValue.start + word.start)
+					}
+
+					this.parseReactModulePart(attrValue)
+				}
+				else {
+					for (let word of Picker.pickWords(value)) {
+						yield new Part(PartType.Class, word.text, attrValue.start + word.start)
+					}
+				}
+			}
+		}
+
+		// https://github.com/gajus/babel-plugin-react-css-modules and issue #60.
+		// import 'xx.css'
+		// `styleName="class-name"`
+		else if (this.isJSLikeSyntax && name === 'styleName') {
+			if (attrValue) {
+				yield new Part(PartType.ReactDefaultImportedCSSModule, attrValue.text, attrValue.start).removeQuotes()
+			}
+		}
+	}
+
+	/** For import path. */
+	protected *parseImportPart(node: HTMLTokenNode): Iterable<Part> {
+		let tagName = node.token.text
+
+		if (tagName === 'link') {
+			if (node.getAttributeValue('rel') === 'stylesheet') {
+				let href = node.getAttribute('href')
+				if (href) {
+					yield new Part(PartType.Import, href.text, href.start).removeQuotes()
+				}
+			}
+		}
+		else if (tagName === 'style') {
+			let src = node.getAttribute('src')
+			if (src) {
+				yield new Part(PartType.Import, src.text, src.start).removeQuotes()
+			}
+		}
+	}
+
+	/** For react css module. */
+	protected *parseReactModulePart(attrValue: HTMLToken): Iterable<Part> {
+
+		// `class={style.className}`.
+		// `class={style['class-name']}`.
+		let match = Picker.locateMatchGroups(
+			attrValue.text,
+			/^\s*\{\s*(?<moduleName>\w+)(?:\.(?<propertyName>\w+)|\[\s*['"`](?<propertyName>\w+)['"`]\s*\])\s*\}\s*$/
+		)
+
+		if (match) {
+			yield new Part(PartType.ReactImportedCSSModuleName, match.moduleName.text, match.moduleName.start)
+			yield new Part(PartType.ReactImportedCSSModuleProperty, match.propertyName.text, match.propertyName.start)
+		}
+	}
+
+	/** Parse text for parts. */
+	protected *parseTextParts(node: HTMLTokenNode): Iterable<Part> {
+		if (!this.isJSLikeSyntax) {
+			return
+		}
+
+		// `querySelect('.class-name')`
+	 	// `$('.class-name')`
+		let match = Picker.locateMatches(
+			node.token.text!,
+			/(?:\$|\.querySelect|\.querySelectAll)\s*\(\s*['"`](.*?)['"`]/
+		)
+
+		if (match) {
+			yield new Part(PartType.SelectorQuery, match[1].text, match[1].start).trim()
+		}
+
+		// import * from '...'
+		// import abc from '...'
+		// import '...'
+
+		for (let match of Picker.locateAllMatches(node.token.text!, /import\s+(?:\w+\s+from\s+)?['"`](.+?)['"`]/g)) {
+			let path = match[1].text
+			
+			if (isCSSLikePath(path)) {
+				yield new Part(PartType.CSSImportPath, match[1].text, match[1].start).trim()
+			}
+		}
+	}
+
+	findPart(offset: number): Part | undefined {
+		for (let node of this.walk()) {
+			if (node.tagStart > offset) {
+				break
+			}
+
+			if (node.tagEnd <= offset) {
+				for (let part of this.parseNodeParts(node)) {
+					if (part.start >= offset && part.end <= offset) {
+						return part
+					}
+				}
+			}
+		}
+
+		return undefined
 	}
 }

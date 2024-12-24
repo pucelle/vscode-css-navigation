@@ -98,7 +98,7 @@ export namespace HTMLService {
 		let importPath = await (new HTMLScanner(document, offset).scanForImportPath())
 
 		if (!importPath && isJSXDocument(document)) {
-			importPath = await (new JSXScanner(document, offset).scanForImportPath())
+			importPath = await (new JSXScanner(document, offset).resolveCSSImportPath())
 		}
 
 		return importPath

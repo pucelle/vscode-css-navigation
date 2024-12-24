@@ -107,7 +107,7 @@ export class CSSTokenTree extends CSSTokenNode {
 	}
 
 	/** Make a partial CSS token tree by string and offset. */
-	static fromStringAndOffset(string: string, offset: number, isSassSyntax: boolean = false): CSSTokenTree {
+	static fromStringAtOffset(string: string, offset: number, isSassSyntax: boolean = false): CSSTokenTree {
 		let tokens = new CSSTokenScanner(string, isSassSyntax).parsePartialTokens(offset)
 		return CSSTokenTree.fromTokens(tokens)
 	}

@@ -179,8 +179,9 @@ export class JSXScanner extends TextScanner {
 		return null
 	}
 
+
 	/** Scan for relative import path. */
-	async scanForImportPath(): Promise<ImportPath | null> {
+	async resolveCSSImportPath(): Promise<ImportPath | null> {
 
 		// import * from '...'
 		// import abc from '...'

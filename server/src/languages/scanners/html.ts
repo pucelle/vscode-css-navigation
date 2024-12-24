@@ -290,7 +290,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	/** Try read an expression as attribute value, brackets or quotes must appear in pairs. */
 	private readExpressionLikeAttrValue() {
 		let stack: string[] = []
-		let allChars = ['(', '[', '{', '"', '\'', ' ', '\t', '\r', '\n', '>']
+		let allChars = ['(', '[', '{', '"', '\'', '`', ' ', '\t', '\r', '\n', '>']
 		let close: string | null = null
 
 		do {
@@ -304,7 +304,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 			if (char === ' ' || char === '\t' || char === '\r' || char === '\n' || char === '>') {
 				break
 			}
-			else if (char === '"' || char === '\'') {
+			else if (char === '"' || char === '\'' || char === '`') {
 				this.readString(char)
 				continue
 			}
