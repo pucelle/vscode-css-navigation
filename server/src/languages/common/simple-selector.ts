@@ -10,9 +10,6 @@ export class SimpleSelector {
 	/** Raw selector string, includes identifier like `.`, `#`. */
 	readonly raw: string
 
-	/** `.`, `#`, or empty string. */
-	readonly identifier: string
-
 	/** Selector string exclude identifier. */
 	readonly label: string
 
@@ -25,10 +22,9 @@ export class SimpleSelector {
 	/** Related imported file, only available for JSX files. */
 	importURI: string | null
 
-	constructor(type: SimpleSelector.Type, raw: string, identifier: string, label: string, startIndex: number, document: TextDocument, importURI: string | null) {
+	constructor(type: SimpleSelector.Type, raw: string, label: string, startIndex: number, document: TextDocument, importURI: string | null) {
 		this.type = type
 		this.raw = raw
-		this.identifier = identifier
 		this.label = label
 		this.startIndex = startIndex
 		this.document = document
@@ -52,7 +48,8 @@ export namespace SimpleSelector {
 	export enum Type{
 		Tag,
 		Class,
-		Id
+		Id,
+		CSSVariable,
 	}
 	
 	/** Create a selector from raw selector string. */
@@ -62,12 +59,11 @@ export namespace SimpleSelector {
 		}
 
 		let type = getType(raw)
-		let label = type === Type.Tag ? raw : raw.slice(1)
+		let label = type === Type.Tag || type === Type.CSSVariable ? raw : raw.slice(1)
 
 		return new SimpleSelector(
 			type,
 			raw,
-			type === Type.Tag ? '' : raw[0],
 			label,
 			startOffset,
 			document,
@@ -79,6 +75,7 @@ export namespace SimpleSelector {
 	export function getType(raw: string): Type {
 		let type = raw[0] === '.' ? Type.Class
 			: raw[0] === '#' ? Type.Id
+			: raw[0] === '-' && raw[1] === '-' ? Type.CSSVariable
 			: Type.Tag
 
 		return type
@@ -87,5 +84,6 @@ export namespace SimpleSelector {
 	/** Whether a string is a valid selector. */
 	export function validate(raw: string): boolean {
 		return /^[#.]?\w[\w-]*$/i.test(raw)
+			|| /^--[\w-]+/.test(raw)
 	}
 }

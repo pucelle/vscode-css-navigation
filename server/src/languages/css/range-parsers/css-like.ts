@@ -7,11 +7,12 @@ import {CSSService} from '../css-service'
 export enum LeafNameType{
 	Selector,
 	Command,
-	Interpolation, // Sass interpolation #{...}
+	Interpolation,	// Sass interpolation #{...}
+	CSSVariableName,	// CSS variable name `--variable-name`
 	Others,
 }
 
-/** `.a, .b` will be split as 2 leaves. */
+/** `.a, .b` will be splitted to 2 leaves. */
 export interface LeafName {
 
 	/** CSS leaf piece type. */
@@ -29,7 +30,7 @@ export interface LeafName {
 
 /** 
  * Internal leaf node.
- * Cascade in the same rule of nesting.
+ * names are the list of nesting selector names, like `.a .b` -> [.a, .b].
  */
 export interface Leaf {
 
@@ -113,7 +114,7 @@ export class CSSLikeRangeParser {
 
 	private parseAsLeaves() {
 		let text = this.document.getText()
-		let re = /\s*(?:\/\/.*|\/\*[\s\S]*?\*\/|((?:\(.*?\)|".*?"|'.*?'|\/\/.*|\/\*[\s\S]*?\*\/|#\{[\s\S]*?\}|[\s\S])*?)([;{}]))/g
+		let re = /\s*(?:\/\/.*|\/\*[\s\S]*?\*\/|((?:\(.*?\)|".*?"|'.*?'|\/\/.*|\/\*[\s\S]*?\*\/|#\{[\s\S]*?\}|--[\w-]+\s*:|[\s\S])*?)([;{}]))/g
 		/*
 			\s*						--- match white spaces in left
 			(?:
@@ -127,13 +128,19 @@ export class CSSLikeRangeParser {
 					|
 					'.*?'			--- double quote string
 					|
-					#\{[\s\S]*?\}	--- Sass variable
+					--[\w-]+\s*:    --- CSS Variables
+					|
+					#\{[\s\S]*?\}	--- Sass Variables
 					|
 					[\s\S]			--- others
 				)*?					--- declaration or selector
 				([;{}])             --- part end char, or match brackets
 			)
 		*/
+
+		// TODO:
+		// This regular expression is too complex,
+		// it should be replaced to a token parser.
 
 		let match: RegExpExecArray | null
 
@@ -145,8 +152,8 @@ export class CSSLikeRangeParser {
 			let rangeStartIndex = re.lastIndex - chars.length - 1
 
 			if (endChar === '{' && chars) {
-				let names = this.parseSelectorNames(chars)
-				this.current = this.newLeaf(names, rangeStartIndex)
+				let names = this.parseSelectorNamesLike(chars)
+				this.current = this.makeLeaf(names, rangeStartIndex)
 				this.leaves.push(this.current!)
 			}
 			
@@ -158,9 +165,17 @@ export class CSSLikeRangeParser {
 			}
 
 			// Likes `@...` command in top level.
-			// Here only parse `@import ...` and push them to `importPaths` property.
+			// Here it only parses `@import ...` and push them to `importPaths` property.
 			else if (chars && !this.current) {
-				this.parseSelectorNames(chars)
+				this.parseSelectorNamesLike(chars)
+			}
+
+			// Like `--variable-name`, not enter stack.
+			else {
+				let namesStarts = this.parseCSSVariableNames(chars)
+				for (let {name, start} of namesStarts) {
+					this.leaves.push(this.makeLeaf([name], rangeStartIndex + start))
+				}
 			}
 		}
 
@@ -179,10 +194,13 @@ export class CSSLikeRangeParser {
 		}
 	}
 
-	/** Parse selector to name array. */
-	protected parseSelectorNames(selectorString: string): LeafName[] {
+	/** 
+	 * Parse selector to name array.
+	 * `@command-name` will also be parsed.
+	 */
+	protected parseSelectorNamesLike(selectorString: string): LeafName[] {
 
-		// May selectors like this: '[attr="]"]', so this is not a strict parser RE.
+		// May selectors like this: '[attr="]"]', so this is not a strict parser expression.
 		// If want to handle it, use `/((?:\[(?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\]|\((?:"(?:\\"|.)*?"|'(?:\\'|.)*?'|[\s\S])*?\)|[\s\S])+?)(?:,|$)/g`
 		let re = /(@[\w-]+)|\/\/.*|\/\*[\s\S]*?\*\/|((?:\[.*?\]|\(.*?\)|.|#\{.*?\})+?)(?:,|$)/g
 		/*
@@ -275,8 +293,8 @@ export class CSSLikeRangeParser {
 		}
 	}
 
-	/** Create a leaf node. */
-	protected newLeaf(names: LeafName[], rangeStart: number): Leaf {
+	/** Make a leaf node. */
+	protected makeLeaf(names: LeafName[], rangeStart: number): Leaf {
 		if (this.supportsNesting && this.current && this.haveSelectorInNames(names)) {
 			names = this.combineNestingNames(names)
 		}
@@ -299,6 +317,17 @@ export class CSSLikeRangeParser {
 			rangeEnd: 0,
 			parent,
 			skipDeeply,
+		}
+	}
+
+	/** Make a global leaf node, it inserts to leaf list,but not push to stack. */
+	protected makeGlobalLeaf(name: LeafName, start: number): Leaf {
+		return {
+			names: [name],
+			rangeStart: start,
+			rangeEnd: start + name.raw.length,
+			parent: undefined,
+			skipDeeply: false,
 		}
 	}
 
@@ -442,7 +471,7 @@ export class CSSLikeRangeParser {
 	private formatLeafNameToDeclarationName({raw, full, type}: LeafName): CSSDeclarationName | null {
 
 		// Can be searched by symbol name.
-		if (type === LeafNameType.Command) {
+		if (type === LeafNameType.Command || type === LeafNameType.CSSVariableName) {
 			return {
 				full,
 				mains: null,
@@ -530,5 +559,31 @@ export class CSSLikeRangeParser {
 
 		let match = selector.match(descendantRE)
 		return match ? match[0] : ''
+	}
+
+	/** Parse for css variable names. */
+	protected parseCSSVariableNames(content: string): {name: LeafName, start: number}[] {
+
+		// Match css variable name.
+		let re = /(?<![\w-])(--[\w-]+):/g
+		let match: RegExpExecArray | null
+		let namesStarts: {name: LeafName, start: number}[] = []
+		
+		while (match = re.exec(content)) {
+			let name: LeafName = {
+				type: LeafNameType.CSSVariableName,
+				raw: match[1],
+				full: match[1],
+			}
+
+			let start = match.index
+
+			namesStarts.push({
+				name,
+				start,
+			})
+		}
+
+		return namesStarts
 	}
 }

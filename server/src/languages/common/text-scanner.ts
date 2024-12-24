@@ -27,7 +27,7 @@ export class TextScanner {
 	 * and cursor must between one of the sub matches.
 	 * Note that at most time each regexp should be in global mode.
 	 */
-	protected match(...reSequence: RegExp[]) {
+	protected match(...reSequence: RegExp[]): {text: string, index: number, groups: Record<string, string>} | null {
 		let subText: string | null = this.startText
 		let startIndex = this.startIndex
 		let m: RegExpExecArray | null

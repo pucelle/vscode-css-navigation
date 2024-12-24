@@ -33,7 +33,7 @@ interface FileTrackerItem {
 	fresh: boolean
 
 	/**
-	 * update request may come from track, or beFresh, we cant makesure they will have no conflict
+	 * update request may come from track, or beFresh, we cant make sure they will have no conflict
 	 * so we need a promise to lock it to avoid two update task are executed simultaneously.
 	 */
 	updatePromise: Promise<void> | null
@@ -137,7 +137,7 @@ export class FileTracker {
 		let item = this.map.get(document.uri)
 
 		if (item) {
-			this.retrackClosedFile(document.uri)
+			this.reTrackClosedFile(document.uri)
 		}
 	}
 
@@ -165,7 +165,7 @@ export class FileTracker {
 					let stat = await fs.stat(fsPath)
 					if (stat && stat.isFile()) {
 						if (this.shouldTrackFile(fsPath)) {
-							this.retrackChangedFile(uri)
+							this.reTrackChangedFile(uri)
 						}
 					}
 				}
@@ -384,11 +384,11 @@ export class FileTracker {
 		return this.ignoredFileURIs.size > 0 && this.ignoredFileURIs.has(uri)
 	}
 
-	/** After file content changed, retrack it. */
-	private retrackChangedFile(uri: string) {
+	/** After file content changed, re track it. */
+	private reTrackChangedFile(uri: string) {
 		let item = this.map.get(uri)
 		if (item) {
-			// Alread been handled by document change event.
+			// Already been handled by document change event.
 			let openedAndFresh = item.document && item.version === item.document.version
 			if (!openedAndFresh) {
 				this.makeFileExpire(uri, item)
@@ -399,8 +399,8 @@ export class FileTracker {
 		}
 	}
 
-	/** retrack closed file. */
-	private retrackClosedFile(uri: string) {
+	/** re track closed file. */
+	private reTrackClosedFile(uri: string) {
 		let item = this.map.get(uri)
 		if (item) {
 			// Becomes same as not opened, still fresh.

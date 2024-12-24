@@ -101,19 +101,19 @@ export class CSSService {
 			return false
 		}
 
-		//match at start position
+		// Match at start position.
 		if (index === 0) {
 			return true
 		}
 
-		//if search only 1 character, must match at start word boundary
+		// If search only 1 character, must match at start word boundary.
 		if (query.length === 1) {
 			let charactersBeforeMatch = selector.slice(0, index)
 			let hasNoWordCharacterBeforeMatch = !/[a-z]/.test(charactersBeforeMatch)
 			return hasNoWordCharacterBeforeMatch
 		}
 
-		//starts with a not word characters
+		// Starts with a not word characters.
 		if (!/[a-z]/.test(query[0])) {
 			return true
 		}

@@ -11,10 +11,18 @@ import {ImportPath} from '../common/import-path'
 
 
 export interface CSSSelectorResults {
-	selectors: SimpleSelector[]
-	parentSelectors: SimpleSelector[] | null
+
+	/** Whole match text. */
 	raw: string
+
+	/** Match start index. */
 	startIndex: number
+
+	/** Selectors get. */
+	selectors: SimpleSelector[]
+
+	/** Parent selectors. */
+	parentSelectors: SimpleSelector[] | null
 }
 
 
@@ -41,8 +49,8 @@ export class CSSScanner extends TextScanner {
 			return null
 		}
 
-		// Tag, or #id,.class, &-suffix.
-		let match = this.match(/([\w-]+|[#.&][\w-]*)/g)
+		// `<tag`, or `#id`, `.class`, `&-suffix`, or `var(--css-variable-name)`.
+		let match = this.match(/([\w-]+|[#.&][\w-]*|var\s*\(\s*(?<cssVariableName>--[\w-]+))/g)
 		if (!match) {
 			return null
 		}
@@ -57,7 +65,14 @@ export class CSSScanner extends TextScanner {
 				selectors.push(selector)
 			}
 		}
-
+		else if (match.groups.cssVariableName) {
+			let text = match.groups.cssVariableName
+			let index = match.index + match.text.indexOf(match.groups.cssVariableName)
+			let selector = SimpleSelector.create(text, index, this.document)
+			if (selector) {
+				selectors.push(selector)
+			}
+		}
 		else if (this.supportsNesting && mayIdentifier === '&') {
 			parentSelectors = this.parseParentSelectors()
 

@@ -294,7 +294,9 @@ class CSSNavigationServer {
 
 		// Search for current selector.
 		let selector = await HTMLService.getSimpleSelectorAt(document, position)
-		if (!selector || selector.type === SimpleSelector.Type.Tag) {
+
+		// Complete for class name or id.
+		if (!selector || selector.type === SimpleSelector.Type.Tag || selector.type === SimpleSelector.Type.CSSVariable) {
 			return null
 		}
 
@@ -346,8 +348,8 @@ class CSSNavigationServer {
 		let havingReference = selectorResults.raw.startsWith('&')
 		let parentSelectorNames = selectorResults.parentSelectors?.map(s => s.raw) || null
 
-		// Unique selector.
-		if (selectorResults.raw === '.' || selectorResults.raw === '#') {
+		// Unique selector, no need eliminate parent reference.
+		if (!havingReference) {
 			let labels = await this.htmlServiceMap!.findCompletionLabelsMatch(selectorResults.raw)
 
 			// Note the complete label includes identifier.
@@ -357,7 +359,7 @@ class CSSNavigationServer {
 			completionItems.push(...items)
 		}
 
-		// Has parent, must be processed to remove prefix.
+		// Has parent, must remove prefix after completion.
 		else {
 			for (let selector of selectorResults.selectors) {
 				let labels = await this.htmlServiceMap!.findCompletionLabelsMatch(selector.raw)

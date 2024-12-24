@@ -33,9 +33,9 @@ export class SassRangeParser extends CSSLikeRangeParser {
 			//     color: red
 			if (tabCount < nextTabCount) {
 				let selector = content.trimRight().replace(/\s+/g, ' ')
-				let names = this.parseSelectorNames(selector)
+				let names = this.parseSelectorNamesLike(selector)
 
-				this.current = this.newLeaf(names, startIndex)
+				this.current = this.makeLeaf(names, startIndex)
 				ranges.push(this.current!)
 			}
 
@@ -53,7 +53,15 @@ export class SassRangeParser extends CSSLikeRangeParser {
 			// `@...` command in top level
 			// parse `@import ...` to `this.importPaths`
 			else if (content && !this.current) {
-				this.parseSelectorNames(content)
+				this.parseSelectorNamesLike(content)
+			}
+
+			// Like `--variable-name`, not enter stack.
+			else {
+				let namesStarts = this.parseCSSVariableNames(content)
+				for (let {name, start} of namesStarts) {
+					this.leaves.push(this.makeLeaf([name], startIndex + start))
+				}
 			}
 		}
 
