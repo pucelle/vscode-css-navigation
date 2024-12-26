@@ -6,6 +6,7 @@ export interface CSSToken {
 	type: CSSTokenType
 	text: string
 	start: number
+	end: number
 }
 
 
@@ -15,123 +16,130 @@ export enum CSSTokenType {
 	/** 
 	 * When first time doing scanning,
 	 * can't determine whether a token is selector or property.
+	 * Note it includes whitespaces at head and tail.
 	 */
 	NotDetermined,
 
 	ClosureStart,
 	ClosureEnd,
 	SemiColon,
-	Comment,
+	CommentText,
 	SassInterpolation,
 }
 
-
-enum CSSScanState {
+enum ScanState {
 	EOF = 0,
 	AnyContent = 1,
 	WithinSassInterpolation,
 	WithinCSSComment,
-	WithinSassComment,
+	WithinScssLessComment,
 }
 
 
+/** For CSS Like languages. */
 export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 
-	declare protected state: CSSScanState
-	private isSassSyntax: boolean
+	declare protected state: ScanState
+	private isScssLessSyntax: boolean
 
 	constructor(string: string, isSassSyntax: boolean = false) {
 		super(string)
-		this.isSassSyntax = isSassSyntax
+		this.isScssLessSyntax = isSassSyntax
 	}
 
 	*parsePartialTokens(offset: number): Iterable<CSSToken> {
-		let start = offset
-		let until = Math.max(start - 256, 0)
-
-		for (; start >= until; start--) {
-			let char = this.string[start]
-			if (char === ';' || char === '{' || char === '}') {
+		while (offset > 0) {
+			let selectorEnd = this.backSearch(offset, ['{']) - 1
+			if (selectorEnd < 0) {
+				offset = 0
 				break
 			}
+
+			let selectorStart = this.backSearch(selectorEnd, ['}', ';']) + 1
+			if (selectorStart <= 0) {
+				offset = 0
+				break
+			}
+
+			offset = selectorStart
+
+			let maySelector = this.string.slice(selectorStart, selectorEnd)
+			if (!maySelector.includes('&')) {
+				break
+			}
+
+			offset -= 2
 		}
 
-		for (let token of this.parseToTokens(start)) {
+		for (let token of this.parseToTokens(offset)) {
 			yield token
 
-			let tokenEnd = token.start + token.text.length
-
-			// End with `}` or `;`.
-			if (tokenEnd >= offset && (
-				token.type === CSSTokenType.ClosureEnd
-				|| token.type === CSSTokenType.SemiColon
-			)) {
+			if (token.end >= offset) {
 				break
 			}
 		}
 	}
 
 	/** 
-	 * Parse html string to tokens.
+	 * Parse css string to tokens.
 	 * This is rough tokens, more details wait to be determined.
 	 */
 	*parseToTokens(start: number = 0): Iterable<CSSToken> {
 		this.start = this.offset = start
 
 		while (this.offset < this.string.length) {
-			if (this.state === CSSScanState.AnyContent) {
-				this.readUntil(['/', '#', '{', '}', ';', '"', '\''])
+			if (this.state === ScanState.AnyContent) {
 
-				if (this.isEnded()) {
+				// Skip white spaces.
+				if (!this.readWhiteSpaces()) {
 					break
 				}
 
-				// |/*
-				else if (this.peekChars(0, 2) === '/*') {
-					yield* this.endNotDetermined()
+				this.sync()
 
-					this.state = CSSScanState.WithinCSSComment
-					this.syncSteps()
+				if (!this.readUntil(/[\/#{};"']/g)) {
+					break
 				}
 
-				// |//
-				else if (this.isSassSyntax && this.peekChars(0, 2) === '//') {
-					yield* this.endNotDetermined()
-					
-					this.state = CSSScanState.WithinSassComment
-					this.syncSteps()
+				// `|#{`
+				else if (this.isScssLessSyntax && this.peekChars(0, 2) === '#{') {
+					yield* this.makeNotDeterminedToken()
+
+					// Move to `#{|`
+					this.offset += 2
+					this.sync()
+					this.state = ScanState.WithinSassInterpolation
 				}
 
-				// |#{
-				else if (this.isSassSyntax && this.peekChars(0, 2) === '#{') {
-					yield* this.endNotDetermined()
-					
-					this.state = CSSScanState.WithinSassInterpolation
-					this.syncSteps()
-				}
-
-				// |{
+				// `|{`
 				else if (this.peekChar() === '{') {
-					yield* this.endNotDetermined()
-					yield this.makeToken(CSSTokenType.ClosureStart, this.offset, this.offset + 1)
-					this.state = CSSScanState.AnyContent
-					this.syncSteps(1)
+					yield* this.makeNotDeterminedToken()
+
+					// Move to `{|`
+					this.offset += 1
+					yield this.makeToken(CSSTokenType.ClosureStart)
+					this.state = ScanState.AnyContent
 				}
 
-				// |}
+				// `|}`
 				else if (this.peekChar() === '}') {
-					yield* this.endNotDetermined()
-					yield this.makeToken(CSSTokenType.ClosureEnd, this.offset, this.offset + 1)
-					this.state = CSSScanState.AnyContent
-					this.syncSteps(1)
+					yield* this.makeNotDeterminedToken()
+
+					// Move to `}|`
+					this.offset += 1
+					yield this.makeToken(CSSTokenType.ClosureEnd)
+					this.state = ScanState.AnyContent
 				}
 
-				// |;
+				// `|;`
 				else if (this.peekChar() === ';') {
-					yield* this.endNotDetermined()
-					yield this.makeToken(CSSTokenType.SemiColon, this.offset, this.offset + 1)
-					this.state = CSSScanState.AnyContent
-					this.syncSteps(1)
+					yield* this.makeNotDeterminedToken()
+					yield this.makeToken(CSSTokenType.SemiColon)
+
+					// Move to `;|`
+					this.offset += 1
+					this.sync()
+					this.state = ScanState.AnyContent
 				}
 				
 				// |' or |", eat string but not change state.
@@ -139,52 +147,84 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 					this.readString(this.peekChar())
 				}
 
+				// `|/*`
+				else if (this.peekChars(0, 2) === '/*') {
+					yield* this.makeNotDeterminedToken()
+
+					// Move to `/*|`
+					this.offset += 2
+					this.sync()
+					this.state = ScanState.WithinCSSComment
+				}
+
+				// `|//`
+				else if (this.isScssLessSyntax && this.peekChars(0, 2) === '//') {
+					yield* this.makeNotDeterminedToken()
+
+					// Move to `//|`
+					this.offset += 2
+					this.sync()
+					this.state = ScanState.WithinScssLessComment
+				}
+
 				else {
-					this.offset++
+					this.offset += 1
 				}
 			}
 
-			else if (this.state === CSSScanState.WithinSassInterpolation) {
-				this.readUntil(['}'], true)
+			else if (this.state === ScanState.WithinSassInterpolation) {
 
-				if (this.isEnded()) {
+				// `|}`
+				if (!this.readUntil(/[}]/g)) {
 					break
 				}
 
 				yield this.makeToken(CSSTokenType.SassInterpolation)
-				this.state = CSSScanState.AnyContent
-				this.syncSteps()
+
+				// Move to `}|`
+				this.offset += 1
+				this.sync()
+				this.state = ScanState.AnyContent
 			}
 
-			else if (this.state === CSSScanState.WithinCSSComment) {
-				this.readUntil(['*/'], true)
+			else if (this.state === ScanState.WithinCSSComment) {
 
-				if (this.isEnded()) {
+				// `|*/`
+				if (!this.readUntil(/\*\//g)) {
 					break
 				}
 
-				yield this.makeToken(CSSTokenType.Comment)
-				this.state = CSSScanState.AnyContent
-				this.syncSteps()
+				yield this.makeToken(CSSTokenType.CommentText)
+
+				// Move to `*/|`
+				this.offset += 2
+				this.sync()
+				this.state = ScanState.AnyContent
 			}
 
-			else if (this.state === CSSScanState.WithinSassComment) {
-				this.readUntil(['\r', '\n'])
+			else if (this.state === ScanState.WithinScssLessComment) {
 
-				if (this.isEnded()) {
+				// `|\n`
+				if (!this.readUntil(/[\r\n]/g)) {
 					break
 				}
 
-				yield this.makeToken(CSSTokenType.Comment)
-				this.state = CSSScanState.AnyContent
-				this.syncSteps(1)
+				yield this.makeToken(CSSTokenType.CommentText)
+
+				// Move to `\n|`
+				this.offset += 1
+				this.sync()
+				this.state = ScanState.AnyContent
 			}
 		}
 	}
 
-	private *endNotDetermined(): Iterable<CSSToken> {
+	private *makeNotDeterminedToken(): Iterable<CSSToken> {
 		if (this.start < this.offset && this.string.slice(this.start, this.offset).trim()) {
-			yield this.makeToken(CSSTokenType.NotDetermined, this.start, this.offset)
+			yield this.makeToken(CSSTokenType.NotDetermined)
+		}
+		else {
+			this.sync()
 		}
 	}
 }

@@ -1,7 +1,7 @@
 import * as path from 'path'
 import {SymbolInformation, TextDocuments, LocationLink} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {FileTrackerOptions, FileTracker, file} from '../../helpers'
+import {FileTrackerOptions, FileTracker, replacePathExtension} from '../../helpers'
 import {SimpleSelector} from '../common/simple-selector'
 import {CSSService} from './css-service'
 
@@ -29,27 +29,28 @@ export class CSSServiceMap extends FileTracker {
 		this.ignoreSameNameCSSFile = options.ignoreSameNameCSSFile
 	}
 
-	/** Get service by uri. */
+	/** Get CSS service by uri. */
 	async get(uri: string): Promise<CSSService | undefined> {
 		await this.makeFresh()
 		return this.serviceMap.get(uri)
 	}
 
 	protected onFileTracked(uri: string) {
+
 		// If same name scss or less files exist, ignore css files.
 		if (this.ignoreSameNameCSSFile) {
 			let ext = path.extname(uri).slice(1).toLowerCase()
 			if (ext === 'css') {
-				let sassOrLessExist = this.has(file.replacePathExtension(uri, 'scss'))
-					|| this.has(file.replacePathExtension(uri, 'less'))
-					|| this.has(file.replacePathExtension(uri, 'sass'))
+				let sassOrLessExist = this.has(replacePathExtension(uri, 'scss'))
+					|| this.has(replacePathExtension(uri, 'less'))
+					|| this.has(replacePathExtension(uri, 'sass'))
 
 				if (sassOrLessExist) {
 					this.ignore(uri)
 				}
 			}
 			else {
-				let cssPath = file.replacePathExtension(uri, 'css')
+				let cssPath = replacePathExtension(uri, 'css')
 				if (this.has(cssPath)) {
 					this.ignore(cssPath)
 				}
@@ -68,7 +69,7 @@ export class CSSServiceMap extends FileTracker {
 		if (this.ignoreSameNameCSSFile) {
 			let ext = path.extname(uri).slice(1).toLowerCase()
 			if (ext !== 'css') {
-				let cssPath = file.replacePathExtension(uri, 'css')
+				let cssPath = replacePathExtension(uri, 'css')
 				if (this.has(cssPath)) {
 					this.notIgnore(cssPath)
 				}

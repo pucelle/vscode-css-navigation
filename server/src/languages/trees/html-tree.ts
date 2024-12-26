@@ -1,8 +1,10 @@
-import {HTMLToken, HTMLTokenScanner, HTMLTokenType} from './html'
+import {HTMLToken, HTMLTokenScanner, HTMLTokenType} from '../scanners/html'
 import {Part, PartType} from './part'
-import {mayBeExpression, removeQuotes} from './utils'
+import {mayBeExpression} from './utils'
 import {Picker} from './picker'
 import {isCSSLikePath} from '../../helpers'
+import {CSSTokenTree} from './css-tree'
+import {HTMLTokenNode} from './html-node'
 
 
 /** 
@@ -25,88 +27,6 @@ const SelfClosingTags = [
 	'track',
 	'wbr',
 ]
-
-
-/** Build a simple tree by tokens. */
-export class HTMLTokenNode {
-
-	readonly token: HTMLToken
-	readonly parent: HTMLTokenNode | null
-	readonly attrs: {name: HTMLToken, value: HTMLToken | null}[] | null
-	readonly children: HTMLTokenNode[] | null
-
-	constructor(token: HTMLToken, parent: HTMLTokenNode | null) {
-		this.token = token
-		this.parent = parent
-
-		if (token.type === HTMLTokenType.StartTagName) {
-			this.attrs = []
-			this.children = []
-		}
-		else {
-			this.attrs = null
-			this.children = null
-		}
-	}
-
-	/** Get tag name start. */
-	get tagStart(): number {
-		return this.token.start
-	}
-
-	/** Get tag end, normally after last attribute. */
-	get tagEnd(): number {
-		if (this.attrs && this.attrs.length > 0) {
-			let lastAttr = this.attrs[this.attrs.length - 1]
-
-			if (lastAttr.value) {
-				return lastAttr.value.start + lastAttr.value.text.length
-			}
-			else {
-				return lastAttr.name.start + lastAttr.name.text.length
-			}
-		}
-
-		return this.token.start + this.token.text.length
-	}
-
-	/** Attribute value text, with quotes removed. */
-	getAttributeValue(name: string): string | null {
-		if (!this.attrs) {
-			return null
-		}
-
-		let attr = this.attrs.find(attr => attr.name.text === name)
-		if (attr && attr.value) {
-			return removeQuotes(attr.value.text)
-		}
-
-		return null
-	}
-
-	getAttribute(name: string): HTMLToken | null {
-		if (!this.attrs) {
-			return null
-		}
-
-		let attr = this.attrs.find(attr => attr.name.text === name)
-		if (attr) {
-			return attr.value
-		}
-
-		return null
-	}
-
-	*walk(): Iterable<HTMLTokenNode> {
-		yield this
-
-		if (this.children) {
-			for (let child of this.children) {
-				yield* child.walk()
-			}
-		}
-	}
-}
 
 
 export class HTMLTokenTree extends HTMLTokenNode {
@@ -176,7 +96,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 					current.children!.push(textNode)
 					break
 
-				case HTMLTokenType.Comment:
+				case HTMLTokenType.CommentText:
 					let commentNode = new HTMLTokenNode(token, current)
 					current.children!.push(commentNode)
 					break
@@ -210,11 +130,44 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			type: HTMLTokenType.StartTagName,
 			text: 'root',
 			start: -1,
+			end: -1,
 		}, null)
 
 		this.isJSLikeSyntax = isJSLikeSyntax
 	}
 	
+	/** Quickly find a part at specified offset. */
+	findPart(offset: number): Part | undefined {
+		let walking = this.filterWalk((node: HTMLTokenNode) => {
+			return node.token.start >= offset && node.closureLikeEnd <= offset
+		})
+
+		for (let node of walking) {
+			if (node.tagLikeEnd < offset) {
+				continue
+			}
+
+			for (let part of this.parseNodeParts(node)) {
+				if (part.start >= offset && part.end <= offset) {
+					return part
+				}
+			}
+
+			// Parsing text parts as script are expensive.
+			// So only when finding part, will parse text part.
+			// This cause text parts can't finding references or symbols.
+			if (this.isJSLikeSyntax && node.token.type === HTMLTokenType.Text) {
+				for (let part of this.parseScriptTextParts(node)) {
+					if (part.start >= offset && part.end <= offset) {
+						return part
+					}
+				}
+			}
+		}
+
+		return undefined
+	}
+
 	*walkParts(): Iterable<Part> {
 		for (let node of this.walk()) {
 			
@@ -236,9 +189,13 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			}
 
 			yield* this.parseImportPart(node)
-		}
-		else if (node.token.type === HTMLTokenType.Text) {
-			yield* this.parseTextParts(node)
+
+			if (node.tagName === 'script') {
+				yield* this.parseScriptPart(node)
+			}
+			else if (node.tagName === 'style') {
+				yield* this.parseStylePart(node)
+			}
 		}
 	}
 
@@ -290,9 +247,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 	/** For import path. */
 	protected *parseImportPart(node: HTMLTokenNode): Iterable<Part> {
-		let tagName = node.token.text
-
-		if (tagName === 'link') {
+		if (node.tagName === 'link') {
 			if (node.getAttributeValue('rel') === 'stylesheet') {
 				let href = node.getAttribute('href')
 				if (href) {
@@ -300,7 +255,9 @@ export class HTMLTokenTree extends HTMLTokenNode {
 				}
 			}
 		}
-		else if (tagName === 'style') {
+
+		// Vue.js only.
+		else if (node.tagName === 'style') {
 			let src = node.getAttribute('src')
 			if (src) {
 				yield new Part(PartType.Import, src.text, src.start).removeQuotes()
@@ -324,51 +281,75 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		}
 	}
 
-	/** Parse text for parts. */
-	protected *parseTextParts(node: HTMLTokenNode): Iterable<Part> {
-		if (!this.isJSLikeSyntax) {
-			return
+	/** Parse script tag for parts. */
+	protected *parseScriptPart(node: HTMLTokenNode): Iterable<Part> {
+		let textNode = node.firstTextNode
+		if (textNode && textNode.token.text) {
+			yield* this.parseScriptTextParts(textNode)
 		}
+	}
+
+	/** Parse script content for parts. */
+	protected *parseScriptTextParts(node: HTMLTokenNode): Iterable<Part> {
+		let text = node.token.text
+		let start = node.token.start
 
 		// `querySelect('.class-name')`
 	 	// `$('.class-name')`
-		let match = Picker.locateMatches(
-			node.token.text!,
-			/(?:\$|\.querySelect|\.querySelectAll)\s*\(\s*['"`](.*?)['"`]/
+		let matches = Picker.locateAllMatches(
+			text,
+			/(?:\$|\.querySelect|\.querySelectAll)\s*\(\s*['"`](.*?)['"`]/g
 		)
 
-		if (match) {
-			yield new Part(PartType.SelectorQuery, match[1].text, match[1].start).trim()
+		for (let match of matches) {
+			yield new Part(PartType.SelectorQuery, match[1].text, match[1].start + start).trim()
 		}
 
-		// import * from '...'
-		// import abc from '...'
-		// import '...'
 
-		for (let match of Picker.locateAllMatches(node.token.text!, /import\s+(?:\w+\s+from\s+)?['"`](.+?)['"`]/g)) {
+		// setProperty('--variable-name')
+		matches = Picker.locateAllMatches(
+			text,
+			/\.setProperty\s*\(\s*\(\s*['"`](--.*?)['"`]/g
+		)
+
+		for (let match of matches) {
+			yield new Part(PartType.CSSVariableAssignment, match[1].text, match[1].start + start).trim()
+		}
+
+
+		// `import * from '...'`
+		// `import abc from '...'`
+		// `import '...'`
+		matches = Picker.locateAllMatches(
+			text,
+			/import\s+(?:\w+\s+from\s+)?['"`](.+?)['"`]/g
+		)
+
+		for (let match of matches) {
 			let path = match[1].text
-			
+
 			if (isCSSLikePath(path)) {
-				yield new Part(PartType.CSSImportPath, match[1].text, match[1].start).trim()
+				yield new Part(PartType.CSSImportPath, match[1].text, match[1].start + start).trim()
 			}
 		}
 	}
 
-	findPart(offset: number): Part | undefined {
-		for (let node of this.walk()) {
-			if (node.tagStart > offset) {
-				break
-			}
-
-			if (node.tagEnd <= offset) {
-				for (let part of this.parseNodeParts(node)) {
-					if (part.start >= offset && part.end <= offset) {
-						return part
-					}
-				}
-			}
+	/** Parse style tag for parts. */
+	protected *parseStylePart(node: HTMLTokenNode): Iterable<Part> {
+		let textNode = node.firstTextNode
+		if (textNode) {
+			yield* this.parseStyleTextParts(textNode)
 		}
+	}
 
-		return undefined
+	/** Parse style content for parts. */
+	protected *parseStyleTextParts(node: HTMLTokenNode): Iterable<Part> {
+		let text = node.token.text
+		let start = node.token.start
+		let cssTree = CSSTokenTree.fromString(text)
+
+		for (let part of cssTree.walkParts()) {
+			yield part.translate(start)
+		}
 	}
 }

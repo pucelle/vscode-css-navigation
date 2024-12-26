@@ -13,7 +13,6 @@ interface Configuration {
 	excludeGlobPatterns: string[]
 	alwaysIncludeGlobPatterns: string[]
 	alwaysIncludeImportedFiles: boolean
-	alsoSearchDefinitionsInStyleTag: boolean
 	ignoreSameNameCSSFile: boolean
 	ignoreCustomElement: boolean
 	ignoreFilesBy: string[]

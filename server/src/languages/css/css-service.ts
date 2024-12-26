@@ -1,11 +1,7 @@
 import {SymbolInformation, SymbolKind, Position, LocationLink, Range} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {SimpleSelector} from '../common/simple-selector'
-import {CSSNamedRange, parseCSSLikeOrSassRanges} from './range-parsers'
-import {CSSScanner, CSSSelectorResults} from './css-scanner'
 import {URI} from 'vscode-uri'
-import {resolveImportPath} from '../../helpers/file'
-import {ImportPath} from '../common/import-path'
+import {PathResolver} from '../resolver'
 
 
 /** Gives CSS service for one CSS file. */
@@ -27,7 +23,7 @@ export class CSSService {
 			let filePaths: string[] = []
 
 			for (let importPath of this.importPaths) {
-				let filePath = await resolveImportPath(URI.parse(this.uri).fsPath, importPath)
+				let filePath = await PathResolver.resolveImportPath(URI.parse(this.uri).fsPath, importPath)
 				if (filePath) {
 					filePaths.push(filePath)
 				}

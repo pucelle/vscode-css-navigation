@@ -48,9 +48,8 @@ export enum PartType {
 
 	//// From CSS.
 
-	IdSelector,
-	TagSelector,
-	ClassSelector,
+	/** `#id`, `.class-name`. */
+	CSSSelector,
 
 	/** `--variable-name: ...;` */
 	CSSVariableDeclaration,
@@ -78,10 +77,10 @@ export class Part {
 	}
 
 	get identifier(): string {
-		if (this.type === PartType.IdSelector) {
+		if (this.type === PartType.Id) {
 			return '#'
 		}
-		else if (this.type === PartType.ClassSelector) {
+		else if (this.type === PartType.Class) {
 			return '.'
 		}
 		else {
@@ -105,11 +104,11 @@ export class Part {
 		return this.text
 	}
 
-	/** Whether a custom tag. */
-	isCustomTag(): boolean {
-		return (this.type === PartType.Tag || this.type === PartType.TagSelector) && this.text.includes('-')
+	/** Translate start offset. */
+	translate(offset: number): Part {
+		return new Part(this.type, this.text, this.start + offset)
 	}
-	
+
 	/** `"ab"` => `ab`. */
 	removeQuotes(): Part {
 		let text = this.text

@@ -87,17 +87,17 @@ export namespace Picker {
 	 * Note it may not 100% get correct result.
 	 * `re` must not be global.
 	 */
-	export function locateMatch(match: RegExpMatchArray | RegExpExecArray, text: string): Picked[] {
+	function addOffsetToMatch(match: RegExpMatchArray | RegExpExecArray): Picked[] {
 		let o: Picked[] = []
-		let lastIndex = match.index!
+		let lastIndex = 0
 
 		for (let i = 0; i < match.length; i++) {
 			let m = match[i]
-			let start = i === 0 ? lastIndex : text.indexOf(m, lastIndex)
+			let start = i === 0 ? lastIndex : match[0].indexOf(m, lastIndex)
 
 			o.push({
 				text: m,
-				start,
+				start: match.index! + start,
 			})
 
 			lastIndex = start + m.length
@@ -111,7 +111,7 @@ export namespace Picker {
 	 * Note it may not 100% get correct result.
 	 * `re` must not be global.
 	 */
-	export function locateMatchGroup(match: RegExpMatchArray | RegExpExecArray, text: string): Record<string, Picked> {
+	function addOffsetToMatchGroup(match: RegExpMatchArray | RegExpExecArray): Record<string, Picked> {
 		let o: Record<string, Picked> = {}
 
 		let groups = match.groups
@@ -119,14 +119,14 @@ export namespace Picker {
 			return o
 		}
 
-		let lastIndex = match.index!
+		let lastIndex = 0
 
 		for (let [k, m] of Object.entries(groups)) {
-			let start = text.indexOf(m, lastIndex)
+			let start = match[0].indexOf(m, lastIndex)
 
 			o[k] = {
 				text: m,
-				start,
+				start: match.index! + start,
 			}
 
 			lastIndex = start + m.length
@@ -146,7 +146,7 @@ export namespace Picker {
 			return null
 		}
 
-		return locateMatch(match, text)
+		return addOffsetToMatch(match)
 	}
 
 	/** 
@@ -160,7 +160,7 @@ export namespace Picker {
 			return null
 		}
 
-		return locateMatchGroup(match, text)
+		return addOffsetToMatchGroup(match)
 	}
 
 	/** 
@@ -172,7 +172,7 @@ export namespace Picker {
 		let match: RegExpExecArray | null
 
 		while (match = re.exec(text)) {
-			yield locateMatch(match, text)
+			yield addOffsetToMatch(match)
 		}
 	}
 
@@ -185,7 +185,7 @@ export namespace Picker {
 		let match: RegExpExecArray | null
 
 		while (match = re.exec(text)) {
-			yield locateMatchGroup(match, text)
+			yield addOffsetToMatchGroup(match)
 		}
 	}
 }

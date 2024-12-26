@@ -6,6 +6,11 @@ export function getPathExtension(filePath: string): string {
 }
 
 
+export function replacePathExtension(filePath: string, toExtension: string): string {
+	return filePath.replace(/\.\w+$/, '.' + toExtension)
+}
+
+
 export function isCSSLikePath(filePath: string): boolean {
 	return ['css', 'less', 'scss', 'sass'].includes(getPathExtension(filePath))
 }

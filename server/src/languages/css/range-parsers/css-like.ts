@@ -1,6 +1,5 @@
 import {Range} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {console} from '../../../helpers'
 import {CSSService} from '../css-service'
 
 
