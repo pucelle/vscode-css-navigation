@@ -1,22 +1,19 @@
 import {AnyTokenScanner} from './any'
 
 
+// TODO:
+// 1. When go to definition from HTML to CSS, detect HTML tag, class, attributes,
+// and even ancestral tags as environment info to do CSS selector matching.
+// Score CSS selectors by this matching, and try to sort them.
+// Otherwise try to find HTML references by matching a selector with environment info.
+
+
 /** Parsed CSS selector token. */
 export interface CSSSelectorToken {
 	type: CSSSelectorTokenType
 	text: string
 	start: number
 	end: number
-}
-
-/** 
- * Analyze for each part of a selector, full name and main names.
- *   - full: `.a .b.c:hover`
- *   - main: [`.b`, `.c`]
- */
-export interface CSSSelectorNameToken {
-    full: CSSSelectorToken[]
-    main: CSSSelectorToken[]
 }
 
 
@@ -34,7 +31,7 @@ export enum CSSSelectorTokenType {
 	/** Like `&-sub`, must determine it by joining parent selector. */
 	Nested,
 
-	// `+, >, ||, ~, |
+	// `+, >, ||, ~, |`
 	Combinator,
 
 	// `' '`
@@ -45,6 +42,12 @@ export enum CSSSelectorTokenType {
 
 	// `:hover`
 	Pseudo,
+
+	// `:is(`, need to scan for selector tokens inside.
+	PseudoStart,
+
+	// `)`, need to scan for selector tokens inside.
+	PseudoEnd,
 
 	// `::before`
 	PseudoElement,
@@ -85,19 +88,17 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 	declare protected state: ScanState
 	private isScssLessSyntax: boolean
 	private needToSeparate: boolean = false
+	private pseudoStackCount: number = 0
 
 	constructor(string: string, isScssLessSyntax: boolean = false) {
 		super(string)
 		this.isScssLessSyntax = isScssLessSyntax
 	}
 
-	/**
-	 * full: `.a .b.c:hover`
-	 * main: [`.b`, `.c`]
-	 */
-	parseToSelectorNameTokens(): CSSSelectorNameToken[] {
+	/** `.a, .b` -> `[.a, .b]`. */
+	parseToSeparatedTokens(): CSSSelectorToken[][] {
 		let tokens = this.parseToTokens()
-		let groups: CSSSelectorToken[][] = [[]]
+		let groups: CSSSelectorToken[][] = []
 
 		// Split by comma.
 		for (let token of tokens) {
@@ -111,53 +112,17 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			}
 		}
 
-		return groups.map(g => {
-			return {
-				full: g,
-				main: this.parseMainOfEachTokenGroup(g)
-			}
-		})
-	}
-
-	/**
-	 * `a b` -> `b`
-	 * `a + b` -> `b`
-	 * `a:hover` -> `a`
-	 * `.a.b` -> `[.a, .b]`
-	 * `.a::before` -> `[]`
-	 */
-	private parseMainOfEachTokenGroup(group: CSSSelectorToken[]): CSSSelectorToken[] {
-		let lastCombinatorIndex = group.findLastIndex(item => {
-			return item.type === CSSSelectorTokenType.Combinator
-				|| item.type === CSSSelectorTokenType.Separator
-		})
-		
-		if (lastCombinatorIndex !== -1) {
-			group = group.slice(lastCombinatorIndex + 1)
-		}
-
-		group = group.filter(item => {
-			return item.type !== CSSSelectorTokenType.Attribute
-				&& item.type !== CSSSelectorTokenType.Pseudo
-		})
-
-		// When work as pseudo element, no main.
-		if (group.find(item => item.type === CSSSelectorTokenType.PseudoElement)) {
-			return []
-		}
-
-		return group
+		return groups
 	}
 
 	/** 
-	 * Parse css string to tokens.
+	 * Parse to CSS selector tokens.
 	 * This is rough tokens, more details wait to be determined.
 	 */
 	*parseToTokens(): Iterable<CSSSelectorToken> {
-
 		while (this.offset < this.string.length) {
 			if (this.state === ScanState.AnyContent) {
-				if (!this.readUntil(/[\w&.#\[:+>|~,\/*]/g)) {
+				if (!this.readUntil(/[\w&.#\[:\)+>|~,\/*]/g)) {
 					break
 				}
 
@@ -217,7 +182,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 
 					// Move to `:|`
 					this.offset += 2
-					this.state = ScanState.WithinPseudo
+					this.state = ScanState.WithinPseudoElement
 				}
 
 				// `|:`
@@ -226,7 +191,19 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 
 					// Move to `:|`
 					this.offset += 1
-					this.state = ScanState.WithinPseudoElement
+					this.state = ScanState.WithinPseudo
+				}
+
+				// `|)`
+				else if (char === ')' && this.pseudoStackCount > 0) {
+
+					// Move to `)|`
+					this.offset += 1
+					this.pseudoStackCount--
+
+					yield this.makeToken(CSSSelectorTokenType.PseudoEnd)
+					this.state = ScanState.AnyContent
+					this.needToSeparate = true
 				}
 
 				// Cursor before `||`
@@ -336,7 +313,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinAttribute) {
 
 				// `[attr]|`
-				if (!this.readExpressionLike()) {
+				if (!this.readBracketed()) {
 					break
 				}
 
@@ -350,9 +327,21 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 				// `:hover|`
 				this.readUntil(IsNotName)
 
+				let pseudoName = this.peekText()
+				if ((pseudoName === 'is' || pseudoName === 'where') && this.peekChar() === '(') {
+
+					// Move to `:is(|`
+					this.offset += 1
+
+					yield this.makeToken(CSSSelectorTokenType.PseudoStart)
+					this.state = ScanState.AnyContent
+					this.needToSeparate = false
+					this.pseudoStackCount += 1
+				}
+
 				// `:has(...)|`
 				if (this.peekChar() === '(') {
-					if (!this.readExpressionLike()) {
+					if (!this.readBracketed()) {
 						break
 					}
 				}
@@ -369,7 +358,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 
 				// `::highlight(...)|`
 				if (this.peekChar() === '(') {
-					if (!this.readExpressionLike()) {
+					if (!this.readBracketed()) {
 						break
 					}
 				}

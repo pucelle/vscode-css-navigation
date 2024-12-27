@@ -41,6 +41,11 @@ export class AnyTokenScanner<T extends number> {
 		return this.string[this.offset + move]
 	}
 
+	/** Peek text within `start` and `offset`. */
+	protected peekText() {
+		return this.string.slice(this.start, this.offset)
+	}
+
 	/** 
 	 * It moves `offset` to before match.
 	 * Note the `re` must have `g` flag set.
@@ -113,10 +118,11 @@ export class AnyTokenScanner<T extends number> {
 	}
 
 	/** 
-	 * Try read an expression like,
+	 * Try read an bracketed expression like `[...]`, `(...)`,
 	 * brackets or quotes must appear in pairs.
+	 * It stops after found all matching end brackets.
 	 */
-	protected readExpressionLike(): boolean {
+	protected readBracketed(): boolean {
 		let stack: string[] = []
 		let expect: string | null = null
 		let re = /[()\[\]{}"'`\/\s]/g
@@ -161,7 +167,7 @@ export class AnyTokenScanner<T extends number> {
 					expect = stack.pop()!
 				}
 				else {
-					expect = null
+					break
 				}
 			}
 			else if (char === '[' || char === '(' || char === '{') {

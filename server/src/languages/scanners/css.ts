@@ -220,7 +220,7 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 	}
 
 	private *makeNotDeterminedToken(): Iterable<CSSToken> {
-		if (this.start < this.offset && this.string.slice(this.start, this.offset).trim()) {
+		if (this.start < this.offset && /\S/.test(this.peekText())) {
 			yield this.makeToken(CSSTokenType.NotDetermined)
 		}
 		else {

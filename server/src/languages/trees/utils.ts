@@ -1,3 +1,6 @@
+import {AnyToken} from '../scanners'
+
+
 /** `"ab"` => `ab`. */
 export function removeQuotes(text: string): string {
 	if (/^['"]/.test(text)) {
@@ -21,4 +24,25 @@ export function hasQuotes(text: string): boolean {
 /** Returns whether has expression. */
 export function mayBeExpression(text: string): boolean {
 	return !hasQuotes(text) && text.includes('{')
+}
+
+
+/** Join several tokens to one. */
+export function joinTokens<T extends AnyToken<any>>(tokens: T[], string: string): T {
+	if (tokens.length === 1) {
+		return tokens[0]
+	}
+	else {
+		let type = tokens[0].type
+		let start = tokens[0].start
+		let end = tokens[tokens.length - 1].end
+		let text = string.slice(start, end)
+
+		return {
+			type,
+			text,
+			start,
+			end,
+		} as T
+	}
 }

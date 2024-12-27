@@ -48,8 +48,17 @@ export enum PartType {
 
 	//// From CSS.
 
-	/** `#id`, `.class-name`. */
+	/** Any selector string like `#id`, `.class-name`. */
 	CSSSelector,
+
+	/** `div`, been wrapped within a `CSSSelector` part. */
+	CSSSelectorDetailedTag,
+
+	/** `.class-name`, been wrapped within a `CSSSelector` part. */
+	CSSSelectorDetailedClass,
+
+	/** `#id`, been wrapped within a `CSSSelector` part. */
+	CSSSelectorDetailedId,
 
 	/** `--variable-name: ...;` */
 	CSSVariableDeclaration,
@@ -58,7 +67,10 @@ export enum PartType {
 	CSSVariableReference,
 }
 
-/** Part is normally a tag/class/id selector, or a css variable. */
+/** 
+ * Part is normally a tag, class, id attribute, or tag/class/id selector, or a css variable.
+ * Trees will be destroyed, and parts will be cached, so ensure part cost few memories.
+ */
 export class Part {
 	
 	/** Part type. */
@@ -70,17 +82,18 @@ export class Part {
 	/** Offset of start. */
 	readonly start: number
 
-	constructor(type: PartType, text: string, startOffset: number) {
+	constructor(type: PartType, text: string, start: number) {
 		this.type = type
 		this.text = text
-		this.start = startOffset
+		this.start = start
 	}
 
+	/** Get identifier, like `.`, `#`. */
 	get identifier(): string {
-		if (this.type === PartType.Id) {
+		if (this.type === PartType.Id || this.type === PartType.CSSSelectorDetailedId) {
 			return '#'
 		}
-		else if (this.type === PartType.Class) {
+		else if (this.type === PartType.Class || this.type === PartType.CSSSelectorDetailedClass) {
 			return '.'
 		}
 		else {
@@ -154,3 +167,4 @@ export class Part {
 		return Range.create(document.positionAt(this.start), document.positionAt(this.end))
 	}
 }
+

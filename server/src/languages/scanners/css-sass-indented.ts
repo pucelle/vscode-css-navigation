@@ -144,7 +144,7 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 					break
 				}
 
-				let indentText = this.string.slice(this.start, this.offset)
+				let indentText = this.peekText()
 				let indentCount = this.checkIndentCount(indentText)
 				this.sync()
 
@@ -238,7 +238,7 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 	}
 
 	private *endNotDetermined(): Iterable<CSSToken> {
-		if (this.start < this.offset && this.string.slice(this.start, this.offset).trim()) {
+		if (this.start < this.offset && /\S/.test(this.peekText())) {
 			yield this.makeToken(CSSTokenType.NotDetermined)
 		}
 	}

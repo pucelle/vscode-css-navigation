@@ -206,7 +206,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 					break
 				}
 
-				let tagName = this.string.slice(this.start, this.offset)
+				let tagName = this.peekText()
 				let lowerTagName = tagName.toLowerCase()
 				yield this.makeToken(HTMLTokenType.StartTagName)
 
@@ -224,7 +224,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 					break
 				}
 
-				let tagName = this.string.slice(this.start, this.offset)
+				let tagName = this.peekText()
 				let lowerTagName = tagName.toLowerCase()
 
 				// Must end when `</style>` or `</script>`

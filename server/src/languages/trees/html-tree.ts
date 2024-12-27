@@ -34,76 +34,70 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	/** Make a token tree by tokens. */
 	static fromTokens(tokens: Iterable<HTMLToken>, isJSLikeSyntax: boolean = false): HTMLTokenTree {
 		let tree = new HTMLTokenTree(isJSLikeSyntax)
-		let current: HTMLTokenNode | null = tree
+		let current: HTMLTokenNode = tree
 		let currentAttr: {name: HTMLToken, value: HTMLToken | null} | null = null
 
 		for (let token of tokens) {
-			switch (token.type) {
-				case HTMLTokenType.StartTagName:
-					let tagNode: HTMLTokenNode = new HTMLTokenNode(token, current)
-					current.children!.push(tagNode)
-					current = tagNode
-					break
-
-				case HTMLTokenType.EndTagName:
-					do {
-
-						// </name>
-						if (current.token.text === token.text) {
-							current = current.parent ?? tree
-							break
-						}
-
-						// </>
-						if (token.text === '') {
-							current = current.parent ?? tree
-							break
-						}
-
-						current = current.parent ?? tree
-					} while (current)
-					break
-
-				case HTMLTokenType.TagEnd:
-					if (current && current.token.type === HTMLTokenType.StartTagName
-						&& SelfClosingTags.includes(current.token.text)
-					) {
-						current = current.parent ?? tree
-					}
-					break
-
-				case HTMLTokenType.SelfCloseTagEnd:
-					if (current && current.token.type === HTMLTokenType.StartTagName) {
-						current = current.parent ?? tree
-					}
-					break
-				
-				case HTMLTokenType.AttributeName:
-					if (current && current.token.type === HTMLTokenType.StartTagName) {
-						currentAttr = {name: token, value: null}
-						current.attrs!.push(currentAttr)
-					}
-					break
-
-				case HTMLTokenType.AttributeValue:
-					if (currentAttr) {
-						currentAttr.value = token
-					}
-					break
-
-				case HTMLTokenType.Text:
-					let textNode = new HTMLTokenNode(token, current)
-					current.children!.push(textNode)
-					break
-
-				case HTMLTokenType.CommentText:
-					let commentNode = new HTMLTokenNode(token, current)
-					current.children!.push(commentNode)
-					break
+			if (token.type === HTMLTokenType.StartTagName) {
+				let tagNode: HTMLTokenNode = new HTMLTokenNode(token, current)
+				current.children!.push(tagNode)
+				current = tagNode
 			}
 
-			if (!current) {
-				break
+			else if (token.type === HTMLTokenType.EndTagName) {
+				do {
+
+					// </name>
+					if (current.token.text === token.text) {
+						current = current.parent ?? tree
+						break
+					}
+
+					// </>
+					if (token.text === '') {
+						current = current.parent ?? tree
+						break
+					}
+
+					current = current.parent ?? tree
+				} while (current)
+			}
+
+			else if (token.type === HTMLTokenType.TagEnd) {
+				if (current && current.token.type === HTMLTokenType.StartTagName
+					&& SelfClosingTags.includes(current.token.text)
+				) {
+					current = current.parent ?? tree
+				}
+			}
+
+			else if (token.type === HTMLTokenType.SelfCloseTagEnd) {
+				if (current && current.token.type === HTMLTokenType.StartTagName) {
+					current = current.parent ?? tree
+				}
+			}
+			
+			else if (token.type === HTMLTokenType.AttributeName) {
+				if (current && current.token.type === HTMLTokenType.StartTagName) {
+					currentAttr = {name: token, value: null}
+					current.attrs!.push(currentAttr)
+				}
+			}
+
+			else if (token.type === HTMLTokenType.AttributeValue) {
+				if (currentAttr) {
+					currentAttr.value = token
+				}
+			}
+
+			else if (token.type === HTMLTokenType.Text) {
+				let textNode = new HTMLTokenNode(token, current)
+				current.children!.push(textNode)
+			}
+
+			else if (token.type === HTMLTokenType.CommentText) {
+				let commentNode = new HTMLTokenNode(token, current)
+				current.children!.push(commentNode)
 			}
 		}
 
@@ -143,7 +137,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		})
 
 		for (let node of walking) {
-			if (node.tagLikeEnd < offset) {
+			if (node.token.start > offset || node.tagLikeEnd < offset) {
 				continue
 			}
 
@@ -170,8 +164,6 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 	*walkParts(): Iterable<Part> {
 		for (let node of this.walk()) {
-			
-			// Root node.
 			if (node.token.start === -1) {
 				return
 			}
@@ -180,6 +172,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		}
 	}
 
+	/** Parse node and attributes. */
 	protected *parseNodeParts(node: HTMLTokenNode): Iterable<Part> {
 		if (node.token.type === HTMLTokenType.StartTagName) {
 			yield new Part(PartType.Tag, node.token.text, node.token.start)
@@ -346,7 +339,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	protected *parseStyleTextParts(node: HTMLTokenNode): Iterable<Part> {
 		let text = node.token.text
 		let start = node.token.start
-		let cssTree = CSSTokenTree.fromString(text)
+		let cssTree = CSSTokenTree.fromString(text, false)
 
 		for (let part of cssTree.walkParts()) {
 			yield part.translate(start)
