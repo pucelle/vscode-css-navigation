@@ -7,6 +7,8 @@ import {AnyTokenScanner} from './any'
 // Score CSS selectors by this matching, and try to sort them.
 // Otherwise try to find HTML references by matching a selector with environment info.
 
+// 2. Supports `:is()` and `:where()`.
+
 
 /** Parsed CSS selector token. */
 export interface CSSSelectorToken {
@@ -42,12 +44,6 @@ export enum CSSSelectorTokenType {
 
 	// `:hover`
 	Pseudo,
-
-	// `:is(`, need to scan for selector tokens inside.
-	PseudoStart,
-
-	// `)`, need to scan for selector tokens inside.
-	PseudoEnd,
 
 	// `::before`
 	PseudoElement,
@@ -88,7 +84,6 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 	declare protected state: ScanState
 	private isScssLessSyntax: boolean
 	private needToSeparate: boolean = false
-	private pseudoStackCount: number = 0
 
 	constructor(string: string, isScssLessSyntax: boolean = false) {
 		super(string)
@@ -122,7 +117,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 	*parseToTokens(): Iterable<CSSSelectorToken> {
 		while (this.offset < this.string.length) {
 			if (this.state === ScanState.AnyContent) {
-				if (!this.readUntil(/[\w&.#\[:\)+>|~,\/*]/g)) {
+				if (!this.readUntil(/[\w&.#\[:+>|~,\/*]/g)) {
 					break
 				}
 
@@ -192,18 +187,6 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 					// Move to `:|`
 					this.offset += 1
 					this.state = ScanState.WithinPseudo
-				}
-
-				// `|)`
-				else if (char === ')' && this.pseudoStackCount > 0) {
-
-					// Move to `)|`
-					this.offset += 1
-					this.pseudoStackCount--
-
-					yield this.makeToken(CSSSelectorTokenType.PseudoEnd)
-					this.state = ScanState.AnyContent
-					this.needToSeparate = true
 				}
 
 				// Cursor before `||`
@@ -326,18 +309,6 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 
 				// `:hover|`
 				this.readUntil(IsNotName)
-
-				let pseudoName = this.peekText()
-				if ((pseudoName === 'is' || pseudoName === 'where') && this.peekChar() === '(') {
-
-					// Move to `:is(|`
-					this.offset += 1
-
-					yield this.makeToken(CSSSelectorTokenType.PseudoStart)
-					this.state = ScanState.AnyContent
-					this.needToSeparate = false
-					this.pseudoStackCount += 1
-				}
 
 				// `:has(...)|`
 				if (this.peekChar() === '(') {
