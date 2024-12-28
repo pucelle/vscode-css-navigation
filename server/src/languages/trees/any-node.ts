@@ -17,8 +17,11 @@ export class AnyTokenNode<T extends AnyToken<number>> {
 		return this.token.start === -1
 	}
 
+	/** Walk all nodes, exclude root node. */
 	*walk(): Iterable<this> {
-		yield this
+		if (!this.isRoot) {
+			yield this
+		}
 
 		if (this.children) {
 			for (let child of this.children) {

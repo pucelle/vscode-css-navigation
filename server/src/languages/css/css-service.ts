@@ -1,65 +1,89 @@
-import {SymbolInformation, SymbolKind, Position, LocationLink, Range} from 'vscode-languageserver'
+import {SymbolInformation, LocationLink, Range} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {URI} from 'vscode-uri'
 import {PathResolver} from '../resolver'
+import {CSSTokenTree, Part, PartType} from '../trees'
+import {quickBinaryFind} from '../utils'
+import {CSSSelectorPart} from '../trees'
 
 
 /** Gives CSS service for one CSS file. */
 export class CSSService {
 
-	private uri: string
-	private ranges: CSSNamedRange[]
-	private importPaths: string[]
+	readonly document: TextDocument
+	private parts: Part[]
 
-	constructor(document: TextDocument, ranges: CSSNamedRange[], importPaths: string[]) {
-		this.uri = document.uri
-		this.ranges = ranges
-		this.importPaths = importPaths
+	constructor(document: TextDocument) {
+		this.document = document
+		this.parts = [...CSSTokenTree.fromString(document.getText(), document.languageId as CSSLanguageId).walkParts()]
 	}
 
-	/** Get resolved imported css paths from `@import ...`. */
-	async getResolvedImportPaths(): Promise<string[]> {
-		if (this.importPaths.length > 0) {
-			let filePaths: string[] = []
-
-			for (let importPath of this.importPaths) {
-				let filePath = await PathResolver.resolveImportPath(URI.parse(this.uri).fsPath, importPath)
-				if (filePath) {
-					filePaths.push(filePath)
-				}
+	/** Get resolved import file paths specified by `@import ...`. */
+	async *resolvedImportPaths(): AsyncIterable<string> {
+		for (let part of this.parts) {
+			if (part.type !== PartType.ImportPath) {
+				continue
 			}
-			
-			return filePaths
-		}
-		else {
-			return []
+
+			// Must be a relative path.
+			if (!part.text.startsWith('.')) {
+				continue
+			}
+
+			let path = await PathResolver.resolveDocumentPath(part.text, this.document)
+			if (path) {
+				yield path
+			}
 		}
 	}
 
-	/** Find definitions match one selector. */
-	findDefinitionsMatchSelector(selector: SimpleSelector): LocationLink[] {
+	/** 
+	 * Find a part at specified offset.
+	 * Note it may return a selector detail part.
+	 */
+	findPartAt(offset: number) {
+		let part = quickBinaryFind(this.parts, (part) => {
+			if (part.start > offset) {
+				return -1
+			}
+			else if (part.end < offset) {
+				return 1
+			}
+			else {
+				return 0
+			}
+		})
+
+		// Returns detail if in range.
+		if (part && part.type === PartType.CSSSelector) {
+			let detail = (part as CSSSelectorPart).detail
+			if (detail
+				&& detail.start <= offset
+				&& detail.end >= offset
+			) {
+				return detail
+			}
+		}
+
+		return part
+	}
+
+	/** Find definitions match part. */
+	findDefinitions(matchPart: Part, fromRange: Range): LocationLink[] {
 		let locations: LocationLink[] = []
-		let selectorRaw = selector.raw
 
-		for (let range of this.ranges) {
-			let isMatch = range.names.some(({mains}) => {
-				return mains !== null && mains.includes(selectorRaw)
-			})
-
-			if (isMatch) {
-				let targetRange = range.range
-				let selectionRange = Range.create(targetRange.start, targetRange.start)
-				let fromRange = selector.toRange()
-
-				locations.push(LocationLink.create(this.uri, range.range, selectionRange, fromRange))
+		for (let part of this.parts) {
+			if (!part.isMatch(matchPart)) {
+				continue
 			}
+
+			locations.push(part.toLocationLink(this.document, fromRange))
 		}
 
 		return locations
 	}
 
 	/**
-	 * Query symbols from a wild match query string.
+	 * Query symbols from a wild match part.
      *
 	 * Query string 'p' will match:
 	 *	p* as tag name
@@ -67,131 +91,57 @@ export class CSSService {
 	 *	#p* as id
 	 * and may have more decorated selectors followed.
 	 */
-	findSymbolsMatchQuery(query: string): SymbolInformation[] {
+	findSymbols(query: string): SymbolInformation[] {
 		let symbols: SymbolInformation[] = []
-		let lowerQuery = query.toLowerCase()
+		let re = Part.makeWordStartsMatchExp(query)
 
-		for (let range of this.ranges) {
-			for (let {full} of range.names) {
-				let isMatch = this.isMatchQuery(full, lowerQuery)
-				if (isMatch) {
-					symbols.push(SymbolInformation.create(
-						full,
-						SymbolKind.Class,
-						range.range,
-						this.uri
-					))
-				}
+		for (let part of this.parts) {
+			if (!part.isExpMatch(re)) {
+				continue
 			}
+
+			symbols.push(...part.toSymbolInformationList(this.document))
 		}
 
 		return symbols
 	}
 	
-	/** Test if one selector match a symbol query string, they will match when left word boundaries matched. */
-	private isMatchQuery(selector: string, query: string): boolean {
-		let lowerSelector = selector.toLowerCase()
-		let index = lowerSelector.indexOf(query)
-
-		if (index === -1) {
-			return false
-		}
-
-		// Match at start position.
-		if (index === 0) {
-			return true
-		}
-
-		// If search only 1 character, must match at start word boundary.
-		if (query.length === 1) {
-			let charactersBeforeMatch = selector.slice(0, index)
-			let hasNoWordCharacterBeforeMatch = !/[a-z]/.test(charactersBeforeMatch)
-			return hasNoWordCharacterBeforeMatch
-		}
-
-		// Starts with a not word characters.
-		if (!/[a-z]/.test(query[0])) {
-			return true
-		}
-
-		//'abc' not match query 'bc', but 'ab-bc' matches
-		while (/[a-z]/.test(lowerSelector[index - 1])) {
-			lowerSelector = lowerSelector.slice(index + query.length)
-			index = lowerSelector.indexOf(query)
-
-			if (index === -1) {
-				return false
-			}
-		}
-
-		return true
-	}
-
-	/** Find completion label pieces from selector. */
-	findCompletionLabelsMatchSelector(selector: SimpleSelector): string[] {
+	/** Find completion labels match part. */
+	findCompletionLabels(matchPart: Part): string[] {
 		let labelSet: Set<string> = new Set()
-		let selectorRaw = selector.raw
+		let re = Part.makeStartsMatchExp(matchPart.text)
 
-		for (let range of this.ranges) {
-			for (let {mains} of range.names) {
-				if (mains === null) {
-					continue
-				}
+		for (let part of this.parts) {
+			if (part.type !== matchPart.type) {
+				continue
+			}
 
-				let main = mains.find(main => main.startsWith(selectorRaw))
-				if (main) {
-					let label = main.slice(1)	//only id or class selector, no tag selector provided
-					labelSet.add(label)
-				}
+			if (!part.isExpMatch(re)) {
+				continue
+			}
+
+			for (let text of part.textList) {
+				labelSet.add(text)
 			}
 		}
 
 		return [...labelSet.values()]
 	}
-}
 
+	/** Find parts for providing hover service. */
+	findHoverParts(matchPart: Part): CSSSelectorPart[] {
+		let parts: CSSSelectorPart[] = []
 
-/** Global help functions of CSSService. */
-export namespace CSSService {
-	
-	/** Create a CSSService from a CSS document. */
-	export function create(document: TextDocument, includeImportedFiles: boolean): CSSService {
-		let {ranges, importPaths} = parseCSSLikeOrSassRanges(document)
+		for (let part of this.parts) {
+			if (!part.isMatch(matchPart)
+				|| part.type !== PartType.CSSSelector
+			) {
+				continue
+			}
 
-		if (!includeImportedFiles) {
-			importPaths = []
+			parts.push(part as CSSSelectorPart)
 		}
 
-		return new CSSService(document, ranges, importPaths)
-	}
-	
-	/** Check if CSS language supports nesting. */
-	export function isLanguageSupportsNesting(languageId: string): boolean {
-		let supportedNestingLanguages = ['less', 'scss', 'sass']
-		return supportedNestingLanguages.includes(languageId)
-	}
-
-	/** 
-	 * Get current selector from a CSS document and the cursor position.
-	 * May return multiple selectors because of nesting.
-	 */
-	export function getSimpleSelectorsAt(document: TextDocument, position: Position): SimpleSelector[] | null {
-		let offset = document.offsetAt(position)
-		return new CSSScanner(document, offset).scanForSelectors()
-	}
-
-	/** 
-	 * Get current selector and raw text from a CSS document and the cursor position.
-	 * May return multiple selectors because of nesting.
-	 */
-	export function getSimpleSelectorResultsAt(document: TextDocument, position: Position): CSSSelectorResults | null	{
-		let offset = document.offsetAt(position)
-		return new CSSScanner(document, offset).scanForSelectorResults()
-	}
-
-	/** If click `goto definition` at a `<link href="...">` or `<style src="...">`. */
-	export async function getImportPathAt(document: TextDocument, position: Position): Promise<ImportPath | null> {
-		let offset = document.offsetAt(position)
-		return await (new CSSScanner(document, offset).scanForImportPath())
+		return parts
 	}
 }

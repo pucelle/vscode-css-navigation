@@ -1,10 +1,4 @@
-import {
-	CompletionItem,
-	CompletionItemKind,
-	Range,
-	TextEdit,
-} from 'vscode-languageserver'
-
+import {CompletionItem,	CompletionItemKind,	Range, TextEdit} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 
 

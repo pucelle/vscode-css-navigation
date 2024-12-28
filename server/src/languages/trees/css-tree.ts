@@ -1,16 +1,16 @@
-import {CSSSelectorTokenScanner, CSSToken, CSSTokenScanner, CSSTokenType} from '../scanners'
+import {CSSSelectorTokenScanner, CSSToken, CSSTokenScanner, CSSTokenType, SassIndentedTokenScanner} from '../scanners'
 import {CSSTokenNode, CSSTokenNodeType} from './css-node'
 import {Part, PartType} from './part'
 import {CSSSelectorPart} from './part-css-selector'
 import {Picker} from './picker'
-import {joinTokens} from './utils'
+import {joinTokens, ListMap} from './utils'
 
 
 export class CSSTokenTree extends CSSTokenNode {
 
 	/** Make a CSS token tree by tokens. */
-	static fromTokens(tokens: Iterable<CSSToken>, string: string, isSassSyntax: boolean): CSSTokenTree {
-		let tree = new CSSTokenTree(string, isSassSyntax)
+	static fromTokens(tokens: Iterable<CSSToken>, string: string, languageId: CSSLanguageId): CSSTokenTree {
+		let tree = new CSSTokenTree(string, languageId !== 'css')
 		let current: CSSTokenNode = tree
 		let latestComment: CSSToken | null = null
 		let latestTokens: CSSToken[] = []
@@ -34,7 +34,7 @@ export class CSSTokenTree extends CSSTokenNode {
 						let o = splitPropertyTokens(joint)
 						if (o) {
 							let [nameTokens, valueTokens] = o
-							current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyName, nameTokens, current))
+							current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyName, nameTokens, current, latestComment))
 							current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyValue, valueTokens, current))
 						}
 					}
@@ -50,9 +50,8 @@ export class CSSTokenTree extends CSSTokenNode {
 				if (latestTokens.length > 0) {
 					let joint = joinTokens(latestTokens, string)
 					let type = isCommandToken(joint) ? CSSTokenNodeType.Command : CSSTokenNodeType.Selector
-					let node: CSSTokenNode = new CSSTokenNode(type, joint, current)
+					let node: CSSTokenNode = new CSSTokenNode(type, joint, current, latestComment)
 	
-					node.commentToken = latestComment
 					current.children!.push(node)
 					current = node
 					latestComment = null
@@ -75,20 +74,38 @@ export class CSSTokenTree extends CSSTokenNode {
 	}
 
 	/** Make a CSS token tree by string. */
-	static fromString(string: string, isSassSyntax: boolean): CSSTokenTree {
-		let tokens = new CSSTokenScanner(string, isSassSyntax).parseToTokens()
-		return CSSTokenTree.fromTokens(tokens, string, isSassSyntax)
+	static fromString(string: string, languageId: CSSLanguageId): CSSTokenTree {
+		let tokens: Iterable<CSSToken>
+
+		if (languageId === 'sass') {
+			tokens = new SassIndentedTokenScanner(string).parseToTokens()
+		}
+		else {
+			tokens = new CSSTokenScanner(string, languageId !== 'css').parseToTokens()
+		}
+
+		return CSSTokenTree.fromTokens(tokens, string, languageId)
 	}
 
 	/** Make a partial CSS token tree by string and offset. */
-	static fromStringAtOffset(string: string, offset: number, isSassSyntax: boolean): CSSTokenTree {
-		let tokens = new CSSTokenScanner(string, isSassSyntax).parsePartialTokens(offset)
-		return CSSTokenTree.fromTokens(tokens, string, isSassSyntax)
+	static fromStringAtOffset(string: string, offset: number, languageId: CSSLanguageId): CSSTokenTree {
+		let tokens: Iterable<CSSToken>
+		
+		if (languageId === 'sass') {
+			tokens = new SassIndentedTokenScanner(string).parsePartialTokens(offset)
+		}
+		else {
+			tokens = new CSSTokenScanner(string, languageId !== 'css').parsePartialTokens(offset)
+		}
+
+		return CSSTokenTree.fromTokens(tokens, string, languageId)
 	}
 
 
 	readonly string: string
 	readonly isSassSyntax: boolean
+	private nodePartMap: ListMap<CSSTokenNode, CSSSelectorPart> = new ListMap()
+	private commandWrappedMap: Map<CSSTokenNode, boolean> = new Map()
 
 	constructor(string: string, isSassSyntax: boolean) {
 		super(CSSTokenNodeType.Root, {
@@ -123,6 +140,7 @@ export class CSSTokenTree extends CSSTokenNode {
 		return undefined
 	}
 
+	/** Walk all the parts. */
 	*walkParts(): Iterable<Part> {
 		for (let node of this.walk()) {
 			yield* this.parseNodePart(node)
@@ -143,16 +161,35 @@ export class CSSTokenTree extends CSSTokenNode {
 		else if (node.type === CSSTokenNodeType.PropertyValue) {
 			yield* this.parsePropertyValuePart(node)
 		}
+		else if (node.type === CSSTokenNodeType.Command) {
+			yield* this.parseCommandPart(node)
+		}
 	}
 
-	/** Parse a selector string to tokens. */
+	/** Parse a selector string to parts. */
 	private *parseSelectorPart(node: CSSTokenNode): Iterable<Part> {
 		let groups = new CSSSelectorTokenScanner(node.token.text, this.isSassSyntax).parseToSeparatedTokens()
+		let parentParts = this.nodePartMap.get(node.parent!)
+		let commandWrapped = node.parent ? !!this.commandWrappedMap.get(node.parent) : false
 
 		for (let group of groups) {
 			let joint = joinTokens(group, this.string)
-			yield new CSSSelectorPart(group, joint, [], node.commentToken?.text)
+			let part = new CSSSelectorPart(
+				group,
+				joint,
+				parentParts,
+				commandWrapped,
+				node.closureStart,
+				node.closureEnd,
+				node.commentToken?.text
+			)
+
+			yield part
+			this.nodePartMap.add(node, part)
 		}
+
+		// Broadcast wrapped to children.
+		this.commandWrappedMap.set(node, commandWrapped)
 	}
 	
 	/** For property name part. */
@@ -169,6 +206,40 @@ export class CSSTokenTree extends CSSTokenNode {
 		for (let match of matches) {
 			yield new Part(PartType.CSSVariableReference, match[1].text, match[1].start + node.token.start)
 		}
+	}
+	
+	/** Parse a command string to parts. */
+	private *parseCommandPart(node: CSSTokenNode): Iterable<Part> {
+		let commandName = node.token.text.match(/@([\w-]+)/)?.[1]
+
+		// See `https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Nesting_at-rules`
+		if (commandName === 'media'
+			|| commandName === 'supports'
+			|| commandName === 'layer'
+			|| commandName === 'scope'
+			|| commandName === 'container'
+		) {
+			let parentParts = this.nodePartMap.get(node.parent!)
+			if (parentParts) {
+				this.nodePartMap.set(node, parentParts)
+			}
+		}
+
+		if (commandName === 'import') {
+
+			// `@import ''`.
+			// `class={style['class-name']}`.
+			let match = Picker.locateMatchGroups(
+				node.token.text,
+				/@import\s+['"](.+?)['"]/
+			)
+
+			if (match) {
+				yield new Part(PartType.ImportPath, match[1].text, match[1].start + node.token.start)
+			}
+		}
+
+		this.commandWrappedMap.set(node, true)
 	}
 }
 

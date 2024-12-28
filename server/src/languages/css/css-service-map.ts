@@ -1,9 +1,9 @@
 import * as path from 'path'
-import {SymbolInformation, TextDocuments, LocationLink} from 'vscode-languageserver'
+import {SymbolInformation, TextDocuments, LocationLink, CompletionItem, Hover} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {FileTrackerOptions, FileTracker, replacePathExtension} from '../../helpers'
-import {SimpleSelector} from '../common/simple-selector'
 import {CSSService} from './css-service'
+import {CSSSelectorPart, Part} from '../trees'
 
 
 export interface CSSServiceMapOptions extends FileTrackerOptions {
@@ -19,13 +19,11 @@ export interface CSSServiceMapOptions extends FileTrackerOptions {
 /** Gives CSS service for multiple files. */
 export class CSSServiceMap extends FileTracker {
 
-	private includeImportedFiles: boolean
 	private ignoreSameNameCSSFile: boolean
 	private serviceMap: Map<string, CSSService> = new Map()
 
 	constructor(documents: TextDocuments<TextDocument>, options: CSSServiceMapOptions) {
 		super(documents, options)
-		this.includeImportedFiles = options.includeImportedFiles
 		this.ignoreSameNameCSSFile = options.ignoreSameNameCSSFile
 	}
 
@@ -79,52 +77,78 @@ export class CSSServiceMap extends FileTracker {
 
 	/** Parse document to CSS service. */
 	protected async parseDocument(uri: string, document: TextDocument) {
-		let cssService = CSSService.create(document, this.includeImportedFiles)
+		let cssService = new CSSService(document)
 		this.serviceMap.set(uri, cssService)
 
-		// If having `@import ...`
-		let importPaths = await cssService.getResolvedImportPaths()
-		if (importPaths.length > 0) {
-			for (let importPath of importPaths) {
-				// Will also parse imported file because are updating.
-				this.trackMoreFile(importPath)
-			}
+		// If having `@import ...`, load it.
+		let importPaths = cssService.resolvedImportPaths()
+		for await (let importPath of importPaths) {
+			this.trackMoreFile(importPath)
 		}
 	}
 
-	async findDefinitionsMatchSelector(selector: SimpleSelector): Promise<LocationLink[]> {
+	async findDefinitions(fromPart: Part, fromDocument: TextDocument): Promise<LocationLink[]> {
 		await this.makeFresh()
-		
+
+		let fromRange = fromPart.toRange(fromDocument)
+		let matchPart = fromPart.toCSS()
 		let locations: LocationLink[] = []
-		for (let cssService of this.iterateAvailableCSSServices()) {
-			locations.push(...cssService.findDefinitionsMatchSelector(selector))
+
+		for (let cssService of this.walkAvailableCSSServices()) {
+			locations.push(...cssService.findDefinitions(matchPart, fromRange))
 		}
+
 		return locations
 	}
 	
-	async findSymbolsMatchQuery(query: string): Promise<SymbolInformation[]> {
+	async findSymbols(query: string): Promise<SymbolInformation[]> {
 		await this.makeFresh()
 
 		let symbols: SymbolInformation[] = []
-		for (let cssService of this.iterateAvailableCSSServices()) {
-			symbols.push(...cssService.findSymbolsMatchQuery(query))
+
+		for (let cssService of this.walkAvailableCSSServices()) {
+			symbols.push(...cssService.findSymbols(query))
 		}
+
 		return symbols
 	}
 
-	async findCompletionLabelsMatchSelector(selector: SimpleSelector): Promise<string[]> {
+	async findCompletionItems(fromPart: Part, fromDocument: TextDocument): Promise<CompletionItem[]> {
 		await this.makeFresh()
 
+		let matchPart = fromPart.toCSS()
 		let labelSet: Set<string> = new Set()
-		for (let cssService of this.iterateAvailableCSSServices()) {
-			for (let label of cssService.findCompletionLabelsMatchSelector(selector)) {
+
+		for (let cssService of this.walkAvailableCSSServices()) {
+			for (let label of cssService.findCompletionLabels(matchPart)) {
 				labelSet.add(label)
 			}
 		}
-		return [...labelSet.values()]
+
+		return fromPart.toCompletionItems([...labelSet.values()], fromDocument)
+	}
+
+	async findHover(fromPart: Part, fromDocument: TextDocument): Promise<Hover | undefined> {
+		await this.makeFresh()
+
+		let matchPart = fromPart.toCSS()
+		let parts: CSSSelectorPart[] = []
+
+		for (let cssService of this.walkAvailableCSSServices()) {
+			parts.push(...cssService.findHoverParts(matchPart))
+		}
+
+		if (parts.length === 0) {
+			return undefined
+		}
+
+		let commentedParts = parts.filter(p => p.comment)
+		let part = commentedParts.find(part => part.detail!.independent) ?? commentedParts[0]
+
+		return fromPart.toHover(part?.comment!, fromDocument)
 	}
 	
-	private *iterateAvailableCSSServices(): IterableIterator<CSSService> {
+	private *walkAvailableCSSServices(): IterableIterator<CSSService> {
 		for (let [uri, cssService] of this.serviceMap.entries()) {
 			if (!this.hasIgnored(uri)) {
 				yield cssService

@@ -146,17 +146,6 @@ export class HTMLTokenTree extends HTMLTokenNode {
 					return part
 				}
 			}
-
-			// Parsing text parts as script are expensive.
-			// So only when finding part, will parse text part.
-			// This cause text parts can't finding references or symbols.
-			if (this.isJSLikeSyntax && node.token.type === HTMLTokenType.Text) {
-				for (let part of this.parseScriptTextParts(node)) {
-					if (part.start >= offset && part.end <= offset) {
-						return part
-					}
-				}
-			}
 		}
 
 		return undefined
@@ -190,6 +179,11 @@ export class HTMLTokenTree extends HTMLTokenNode {
 				yield* this.parseStylePart(node)
 			}
 		}
+		
+		// Parsing text parts as script may be expensive.
+		if (this.isJSLikeSyntax && node.token.type === HTMLTokenType.Text) {
+			yield* this.parseScriptTextParts(node)
+		}
 	}
 
 	/** For attribute part. */
@@ -204,7 +198,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 		// For `Lupos.js`, completion `:class.|name|`
 		else if (this.isJSLikeSyntax && name.startsWith(':class.')) {
-			yield new Part(PartType.ClassBinding, attrName.text.slice(7), attrName.start + 7)
+			yield new Part(PartType.Class, attrName.text.slice(7), attrName.start + 7)
 		}
 
 		// For `JSX`, `Lupos.js`, `Vue.js`
@@ -244,7 +238,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			if (node.getAttributeValue('rel') === 'stylesheet') {
 				let href = node.getAttribute('href')
 				if (href) {
-					yield new Part(PartType.Import, href.text, href.start).removeQuotes()
+					yield new Part(PartType.ImportPath, href.text, href.start).removeQuotes()
 				}
 			}
 		}
@@ -253,13 +247,14 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		else if (node.tagName === 'style') {
 			let src = node.getAttribute('src')
 			if (src) {
-				yield new Part(PartType.Import, src.text, src.start).removeQuotes()
+				yield new Part(PartType.ImportPath, src.text, src.start).removeQuotes()
 			}
 		}
 	}
 
 	/** For react css module. */
 	protected *parseReactModulePart(attrValue: HTMLToken): Iterable<Part> {
+		let start = attrValue.start
 
 		// `class={style.className}`.
 		// `class={style['class-name']}`.
@@ -269,8 +264,8 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		)
 
 		if (match) {
-			yield new Part(PartType.ReactImportedCSSModuleName, match.moduleName.text, match.moduleName.start)
-			yield new Part(PartType.ReactImportedCSSModuleProperty, match.propertyName.text, match.propertyName.start)
+			yield new Part(PartType.ReactImportedCSSModuleName, match.moduleName.text, match.moduleName.start + start)
+			yield new Part(PartType.ReactImportedCSSModuleProperty, match.propertyName.text, match.propertyName.start + start)
 		}
 	}
 
@@ -331,15 +326,16 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	protected *parseStylePart(node: HTMLTokenNode): Iterable<Part> {
 		let textNode = node.firstTextNode
 		if (textNode) {
-			yield* this.parseStyleTextParts(textNode)
+			let languageId = node.getAttributeValue('lang') ?? 'css'
+			yield* this.parseStyleTextParts(textNode, languageId as CSSLanguageId)
 		}
 	}
 
 	/** Parse style content for parts. */
-	protected *parseStyleTextParts(node: HTMLTokenNode): Iterable<Part> {
+	protected *parseStyleTextParts(node: HTMLTokenNode, languageId: CSSLanguageId): Iterable<Part> {
 		let text = node.token.text
 		let start = node.token.start
-		let cssTree = CSSTokenTree.fromString(text, false)
+		let cssTree = CSSTokenTree.fromString(text, languageId)
 
 		for (let part of cssTree.walkParts()) {
 			yield part.translate(start)

@@ -1,21 +1,31 @@
-import {Range} from 'vscode-languageserver'
+import {CompletionItem, CompletionItemKind, Hover, Location, LocationLink, MarkupKind, Range, SymbolInformation, SymbolKind, TextEdit} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {hasQuotes} from './utils'
+import {escapeAsRegExpSource, hasQuotes} from './utils'
 
 
 /** Part types. */
 export enum PartType {
 
-	////
-	Import,
+	//// Common
+
+	/** 
+	 * `<link href=...>`
+	 * `<script src=...>`
+	 * `@import ...`
+	 * Contains only path.
+	 */
+	ImportPath,
 
 
 	//// From HTML.
 
-	Id,
 	Tag,
+
+	/** It doesn't include identifier `#`. */
+	Id,
+
+	/** It doesn't include identifier `.`. */
 	Class,
-	ClassBinding,
 
 	/** 
 	 * Import 'file.css'
@@ -51,14 +61,13 @@ export enum PartType {
 	/** Any selector string like `#id`, `.class-name`. */
 	CSSSelector,
 
-	/** `div`, been wrapped within a `CSSSelector` part. */
-	CSSSelectorDetailedTag,
+	CSSSelectorMainTag,
 
-	/** `.class-name`, been wrapped within a `CSSSelector` part. */
-	CSSSelectorDetailedClass,
+	/** It includes identifier `#`. */
+	CSSSelectorMainId,
 
-	/** `#id`, been wrapped within a `CSSSelector` part. */
-	CSSSelectorDetailedId,
+	/** It includes identifier `.`. */
+	CSSSelectorMainClass,
 
 	/** `--variable-name: ...;` */
 	CSSVariableDeclaration,
@@ -72,33 +81,53 @@ export enum PartType {
  * Trees will be destroyed, and parts will be cached, so ensure part cost few memories.
  */
 export class Part {
+
+	/** Get css part type from text which includes identifiers like `.`, `#`. */
+	static getCSSSelectorTypeByText(text: string): PartType {
+		if (text[0] === '#') {
+			return PartType.CSSSelectorMainId
+		}
+		else if (text[0] === '.') {
+			return PartType.CSSSelectorMainClass
+		}
+		else {
+			return PartType.Tag
+		}
+	}
+
+	/** `ab` -> /\bab/i. */
+	static makeWordStartsMatchExp(text: string): RegExp {
+		if (/^[a-z]/i.test(text)) {
+			return new RegExp('\\b' + escapeAsRegExpSource(text), 'i')
+		}
+		else {
+			return new RegExp(escapeAsRegExpSource(text), 'i')
+		}
+	}
+
+	/** `ab` -> /^ab/i. */
+	static makeStartsMatchExp(text: string): RegExp {
+		return new RegExp('^' + escapeAsRegExpSource(text), 'i')
+	}
+
 	
 	/** Part type. */
 	readonly type: PartType
 
-	/** Raw text, it should include identifiers like `.`, `#`. */
+	/** 
+	 * Label, it may or may not include identifiers like `.`, `#` from raw text.
+	 * For `<div class="|name|">`, it doesn't include identifier
+	 * For `|.class|{}`, it includes identifier.
+	 */
 	readonly text: string
 
 	/** Offset of start. */
 	readonly start: number
 
-	constructor(type: PartType, text: string, start: number) {
+	constructor(type: PartType, label: string, start: number) {
 		this.type = type
-		this.text = text
+		this.text = label
 		this.start = start
-	}
-
-	/** Get identifier, like `.`, `#`. */
-	get identifier(): string {
-		if (this.type === PartType.Id || this.type === PartType.CSSSelectorDetailedId) {
-			return '#'
-		}
-		else if (this.type === PartType.Class || this.type === PartType.CSSSelectorDetailedClass) {
-			return '.'
-		}
-		else {
-			return ''
-		}
 	}
 
 	/** End offset. */
@@ -106,15 +135,9 @@ export class Part {
 		return this.start + this.text.length
 	}
 
-	/** Get  string exclude identifier. */
-	get label(): string {
-		let identifier = this.identifier
-
-		if (this.text.startsWith(identifier)) {
-			return this.text.slice(identifier.length)
-		}
-
-		return this.text
+	/** Returns text or content as list. */
+	get textList(): string[] {
+		return [this.text]
 	}
 
 	/** Translate start offset. */
@@ -161,10 +184,137 @@ export class Part {
 			return this
 		}
 	}
-	
+
+	/** Transform from HTML type to CSS type. */
+	toCSS() {
+		let type = this.type
+		let text = this.text
+
+		if (type === PartType.Tag) {
+			type = PartType.CSSSelectorMainTag
+		}
+		else if (type === PartType.Id) {
+			type = PartType.CSSSelectorMainId
+			text = '#' + text
+		}
+		else if (type === PartType.Class) {
+			type = PartType.CSSSelectorMainClass
+			text = '.' + text
+		}
+		
+		return new Part(type, text, -1)
+	}
+
+	/** Transform from CSS type to HTML type. */
+	toHTML() {
+		let type = this.type
+		let text = this.text
+
+		if (type === PartType.CSSSelectorMainTag) {
+			type = PartType.Tag
+		}
+		else if (type === PartType.CSSSelectorMainId) {
+			type = PartType.Id
+			text = text.slice(1)
+		}
+		else if (type === PartType.CSSSelectorMainClass) {
+			type = PartType.Class
+			text = text.slice(1)
+		}
+		
+		return new Part(type, text, -1)
+	}
+
+	/** 
+	 * Whether part is totally match another part.
+	 * Use it for finding definition and quick info.
+	 */
+	isMatch(matchPart: Part) {
+		return this.text === matchPart.text
+	}
+
+	/** 
+	 * Whether part is wild match an regexp.
+	 * Use it for finding workspace symbol.
+	 */
+	isExpMatch(re: RegExp) {
+		return re.test(this.text)
+	}
+
 	/** Get a range from its related document. */
 	toRange(document: TextDocument): Range {
 		return Range.create(document.positionAt(this.start), document.positionAt(this.end))
+	}
+
+	/** To a location link for going to definition. */
+	toLocationLink(document: TextDocument, fromRange: Range) {
+		let range = this.toRange(document)
+		return LocationLink.create(document.uri, range, range, fromRange)
+	}
+
+	/** To a location for finding references. */
+	toLocation(document: TextDocument) {
+		return Location.create(document.uri, this.toRange(document))
+	}
+
+	/** To several symbol information for workspace symbol searching. */
+	toSymbolInformationList(document: TextDocument): SymbolInformation[] {
+		let kind = this.type === PartType.CSSSelector
+			|| this.type === PartType.CSSSelectorMainTag
+			|| this.type === PartType.CSSSelectorMainClass
+			|| this.type === PartType.CSSSelectorMainId
+				? SymbolKind.Class
+				: SymbolKind.Variable
+
+		return this.textList.map(text => SymbolInformation.create(
+			text,
+			kind,
+			this.toRange(document),
+			document.uri
+		))
+	}
+
+	/** To completion item list. */
+	toCompletionItems(labels: string[], document: TextDocument): CompletionItem[] {
+		let kind = this.type === PartType.CSSSelector
+			|| this.type === PartType.CSSSelectorMainTag
+			|| this.type === PartType.CSSSelectorMainClass
+			|| this.type === PartType.CSSSelectorMainId
+			|| this.type === PartType.Tag
+			|| this.type === PartType.Class
+			|| this.type === PartType.Id
+				? CompletionItemKind.Class
+				: CompletionItemKind.Variable
+
+		return labels.map(text => {
+			let item = CompletionItem.create(text)
+			item.kind = kind
+	
+			item.textEdit = TextEdit.replace(
+				this.toRange(document),
+				text,
+			)
+
+			return item
+		})
+	}
+
+	/** To hover. */
+	toHover(comment: string | undefined, document: TextDocument): Hover {
+		let cssPart = this.toCSS()
+		let content = cssPart.text
+
+		if (comment) {
+			content += '\n' + comment
+		}
+
+		return {
+			contents: {
+				kind: MarkupKind.PlainText,
+				value: content,
+			},
+			range: this.toRange(document)
+		}
 	}
 }
 

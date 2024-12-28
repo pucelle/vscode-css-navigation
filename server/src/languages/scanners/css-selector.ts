@@ -22,8 +22,12 @@ export interface CSSSelectorToken {
 /** CSS token type. */
 export enum CSSSelectorTokenType {
 
-	ClassName,
-	IdName,
+	/** Include `.` identifier. */
+	Class,
+
+	/** Include `#` identifier. */
+	Id,
+	
 	Tag,
 	AnyTag,
 
@@ -31,7 +35,7 @@ export enum CSSSelectorTokenType {
 	Attribute,
 
 	/** Like `&-sub`, must determine it by joining parent selector. */
-	Nested,
+	Nesting,
 
 	// `+, >, ||, ~, |`
 	Combinator,
@@ -55,7 +59,7 @@ enum ScanState {
 	EOF = 0,
 	AnyContent = 1,
 	WithinTag,
-	WithinNested,
+	WithinNesting,
 	WithinClassName,
 	WithinIdName,
 	WithinAttribute,
@@ -126,7 +130,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 				// `|&`
 				if (char === '&') {
 					yield* this.makeSeparatorToken()
-					this.state = ScanState.WithinNested
+					this.state = ScanState.WithinNesting
 				}
 
 				// `|a`
@@ -138,21 +142,13 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 				// `|.`
 				else if (char === '.') {
 					yield* this.makeSeparatorToken()
-
-					// Move to `.|`
-					this.offset += 1
-					this.sync()
 					this.state = ScanState.WithinClassName
 				}
 
 				// `|#`
 				else if (char === '#') {
 					yield* this.makeSeparatorToken()
-
-					// Move to `#|`
-					this.offset += 1
-					this.sync()
-					this.state = ScanState.WithinClassName
+					this.state = ScanState.WithinIdName
 				}
 
 				// `|*`
@@ -257,14 +253,14 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 				this.needToSeparate = true
 			}
 
-			else if (this.state === ScanState.WithinNested) {
+			else if (this.state === ScanState.WithinNesting) {
 
 				// `&abc|`
 				if (!this.readUntil(IsNotName)) {
 					break
 				}
 
-				yield this.makeToken(CSSSelectorTokenType.Nested)
+				yield this.makeToken(CSSSelectorTokenType.Nesting)
 				this.state = ScanState.AnyContent
 				this.needToSeparate = true
 			}
@@ -276,7 +272,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 					break
 				}
 
-				yield this.makeToken(CSSSelectorTokenType.ClassName)
+				yield this.makeToken(CSSSelectorTokenType.Class)
 				this.state = ScanState.AnyContent
 				this.needToSeparate = true
 			}
@@ -288,7 +284,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 					break
 				}
 
-				yield this.makeToken(CSSSelectorTokenType.IdName)
+				yield this.makeToken(CSSSelectorTokenType.Id)
 				this.state = ScanState.AnyContent
 				this.needToSeparate = true
 			}

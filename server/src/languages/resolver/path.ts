@@ -1,10 +1,10 @@
 import {LocationLink, Range} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {URI} from 'vscode-uri'
-import {Part} from '../scanners'
 import * as path from 'path'
 import * as fs from 'fs-extra'
 import {getPathExtension} from '../../helpers'
+import {Part} from '../trees'
 
 
 export namespace PathResolver {

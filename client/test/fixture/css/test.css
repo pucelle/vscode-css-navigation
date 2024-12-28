@@ -1,97 +1,17 @@
-@import url(~test-module/test.css);
-html {
-  height: 100%; }
+/* Error: Can't find stylesheet to import.
+ *   ,
+ * 1 | @import '~test-module/imported';
+ *   |         ^^^^^^^^^^^^^^^^^^^^^^^
+ *   '
+ *   client\test\fixture\css\test.scss 1:9  root stylesheet */
 
-body {
-  height: 100%; }
-
-custom-element {
-  color: red; }
-
-@keyframes tag-not-match {
-  start {
-    color: red; }
-  end {
-    color: red; } }
-
-body tagnotmatch {
-  color: red; }
-
-body tagnotmatch {
-  color: red; }
-
-#id1 {
-  color: red; }
-
-.class1-sub-tail {
-  color: red; }
-
-.class2-sub, .class3-sub {
-  color: red; }
-
-.class4-sub-tail, .class4-sub-sub-tail {
-  color: red; }
-
-@media screen {
-  .class5-sub5 {
-    color: red; } }
-
-.class6-sub6 {
-  color: red; }
-
-.class7-sub7 {
-  color: red; }
-
-.class-match1:hover {
-  color: red; }
-
-.class-match2::before {
-  color: red; }
-
-.class-match3[name=value] {
-  color: red; }
-
-.class-any .class-match4 {
-  color: red; }
-
-.class-any .class-match5:hover {
-  color: red; }
-
-.class-any > .class-match6 {
-  color: red; }
-
-.class-any + .class-match7 {
-  color: red; }
-
-.class-any ~ .class-match8 {
-  color: red; }
-
-.class-any.class-match9 {
-  color: red; }
-
-div.class-match10 {
-  color: red; }
-
-.class-any:matches(.class-not-match1) {
-  color: red; }
-
-.class-any:not(.class-not-match2) {
-  color: red; }
-
-.class-not-match3 .class-any {
-  color: red; }
-
-.class-not-match4-suffix {
-  color: red; }
-
-.class-sub-not-match:hover {
-  color: red; }
-
-.class-sub-not-match[name=value] {
-  color: red; }
-
-.class-sub-not-match.class-any {
-  color: red; }
-
-.class-sub-not-match::before {
-  color: red; }
+body::before {
+  font-family: "Source Code Pro", "SF Mono", Monaco, Inconsolata, "Fira Mono",
+      "Droid Sans Mono", monospace, monospace;
+  white-space: pre;
+  display: block;
+  padding: 1em;
+  margin-bottom: 1em;
+  border-bottom: 2px solid black;
+  content: "Error: Can't find stylesheet to import.\a   \2577 \a 1 \2502  @import '~test-module/imported';\a   \2502          ^^^^^^^^^^^^^^^^^^^^^^^\a   \2575 \a   client\\test\\fixture\\css\\test.scss 1:9  root stylesheet";
+}

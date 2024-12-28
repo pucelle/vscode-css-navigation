@@ -253,7 +253,19 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 				this.readWhiteSpaces()
 
 				let char = this.peekChar()
-				if (char === '>') {
+
+				// If meet another tag start, use the late one.
+				// For js codes like `if (a<b){<div>}`.
+				if (char === '<' && isAttrName(this.peekChar(1))) {
+					yield* this.makeTextToken()
+
+					// Move to `<|a`
+					this.offset += 1
+					this.sync()
+					this.state = ScanState.WithinStartTag
+				}
+
+				else if (char === '>') {
 
 					// Move to `>|`
 					this.offset += 1

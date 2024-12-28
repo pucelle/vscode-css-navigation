@@ -1,8 +1,8 @@
-import {Location} from 'vscode-languageserver'
+import {CompletionItem, Location} from 'vscode-languageserver'
 import {HTMLService} from './html-service'
 import {FileTracker} from '../../helpers'
-import {SimpleSelector} from '../common/simple-selector'
 import {TextDocument} from 'vscode-languageserver-textdocument'
+import {Part} from '../trees'
 
 
 export class HTMLServiceMap extends FileTracker {
@@ -20,37 +20,41 @@ export class HTMLServiceMap extends FileTracker {
 	}
 
 	protected async parseDocument(uri: string, document: TextDocument) {
-		this.serviceMap.set(uri, HTMLService.create(document))
+		this.serviceMap.set(uri, new HTMLService(document))
 	}
 
-	/** Get service by uri. */
+	/** Get HTML service by uri. */
 	async get(uri: string): Promise<HTMLService | undefined> {
 		await this.makeFresh()
 		return this.serviceMap.get(uri)
 	}
 
-	async findReferencesMatchSelector(selector: SimpleSelector): Promise<Location[]> {
+	async findReferences(fromPart: Part): Promise<Location[]> {
 		await this.makeFresh()
 		
+		let matchPart = fromPart.toHTML()
 		let locations: Location[] = []
+
 		for (let htmlService of this.serviceMap.values()) {
-			locations.push(...htmlService.findLocationsMatchSelector(selector))
+			locations.push(...htmlService.findReferences(matchPart))
 		}
+
 		return locations
 	}
 
-	/** Find completion label in for CSS document, from selectors in HTML document. */
-	async findCompletionLabelsMatch(prefix: string): Promise<string[]> {
+	/** Find completion labels from HTML document, and do complete for CSS documents. */
+	async findCompletionLabels(fromPart: Part, fromDocument: TextDocument): Promise<CompletionItem[]> {
 		await this.makeFresh()
-		
+
+		let matchPart = fromPart.toHTML()
 		let labelSet: Set<string> = new Set()
 
-		for (let htmlService of this.serviceMap.values()) {
-			for (let label of htmlService.findCompletionLabelsMatch(prefix)) {
+		for (let cssService of this.serviceMap.values()) {
+			for (let label of cssService.findCompletionLabels(matchPart)) {
 				labelSet.add(label)
 			}
 		}
 
-		return [...labelSet]
+		return fromPart.toCompletionItems([...labelSet.values()], fromDocument)
 	}
 }

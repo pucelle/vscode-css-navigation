@@ -15,6 +15,8 @@ import {
 	ReferenceParams,
 	TextDocumentChangeEvent,
 	LocationLink,
+	HoverParams,
+	Hover,
 } from 'vscode-languageserver'
 
 import {Position, TextDocument} from 'vscode-languageserver-textdocument'
@@ -63,7 +65,8 @@ connection.onInitialize((params: InitializeParams) => {
 			} : undefined,
 			definitionProvider: configuration.enableGoToDefinition,
 			referencesProvider: configuration.enableFindAllReferences,
-			workspaceSymbolProvider: configuration.enableWorkspaceSymbols
+			workspaceSymbolProvider: configuration.enableWorkspaceSymbols,
+			hoverProvider: configuration.enableHover,
 		}
 	}
 })
@@ -84,6 +87,10 @@ connection.onInitialized(() => {
 
 	if (configuration.enableFindAllReferences) {
 		connection.onReferences(console.logListQuerierExecutedTime(server.findReferences.bind(server), 'reference'))
+	}
+
+	if (configuration.enableHover) {
+		connection.onHover(console.logListQuerierExecutedTime(server.findReferences.bind(server), 'reference'))
 	}
 })
 
@@ -106,7 +113,6 @@ class CSSNavigationServer {
 			includeFileGlobPattern: file.generateGlobPatternFromExtensions(configuration.activeCSSFileExtensions)!,
 			excludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.excludeGlobPatterns) || undefined,
 			alwaysIncludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.alwaysIncludeGlobPatterns) || undefined,
-			includeImportedFiles: configuration.alwaysIncludeImportedFiles,
 			startPath: options.workspaceFolderPath,
 			ignoreSameNameCSSFile: configuration.ignoreSameNameCSSFile && configuration.activeCSSFileExtensions.length > 1 && configuration.activeCSSFileExtensions.includes('css'),
 			ignoreFilesBy: configuration.ignoreFilesBy as Ignore[],
@@ -211,7 +217,7 @@ class CSSNavigationServer {
 				// Only find in one imported file.
 				let cssService = await this.cssServiceMap.get(selector.importURI)
 				if (cssService) {
-					return cssService.findDefinitionsMatchSelector(selector)
+					return cssService.findDefinitions(selector)
 				}
 				else {
 					return null
@@ -225,7 +231,7 @@ class CSSNavigationServer {
 			}
 
 			// Find across all CSS files.
-			locations.push(...await this.cssServiceMap.findDefinitionsMatchSelector(selector))
+			locations.push(...await this.cssServiceMap.findDefinitions(selector))
 
 			// Find in inner style tags.
 			if (configuration.alsoSearchDefinitionsInStyleTag) {
@@ -261,7 +267,7 @@ class CSSNavigationServer {
 			return null
 		}
 
-		return await this.cssServiceMap.findSymbolsMatchQuery(query)
+		return await this.cssServiceMap.findSymbols(query)
 	}
 
 	/** Provide auto completion service for HTML or CSS document. */
@@ -308,7 +314,7 @@ class CSSNavigationServer {
 			// Only find in one imported file.
 			let cssService = await this.cssServiceMap.get(selector.importURI)
 			if (cssService) {
-				let labels = cssService.findCompletionLabelsMatchSelector(selector)
+				let labels = cssService.findCompletionLabels(selector)
 
 				// Note the complete label doesn't include identifier.
 				let completeLength = selector.label.length
@@ -321,7 +327,7 @@ class CSSNavigationServer {
 		}
 
 		// Get auto completion labels.
-		let labels = await this.cssServiceMap.findCompletionLabelsMatchSelector(selector)
+		let labels = await this.cssServiceMap.findCompletionItems(selector)
 
 		// Find completion in inner style tags.
 		if (configuration.alsoSearchDefinitionsInStyleTag) {
@@ -350,7 +356,7 @@ class CSSNavigationServer {
 
 		// Unique selector, no need eliminate parent reference.
 		if (!havingReference) {
-			let labels = await this.htmlServiceMap!.findCompletionLabelsMatch(selectorResults.raw)
+			let labels = await this.htmlServiceMap!.findCompletionLabels(selectorResults.raw)
 
 			// Note the complete label includes identifier.
 			let completeLength = selectorResults.raw.length
@@ -362,7 +368,7 @@ class CSSNavigationServer {
 		// Has parent, must remove prefix after completion.
 		else {
 			for (let selector of selectorResults.selectors) {
-				let labels = await this.htmlServiceMap!.findCompletionLabelsMatch(selector.raw)
+				let labels = await this.htmlServiceMap!.findCompletionLabels(selector.raw)
 
 				// `.a-bc`, parent `.a`,  -> `&-b`.
 				if (labels.length > 0 && havingReference && parentSelectorNames) {
@@ -430,7 +436,62 @@ class CSSNavigationServer {
 			this.ensureHTMLServiceMap()
 
 			for (let selector of selectors) {
-				locations.push(...await this.htmlServiceMap!.findReferencesMatchSelector(selector))
+				locations.push(...await this.htmlServiceMap!.findReferences(selector))
+			}
+		}
+
+		return locations
+	}
+
+	/** Provide finding hover service. */
+	async findHovers(params: HoverParams): Promise<Hover[] | null> {
+		let documentIdentifier = params.textDocument
+		let document = documents.get(documentIdentifier.uri)
+		let position = params.position
+
+		if (!document) {
+			return null
+		}
+
+		let documentExtension = file.getPathExtension(document.uri)
+		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+
+		// Find HTML references inside a style tag.
+		if (isHTMLFile && configuration.alsoSearchDefinitionsInStyleTag) {
+			let htmlService = this.htmlServiceMap ? await this.htmlServiceMap.get(document.uri) : undefined
+			if (!htmlService) {
+				htmlService = HTMLService.create(document)
+			}
+
+			let locations = HTMLService.findReferencesInInnerHTML(document, position, htmlService)
+			if (locations) {
+				return locations
+			}
+		}
+
+		let selectors: SimpleSelector[] = []
+		let locations: Location[] = []
+
+		// From current HTML document.
+		if (isHTMLFile) {
+			let selector = await HTMLService.getSimpleSelectorAt(document, position)
+			if (selector) {
+				selectors.push(selector)
+			}
+		}
+
+		// From current CSS document.
+		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+		if (isCSSFile) {
+			selectors.push(...CSSService.getSimpleSelectorsAt(document, position) || [])
+		}
+
+		// From HTML documents.
+		if (selectors.length > 0) {
+			this.ensureHTMLServiceMap()
+
+			for (let selector of selectors) {
+				locations.push(...await this.htmlServiceMap!.findReferences(selector))
 			}
 		}
 

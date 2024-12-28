@@ -27,11 +27,12 @@ export class CSSTokenNode extends AnyTokenNode<CSSToken> {
 	closureEnd: number = -1
 
 	/** Comment Token */
-	commentToken: CSSToken | null = null
+	commentToken: CSSToken | null
 
-	constructor(type: CSSTokenNodeType, token: CSSToken, parent: CSSTokenNode | null) {
+	constructor(type: CSSTokenNodeType, token: CSSToken, parent: CSSTokenNode | null, commentToken: CSSToken | null = null) {
 		super(token, parent)
 		this.type = type
+		this.commentToken = commentToken
 
 		if (type === CSSTokenNodeType.Command || type === CSSTokenNodeType.Selector) {
 			this.children = []
