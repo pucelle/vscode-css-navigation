@@ -9,7 +9,7 @@ import {
 } from 'vscode-languageserver'
 
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import * as console from './console'
+import {Logger} from './logger'
 import {URI} from 'vscode-uri'
 import {walkDirectoryToMatchFiles} from './file-walker'
 import {glob} from 'glob'
@@ -66,33 +66,35 @@ export interface FileTrackerOptions {
 /** Class to track one type of files in a directory. */
 export class FileTracker {
 
-	private documents: TextDocuments<TextDocument>
-	private alwaysIncludeGlobPattern: string | null
-	private ignoreFilesBy: Ignore[]
-	private startPath: string | null
-	private mostFileCount: number
+	readonly documents: TextDocuments<TextDocument>
+	readonly startPath: string | null
+	readonly alwaysIncludeGlobPattern: string | null
+	readonly ignoreFilesBy: Ignore[]
+	readonly mostFileCount: number
 
-	private includeFileMatcher: minimatch.IMinimatch
-	private excludeMatcher: minimatch.IMinimatch | null
-	private alwaysIncludeMatcher: minimatch.IMinimatch | null
+	protected includeFileMatcher: minimatch.IMinimatch
+	protected excludeMatcher: minimatch.IMinimatch | null
+	protected alwaysIncludeMatcher: minimatch.IMinimatch | null
 
-	private map: Map<string, FileTrackerItem> = new Map()
-	private ignoredFileURIs: Set<string> = new Set()
-	private allFresh: boolean = true
-	private startDataLoaded: boolean = true
-	private updating: Promise<void> | null = null
-	private updatePromises: Promise<void>[] = []
+	protected map: Map<string, FileTrackerItem> = new Map()
+	protected ignoredFileURIs: Set<string> = new Set()
+	protected allFresh: boolean = true
+	protected startDataLoaded: boolean = true
+	protected updating: Promise<void> | null = null
+
+	/** May push more promises when updating, so there is a property. */
+	protected updatePromises: Promise<void>[] = []
 
 	constructor(documents: TextDocuments<TextDocument>, options: FileTrackerOptions) {
 		this.documents = documents
-
+		this.startPath = options.startPath || null
 		this.alwaysIncludeGlobPattern = options.alwaysIncludeGlobPattern || null
 		this.ignoreFilesBy = options.ignoreFilesBy || []
+		this.mostFileCount = options.mostFileCount ?? Infinity
+
 		this.includeFileMatcher = new minimatch.Minimatch(options.includeFileGlobPattern)
 		this.excludeMatcher = options.excludeGlobPattern ? new minimatch.Minimatch(options.excludeGlobPattern) : null
 		this.alwaysIncludeMatcher = this.alwaysIncludeGlobPattern ? new minimatch.Minimatch(this.alwaysIncludeGlobPattern) : null
-		this.startPath = options.startPath || null
-		this.mostFileCount = options.mostFileCount ?? Infinity
 
 		if (this.startPath) {
 			this.allFresh = false
@@ -143,6 +145,7 @@ export class FileTracker {
 
 	/** After changes of files or folders. */
 	async onWatchedFileOrFolderChanged(params: DidChangeWatchedFilesParams) {
+
 		// An issue for `@import ...` resources:
 		// It's common that we import resources inside `node_modules`,
 		// but we can't get notifications when those files changed.
@@ -156,7 +159,7 @@ export class FileTracker {
 
 			// New file or folder.
 			if (change.type === FileChangeType.Created) {
-				this.trackFileOrFolder(fsPath)
+				this.tryTrackFileOrFolder(fsPath)
 			}
 
 			// Content changed file or folder.
@@ -179,14 +182,14 @@ export class FileTracker {
 	}
 
 
-	/** Whether tracked file. */
+	/** Whether tracked file by it's uri. */
 	has(uri: string): boolean {
 		return this.map.has(uri)
 	}
 
 	/** Load all files inside `startPath`, and also all opened documents. */
 	private async loadStartData() {
-		console.timeStart('track')
+		Logger.timeStart('track')
 
 		for (let document of this.documents.all()) {
 			if (this.shouldTrackFile(URI.parse(document.uri).fsPath)) {
@@ -209,14 +212,14 @@ export class FileTracker {
 			}
 		}
 
-		await this.trackFileOrFolder(this.startPath!)
+		await this.tryTrackFileOrFolder(this.startPath!)
 
-		console.timeEnd('track', `${this.map.size} files tracked`)
+		Logger.timeEnd('track', `${this.map.size} files tracked`)
 		this.startDataLoaded = true
 	}
 
 	/** Returns whether should track one file. */
-	private shouldTrackFile(filePath: string): boolean {
+	shouldTrackFile(filePath: string): boolean {
 		if (!this.includeFileMatcher.match(filePath)) {
 			return false
 		}
@@ -245,7 +248,7 @@ export class FileTracker {
 	}
 
 	/** Track file or folder. */
-	private async trackFileOrFolder(fsPath: string) {
+	private async tryTrackFileOrFolder(fsPath: string) {
 		if (this.shouldExcludeFileOrFolder(fsPath)) {
 			return
 		}
@@ -256,7 +259,7 @@ export class FileTracker {
 
 		let stat = await fs.stat(fsPath)
 		if (stat.isDirectory()) {
-			await this.trackFolder(fsPath)
+			await this.tryTrackFolder(fsPath)
 		}
 		else if (stat.isFile()) {
 			let filePath = fsPath
@@ -267,17 +270,17 @@ export class FileTracker {
 	}
 	
 	/** Track folder. */
-	private async trackFolder(folderPath: string) {
+	private async tryTrackFolder(folderPath: string) {
 		let filePathsGenerator = walkDirectoryToMatchFiles(folderPath, this.ignoreFilesBy, this.mostFileCount)
 
-		for await(let absPath of filePathsGenerator) {
+		for await (let absPath of filePathsGenerator) {
 			if (this.shouldTrackFile(absPath)) {
 				this.trackFile(absPath)
 			}
 		}
 	}
 
-	/** Track file. */
+	/** Track file, not validate should track here. */
 	private trackFile(filePath: string) {
 		let uri = URI.file(filePath).toString()
 		let item = this.map.get(uri)
@@ -296,7 +299,11 @@ export class FileTracker {
 		}
 	}
 
-	/** Track more file like imported file. although it may not in `startPath`. */
+	/** 
+	 * Track more file like imported file of not yet.
+	 * although it may not in `startPath`,
+	 * or should be excluded by exclude glob path.
+	 */
 	trackMoreFile(filePath: string) {
 
 		// Not validate `alwaysIncludeMatcher` and `excludeMatcher` here.
@@ -347,7 +354,7 @@ export class FileTracker {
 			this.allFresh = false
 
 			if (beFreshBefore) {
-				console.log(`${decodeURIComponent(uri)} expired`)
+				Logger.log(`${decodeURIComponent(uri)} expired`)
 			}
 
 			this.onFileExpired(uri)
@@ -363,20 +370,20 @@ export class FileTracker {
 			this.allFresh = false
 		}
 
-		console.log(`${decodeURIComponent(uri)} tracked`)
+		Logger.log(`${decodeURIComponent(uri)} tracked`)
 		this.onFileTracked(uri)
 	}
 
 	/** Ignore file, Still keep data for ignored items. */
 	ignore(uri: string) {
 		this.ignoredFileURIs.add(uri)
-		console.log(`${decodeURIComponent(uri)} ignored`)
+		Logger.log(`${decodeURIComponent(uri)} ignored`)
 	}
 
 	/** Stop ignoring file. */
 	notIgnore(uri: string) {
 		this.ignoredFileURIs.delete(uri)
-		console.log(`${decodeURIComponent(uri)} restored from ignored`)
+		Logger.log(`${decodeURIComponent(uri)} restored from ignored`)
 	}
 
 	/** Check whether ignored file. */
@@ -407,7 +414,7 @@ export class FileTracker {
 			item.document = null
 			item.version = 0
 			item.opened = false
-			console.log(`${decodeURIComponent(uri)} closed`)
+			Logger.log(`${decodeURIComponent(uri)} closed`)
 		}
 	}
 
@@ -433,12 +440,12 @@ export class FileTracker {
 			this.ignoredFileURIs.delete(uri)
 		}
 		
-		console.log(`${decodeURIComponent(uri)} removed`)
+		Logger.log(`${decodeURIComponent(uri)} removed`)
 		this.onFileUntracked(uri)
 	}
 
 	/** Ensure all the content be fresh. */
-	async makeFresh() {
+	async beFresh() {
 		if (this.allFresh) {
 			return
 		}
@@ -454,6 +461,21 @@ export class FileTracker {
 		}
 	}
 
+	/** Ensure specified content be fresh, if it has been included. */
+	async uriBeFresh(uri: string): Promise<boolean> {
+		let item = this.map.get(uri)
+		if (!item) {
+			return false
+		}
+
+		if (!item.fresh) {
+			await this.updateFile(uri, item)
+		}
+
+		return true
+	}
+
+	/** Update all the contents that need to be updated. */
 	private async doUpdating() {
 		if (!this.startDataLoaded) {
 			await this.loadStartData()
@@ -461,7 +483,7 @@ export class FileTracker {
 
 		this.updatePromises = []
 
-		console.timeStart('update')
+		Logger.timeStart('update')
 
 		for (let [uri, item] of this.map.entries()) {
 			if (!item.fresh) {
@@ -469,14 +491,14 @@ export class FileTracker {
 			}
 		}
 
-		// May push more promises even when updating.
+		// May push more promises when updating.
 		for (let i = 0; i < this.updatePromises.length; i++) {
 			let promise = this.updatePromises[i]
 			await promise
 		}
 
 		let updatedCount = this.updatePromises.length
-		console.timeEnd('update', `${updatedCount} files loaded`)
+		Logger.timeEnd('update', `${updatedCount} files loaded`)
 
 		this.updatePromises = []
 	}
@@ -516,12 +538,12 @@ export class FileTracker {
 				item.document = null
 			}
 
-			console.log(`${decodeURIComponent(uri)} loaded${item.opened ? ' from opened document' : ''}`)
+			Logger.log(`${decodeURIComponent(uri)} loaded${item.opened ? ' from opened document' : ''}`)
 		}
 	}
 
 	/** Load text content and create one document. */
-	private async loadDocument(uri: string): Promise<TextDocument | null> {
+	protected async loadDocument(uri: string): Promise<TextDocument | null> {
 		let languageId = path.extname(uri).slice(1).toLowerCase()
 		let document = null
 

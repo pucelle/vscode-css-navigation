@@ -86,12 +86,29 @@ function isName(char: string): boolean {
 export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenType> {
 
 	declare protected state: ScanState
-	private isScssLessSyntax: boolean
+	readonly isScssLessSyntax: boolean
+	readonly selectorStart: number
 	private needToSeparate: boolean = false
 
-	constructor(string: string, isScssLessSyntax: boolean = false) {
+	constructor(string: string, selectorStart: number, isScssLessSyntax: boolean = false) {
 		super(string)
 		this.isScssLessSyntax = isScssLessSyntax
+		this.selectorStart = selectorStart
+	}
+
+	/** Note it will sync start to offset. */
+	protected makeToken(type: CSSSelectorTokenType): CSSSelectorToken {
+		let start = this.start
+		let end = this.offset
+
+		this.sync()
+
+		return {
+			type,
+			text: this.string.slice(start, end),
+			start: start + this.selectorStart,
+			end: end + this.selectorStart,
+		}
 	}
 
 	/** `.a, .b` -> `[.a, .b]`. */
@@ -102,11 +119,15 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 		// Split by comma.
 		for (let token of tokens) {
 			if (token.type === CSSSelectorTokenType.Comma) {
-				if (groups[groups.length - 1].length > 0) {
+				if (groups.length === 0 || groups[groups.length - 1].length > 0) {
 					groups.push([])
 				}
 			}
 			else {
+				if (groups.length === 0) {
+					groups.push([])
+				}
+
 				groups[groups.length - 1].push(token)
 			}
 		}
@@ -136,18 +157,27 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 				// `|a`
 				else if (isName(char)) {
 					yield* this.makeSeparatorToken()
+
+					// Move to `a|`
+					this.offset += 1
 					this.state = ScanState.WithinTag
 				}
 
-				// `|.`
-				else if (char === '.') {
+				// `|.a`
+				else if (char === '.' && isName(this.peekChar(1))) {
 					yield* this.makeSeparatorToken()
+
+					// Move to `.a|`
+					this.offset += 2
 					this.state = ScanState.WithinClassName
 				}
 
-				// `|#`
-				else if (char === '#') {
+				// `|#a`
+				else if (char === '#' && isName(this.peekChar(1))) {
 					yield* this.makeSeparatorToken()
+
+					// Move to `#a|`
+					this.offset += 2
 					this.state = ScanState.WithinIdName
 				}
 
@@ -157,7 +187,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 
 					// Move to `*|`
 					this.offset += 1
-					this.makeToken(CSSSelectorTokenType.AnyTag)
+					yield this.makeToken(CSSSelectorTokenType.AnyTag)
 					this.state = ScanState.AnyContent
 				}
 
@@ -167,21 +197,21 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 					this.state = ScanState.WithinAttribute
 				}
 
-				// `|::`
-				else if (char === ':' && this.peekChar(1) === ':') {
+				// `|::a`
+				else if (char === ':' && this.peekChar(1) === ':' && isName(this.peekChar(2))) {
+					yield* this.makeSeparatorToken()
+
+					// Move to `::|`
+					this.offset += 3
+					this.state = ScanState.WithinPseudoElement
+				}
+
+				// `|:a`
+				else if (char === ':' && isName(this.peekChar(1))) {
 					yield* this.makeSeparatorToken()
 
 					// Move to `:|`
 					this.offset += 2
-					this.state = ScanState.WithinPseudoElement
-				}
-
-				// `|:`
-				else if (char === ':') {
-					yield* this.makeSeparatorToken()
-
-					// Move to `:|`
-					this.offset += 1
 					this.state = ScanState.WithinPseudo
 				}
 
@@ -192,7 +222,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 
 					// Move to after `|`
 					this.offset += 2
-					this.makeToken(CSSSelectorTokenType.Combinator)
+					yield this.makeToken(CSSSelectorTokenType.Combinator)
 					this.state = ScanState.AnyContent
 				}
 
@@ -203,7 +233,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 
 					// Move to `+|`
 					this.offset += 1
-					this.makeToken(CSSSelectorTokenType.Combinator)
+					yield this.makeToken(CSSSelectorTokenType.Combinator)
 					this.state = ScanState.AnyContent
 				}
 
@@ -214,7 +244,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 
 					// Move to `+|`
 					this.offset += 1
-					this.makeToken(CSSSelectorTokenType.Comma)
+					yield this.makeToken(CSSSelectorTokenType.Comma)
 					this.state = ScanState.AnyContent
 				}
 
@@ -244,10 +274,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinTag) {
 
 				// `abc|`
-				if (!this.readUntil(IsNotName)) {
-					break
-				}
-
+				this.readUntil(IsNotName)
 				yield this.makeToken(CSSSelectorTokenType.Tag)
 				this.state = ScanState.AnyContent
 				this.needToSeparate = true
@@ -256,10 +283,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinNesting) {
 
 				// `&abc|`
-				if (!this.readUntil(IsNotName)) {
-					break
-				}
-
+				this.readUntil(IsNotName)
 				yield this.makeToken(CSSSelectorTokenType.Nesting)
 				this.state = ScanState.AnyContent
 				this.needToSeparate = true
@@ -268,10 +292,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinClassName) {
 
 				// `.abc|`
-				if (!this.readOut(IsName)) {
-					break
-				}
-
+				this.readUntil(IsNotName)
 				yield this.makeToken(CSSSelectorTokenType.Class)
 				this.state = ScanState.AnyContent
 				this.needToSeparate = true
@@ -280,10 +301,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinIdName) {
 
 				// `#abc|`
-				if (!this.readUntil(IsNotName)) {
-					break
-				}
-
+				this.readUntil(IsNotName)
 				yield this.makeToken(CSSSelectorTokenType.Id)
 				this.state = ScanState.AnyContent
 				this.needToSeparate = true

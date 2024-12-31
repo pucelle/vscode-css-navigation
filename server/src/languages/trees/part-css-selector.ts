@@ -117,7 +117,11 @@ export class CSSSelectorPart extends Part {
 	}
 
 	/** Parse a CSS selector name to detail. */
-	private parseDetails(group: CSSSelectorToken[], parents: CSSSelectorPart[] | undefined, commandWrapped: boolean): CSSSelectorMainPart | null {
+	private parseDetails(
+		group: CSSSelectorToken[],
+		parents: CSSSelectorPart[] | undefined,
+		commandWrapped: boolean
+	): CSSSelectorMainPart | null {
 		let mainToken = this.parsePrimaryTokenOfGroup(group)
 		if (!mainToken) {
 			return null
@@ -182,7 +186,7 @@ export class CSSSelectorPart extends Part {
 		return this.detail.isMatch(matchPart)
 	}
 
-	isExpMatch(re: RegExp): boolean {
+	isTextExpMatch(re: RegExp): boolean {
 		return this.formatted.some(text => re.test(text))
 	}
 }
@@ -219,7 +223,7 @@ export class CSSSelectorMainPart extends Part {
 		return this.formatted.some(text => text === matchPart.text)
 	}
 
-	isExpMatch(re: RegExp) {
+	isTextExpMatch(re: RegExp) {
 		return this.formatted.some(text => re.test(text))
 	}
 }

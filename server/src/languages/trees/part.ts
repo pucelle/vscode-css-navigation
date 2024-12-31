@@ -12,9 +12,11 @@ export enum PartType {
 	 * `<link href=...>`
 	 * `<script src=...>`
 	 * `@import ...`
+	 * Import 'file.css'
+	 * Import name from 'file.css'
 	 * Contains only path.
 	 */
-	ImportPath,
+	CSSImportPath,
 
 
 	//// From HTML.
@@ -27,13 +29,29 @@ export enum PartType {
 	/** It doesn't include identifier `.`. */
 	Class,
 
-	/** 
-	 * Import 'file.css'
-	 * Import name from 'file.css'
+	/**
+	 * `querySelector('div')`
+	 * `$('div')`
 	 */
-	CSSImportPath,
+	CSSSelectorQueryTag,
 
 	/**
+	 * `querySelector('#id')`
+	 * `$('#id')`
+	 */
+	CSSSelectorQueryId,
+
+	/**
+	 * `querySelector('.class-name')`
+	 * `$('.class-name')`
+	 */
+	CSSSelectorQueryClass,
+
+	/** `style.setProperty('--variable-name', ...)` */
+	CSSVariableAssignment,
+
+	/**
+	 * `import style from 'xxx.css'`
 	 * `class={style.className}`
 	 * `class={style['class-name']}`
 	*/
@@ -41,19 +59,10 @@ export enum PartType {
 	ReactImportedCSSModuleProperty,
 
 	/**
-	 * import 'xx.css'
+	 * `import 'xxx.css'`
 	 * `styleName="class-name"`
 	*/
 	ReactDefaultImportedCSSModule,
-
-	/**
-	 * `querySelect('.class-name')`
-	 * `$('.class-name')`
-	 */
-	SelectorQuery,
-
-	/** `style.setProperty('--variable-name', ...)` */
-	CSSVariableAssignment,
 
 
 	//// From CSS.
@@ -75,6 +84,7 @@ export enum PartType {
 	/** `property: var(--variable-name);` */
 	CSSVariableReference,
 }
+
 
 /** 
  * Part is normally a tag, class, id attribute, or tag/class/id selector, or a css variable.
@@ -140,6 +150,53 @@ export class Part {
 		return [this.text]
 	}
 
+	isHTMLType() {
+		return this.type < PartType.CSSSelector
+			&& this.type >= PartType.Tag
+	}
+
+	isCSSType() {
+		return this.type >= PartType.CSSSelector
+	}
+
+	isCSSVariableType() {
+		return this.type === PartType.CSSVariableAssignment
+			|| this.type === PartType.CSSVariableDeclaration
+			|| this.type === PartType.CSSVariableReference
+	}
+
+	isDefinitionType() {
+		return this.type === PartType.CSSSelector
+			|| this.type === PartType.CSSSelectorMainTag
+			|| this.type === PartType.CSSSelectorMainId
+			|| this.type === PartType.CSSSelectorMainClass
+			|| this.type === PartType.CSSVariableDeclaration
+	}
+
+	isReferenceType() {
+		return this.type === PartType.Tag
+			|| this.type === PartType.Id
+			|| this.type === PartType.Class
+			|| this.type === PartType.CSSSelectorQueryTag
+			|| this.type === PartType.CSSSelectorQueryId
+			|| this.type === PartType.CSSSelectorQueryClass
+			|| this.type === PartType.CSSVariableAssignment
+			|| this.type === PartType.CSSVariableReference
+	}
+
+	isSelectorType() {
+		return this.type === PartType.Tag
+			|| this.type === PartType.Id
+			|| this.type === PartType.Class
+			|| this.type === PartType.CSSSelectorQueryTag
+			|| this.type === PartType.CSSSelectorQueryId
+			|| this.type === PartType.CSSSelectorQueryClass
+			|| this.type === PartType.CSSSelector
+			|| this.type === PartType.CSSSelectorMainTag
+			|| this.type === PartType.CSSSelectorMainId
+			|| this.type === PartType.CSSSelectorMainClass
+	}
+
 	/** Translate start offset. */
 	translate(offset: number): Part {
 		return new Part(this.type, this.text, this.start + offset)
@@ -185,59 +242,92 @@ export class Part {
 		}
 	}
 
-	/** Transform from HTML type to CSS type. */
-	toCSS() {
-		let type = this.type
+	/** Transform to definition type for doing match. */
+	toDefinitionMode() {
+		let type = this.typeToDefinition()
+		let text = this.textToDefinition()
+
+		return new Part(type, text, -1)
+	}
+
+	/** Convert current type to definition part type. */
+	typeToDefinition(): PartType {
+		if (this.type === PartType.Tag) {
+			return PartType.CSSSelectorMainTag
+		}
+		else if (this.type === PartType.Id) {
+			return PartType.CSSSelectorMainId
+		}
+		else if (this.type === PartType.Class) {
+			return PartType.CSSSelectorMainClass
+		}
+		else if (this.type === PartType.CSSSelectorQueryTag) {
+			return PartType.CSSSelectorMainTag
+		}
+		else if (this.type === PartType.CSSSelectorQueryId) {
+			return PartType.CSSSelectorMainId
+		}
+		else if (this.type === PartType.CSSSelectorQueryClass) {
+			return PartType.CSSSelectorMainClass
+		}
+		else if (this.type === PartType.CSSVariableAssignment ||this. type === PartType.CSSVariableReference) {
+			return PartType.CSSVariableDeclaration
+		}
+
+		return this.type
+	}
+
+	/** Convert current text to definition part text. */
+	textToDefinition(): string {
 		let text = this.text
 
-		if (type === PartType.Tag) {
-			type = PartType.CSSSelectorMainTag
-		}
-		else if (type === PartType.Id) {
-			type = PartType.CSSSelectorMainId
+		if (this.type === PartType.Id) {
 			text = '#' + text
 		}
-		else if (type === PartType.Class) {
-			type = PartType.CSSSelectorMainClass
+		else if (this.type === PartType.Class) {
 			text = '.' + text
 		}
-		
-		return new Part(type, text, -1)
-	}
 
-	/** Transform from CSS type to HTML type. */
-	toHTML() {
-		let type = this.type
-		let text = this.text
-
-		if (type === PartType.CSSSelectorMainTag) {
-			type = PartType.Tag
-		}
-		else if (type === PartType.CSSSelectorMainId) {
-			type = PartType.Id
-			text = text.slice(1)
-		}
-		else if (type === PartType.CSSSelectorMainClass) {
-			type = PartType.Class
-			text = text.slice(1)
-		}
-		
-		return new Part(type, text, -1)
+		return text
 	}
 
 	/** 
-	 * Whether part is totally match another part.
-	 * Use it for finding definition and quick info.
+	 * Whether typeof current HTML reference part matches type of a CSS definition part.
+	 * Use it for finding references and do class name completions for a css document.
 	 */
-	isMatch(matchPart: Part) {
-		return this.text === matchPart.text
+	isTypeMatchAsReference(matchPart: Part): boolean {
+		return this.typeToDefinition() === matchPart.type
+
+			// Means can't search within types of itself.
+			&& this.type !== matchPart.type
+
+			&& this.textToDefinition() === matchPart.text
 	}
 
 	/** 
-	 * Whether part is wild match an regexp.
+	 * Whether current HTML reference part matches a CSS definition part.
+	 * Use it for finding references.
+	 */
+	isMatchAsReference(matchPart: Part): boolean {
+		return this.isTypeMatchAsReference(matchPart)
+			&& this.textToDefinition() === matchPart.text
+	}
+
+	/** 
+	 * Whether part is totally match another part,
+	 * means both type and text match.
+	 * Use it for finding definition and hover.
+	 */
+	isMatch(matchPart: Part): boolean {
+		return this.type === matchPart.type
+			&& this.text === matchPart.text
+	}
+
+	/** 
+	 * Whether part text is wild match an regexp.
 	 * Use it for finding workspace symbol.
 	 */
-	isExpMatch(re: RegExp) {
+	isTextExpMatch(re: RegExp) {
 		return re.test(this.text)
 	}
 
@@ -247,8 +337,10 @@ export class Part {
 	}
 
 	/** To a location link for going to definition. */
-	toLocationLink(document: TextDocument, fromRange: Range) {
+	toLocationLink(document: TextDocument, fromPart: Part, fromDocument: TextDocument) {
 		let range = this.toRange(document)
+		let fromRange = fromPart.toRange(fromDocument)
+
 		return LocationLink.create(document.uri, range, range, fromRange)
 	}
 
@@ -301,7 +393,7 @@ export class Part {
 
 	/** To hover. */
 	toHover(comment: string | undefined, document: TextDocument): Hover {
-		let cssPart = this.toCSS()
+		let cssPart = this.toDefinitionMode()
 		let content = cssPart.text
 
 		if (comment) {

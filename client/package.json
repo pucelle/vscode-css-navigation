@@ -2,7 +2,7 @@
 	"name": "vscode-css-navigation-client",
 	"description": "Client Part",
 	"engines": {
-		"vscode": "^1.51.1"
+		"vscode": "^1.96.1"
 	},
 	"scripts": {
 		"update-vscode": "vscode-install",
@@ -10,8 +10,5 @@
 	},
 	"dependencies": {
 		"vscode-languageclient": "^4.4.2"
-	},
-	"devDependencies": {
-		"vscode": "^1.1.37"
 	}
 }

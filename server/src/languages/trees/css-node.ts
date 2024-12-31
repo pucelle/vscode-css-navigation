@@ -34,7 +34,7 @@ export class CSSTokenNode extends AnyTokenNode<CSSToken> {
 		this.type = type
 		this.commentToken = commentToken
 
-		if (type === CSSTokenNodeType.Command || type === CSSTokenNodeType.Selector) {
+		if (type === CSSTokenNodeType.Command || type === CSSTokenNodeType.Selector || !parent) {
 			this.children = []
 		}
 	}

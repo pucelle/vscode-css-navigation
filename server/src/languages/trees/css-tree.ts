@@ -15,6 +15,27 @@ export class CSSTokenTree extends CSSTokenNode {
 		let latestComment: CSSToken | null = null
 		let latestTokens: CSSToken[] = []
 
+
+		function makeCommandOrSelector() {
+			let joint = joinTokens(latestTokens, string)
+
+			if (isCommandToken(joint)) {
+				current.children!.push(new CSSTokenNode(CSSTokenNodeType.Command, joint, current))
+			}
+			else {
+				let o = splitPropertyTokens(joint)
+				if (o) {
+					let [nameTokens, valueTokens] = o
+					current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyName, nameTokens, current, latestComment))
+					current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyValue, valueTokens, current))
+				}
+			}
+
+			latestTokens = []
+			latestComment = null
+		}
+
+
 		for (let token of tokens) {
 			if (token.type === CSSTokenType.NotDetermined) {
 				latestTokens.push(token)
@@ -25,40 +46,30 @@ export class CSSTokenTree extends CSSTokenNode {
 
 			else if (token.type === CSSTokenType.SemiColon) {
 				if (latestTokens.length > 0) {
-					let joint = joinTokens(latestTokens, string)
+					makeCommandOrSelector()
+				}
+			}
 
-					if (isCommandToken(joint)) {
-						current.children!.push(new CSSTokenNode(CSSTokenNodeType.Command, joint, current))
-					}
-					else {
-						let o = splitPropertyTokens(joint)
-						if (o) {
-							let [nameTokens, valueTokens] = o
-							current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyName, nameTokens, current, latestComment))
-							current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyValue, valueTokens, current))
-						}
-					}
+			else if (token.type === CSSTokenType.ClosureStart) {
+				if (latestTokens.length > 0) {
+					let joint = joinTokens(latestTokens, string)
+					let type = isCommandToken(joint) ? CSSTokenNodeType.Command : CSSTokenNodeType.Selector
+					let node: CSSTokenNode = new CSSTokenNode(type, joint, current, latestComment)
+
+					node.closureStart = token.start
+					current.children!.push(node)
+					current = node
 
 					latestTokens = []
 					latestComment = null
 				}
 			}
 
-			else if (token.type === CSSTokenType.ClosureStart) {
-				current.closureStart = token.start
-
-				if (latestTokens.length > 0) {
-					let joint = joinTokens(latestTokens, string)
-					let type = isCommandToken(joint) ? CSSTokenNodeType.Command : CSSTokenNodeType.Selector
-					let node: CSSTokenNode = new CSSTokenNode(type, joint, current, latestComment)
-	
-					current.children!.push(node)
-					current = node
-					latestComment = null
-				}
-			}
-
 			else if (token.type === CSSTokenType.ClosureEnd) {
+				if (latestTokens.length > 0) {
+					makeCommandOrSelector()
+				}
+
 				current.closureEnd = token.end
 				current = current.parent ?? tree
 			}
@@ -168,12 +179,13 @@ export class CSSTokenTree extends CSSTokenNode {
 
 	/** Parse a selector string to parts. */
 	private *parseSelectorPart(node: CSSTokenNode): Iterable<Part> {
-		let groups = new CSSSelectorTokenScanner(node.token.text, this.isSassSyntax).parseToSeparatedTokens()
+		let groups = new CSSSelectorTokenScanner(node.token.text, node.token.start, this.isSassSyntax).parseToSeparatedTokens()
 		let parentParts = this.nodePartMap.get(node.parent!)
 		let commandWrapped = node.parent ? !!this.commandWrappedMap.get(node.parent) : false
 
 		for (let group of groups) {
 			let joint = joinTokens(group, this.string)
+
 			let part = new CSSSelectorPart(
 				group,
 				joint,
@@ -235,7 +247,7 @@ export class CSSTokenTree extends CSSTokenNode {
 			)
 
 			if (match) {
-				yield new Part(PartType.ImportPath, match[1].text, match[1].start + node.token.start)
+				yield new Part(PartType.CSSImportPath, match[1].text, match[1].start + node.token.start)
 			}
 		}
 
@@ -246,7 +258,7 @@ export class CSSTokenTree extends CSSTokenNode {
 
 
 function isCommandToken(token: CSSToken): boolean {
-	return /^\s*@/.test(token.text)
+	return token.text[0] === '@'
 }
 
 function splitPropertyTokens(token: CSSToken): [CSSToken, CSSToken] | null {

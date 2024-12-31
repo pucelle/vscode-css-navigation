@@ -1,5 +1,4 @@
 import * as path from 'path'
-
 import {
 	createConnection,
 	TextDocuments,
@@ -18,22 +17,16 @@ import {
 	HoverParams,
 	Hover,
 } from 'vscode-languageserver'
-
-import {Position, TextDocument} from 'vscode-languageserver-textdocument'
-import {SimpleSelector} from './languages/common/simple-selector'
-import {HTMLService, HTMLServiceMap} from './languages/html'
-import {CSSService, CSSServiceMap} from './languages/css'
-import {file, console, Ignore} from './helpers'
-import {URI} from 'vscode-uri'
-import {formatLabelsToCompletionItems, getLongestCommonSubsequenceLength, removeReferencePrefix} from './utils'
-
+import {TextDocument} from 'vscode-languageserver-textdocument'
+import {HTMLServiceMap, CSSServiceMap, PartType, PathResolver} from './languages'
+import {generateGlobPatternByExtensions, generateGlobPatternByPatterns, getPathExtension, Ignore, Logger} from './helpers'
+import {getLongestCommonSubsequenceLength} from './utils'
 
 
 let connection: Connection = createConnection(ProposedFeatures.all)
 let configuration: Configuration
 let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument)
 let server: CSSNavigationServer
-
 
 
 // Do initializing.
@@ -44,13 +37,13 @@ connection.onInitialize((params: InitializeParams) => {
 
 
 	// Initialize console channel and log level.
-	console.setLogEnabled(configuration.enableLogLevelMessage)
-	console.pipeTo(connection)
+	Logger.setLogEnabled(configuration.enableLogLevelMessage)
+	Logger.pipeTo(connection)
 
 
 	// Print error messages after unhandled rejection promise.
 	process.on('unhandledRejection', function(reason) {
-		console.warn("Unhandled Rejection: " + reason)
+		Logger.warn("Unhandled Rejection: " + reason)
 	})
 
 
@@ -74,23 +67,23 @@ connection.onInitialize((params: InitializeParams) => {
 // Listening events.
 connection.onInitialized(() => {
 	if (configuration.enableGoToDefinition) {
-		connection.onDefinition(console.logListQuerierExecutedTime(server.findDefinitions.bind(server), 'definition'))
+		connection.onDefinition(Logger.logQuerierExecutedTime(server.findDefinitions.bind(server), 'definition'))
 	}
 
 	if (configuration.enableWorkspaceSymbols) {
-		connection.onWorkspaceSymbol(console.logListQuerierExecutedTime(server.findSymbolsMatchQueryParam.bind(server), 'workspace symbol'))
+		connection.onWorkspaceSymbol(Logger.logQuerierExecutedTime(server.findSymbols.bind(server), 'workspace symbol'))
 	}
 
 	if (configuration.enableIdAndClassNameCompletion) {
-		connection.onCompletion(console.logListQuerierExecutedTime(server.provideCompletion.bind(server), 'completion'))
+		connection.onCompletion(Logger.logQuerierExecutedTime(server.getCompletionItems.bind(server), 'completion'))
 	}
 
 	if (configuration.enableFindAllReferences) {
-		connection.onReferences(console.logListQuerierExecutedTime(server.findReferences.bind(server), 'reference'))
+		connection.onReferences(Logger.logQuerierExecutedTime(server.findReferences.bind(server), 'reference'))
 	}
 
 	if (configuration.enableHover) {
-		connection.onHover(console.logListQuerierExecutedTime(server.findReferences.bind(server), 'reference'))
+		connection.onHover(Logger.logQuerierExecutedTime(server.findHover.bind(server), 'hover'))
 	}
 })
 
@@ -103,16 +96,28 @@ class CSSNavigationServer {
 
 	private options: InitializationOptions
 	private cssServiceMap: CSSServiceMap
-	private htmlServiceMap: HTMLServiceMap | null = null
+	private htmlServiceMap: HTMLServiceMap
 	private serviceMaps: (CSSServiceMap | HTMLServiceMap)[] = []
 
 	constructor(options: InitializationOptions) {
 		this.options = options
 
+		this.htmlServiceMap = new HTMLServiceMap(documents, {
+			includeFileGlobPattern: generateGlobPatternByExtensions(configuration.activeHTMLFileExtensions)!,
+			excludeGlobPattern: generateGlobPatternByPatterns(configuration.excludeGlobPatterns) || undefined,
+			startPath: options.workspaceFolderPath,
+
+			// Track at most 500 html like files.
+			mostFileCount: 500,
+
+			// HTML service is low frequency, so release content if has not been used for 5mins.
+			releaseTimeoutMs: 300000,
+		})
+
 		this.cssServiceMap = new CSSServiceMap(documents, {
-			includeFileGlobPattern: file.generateGlobPatternFromExtensions(configuration.activeCSSFileExtensions)!,
-			excludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.excludeGlobPatterns) || undefined,
-			alwaysIncludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.alwaysIncludeGlobPatterns) || undefined,
+			includeFileGlobPattern: generateGlobPatternByExtensions(configuration.activeCSSFileExtensions)!,
+			excludeGlobPattern: generateGlobPatternByPatterns(configuration.excludeGlobPatterns) || undefined,
+			alwaysIncludeGlobPattern: generateGlobPatternByPatterns(configuration.alwaysIncludeGlobPatterns) || undefined,
 			startPath: options.workspaceFolderPath,
 			ignoreSameNameCSSFile: configuration.ignoreSameNameCSSFile && configuration.activeCSSFileExtensions.length > 1 && configuration.activeCSSFileExtensions.includes('css'),
 			ignoreFilesBy: configuration.ignoreFilesBy as Ignore[],
@@ -146,123 +151,170 @@ class CSSNavigationServer {
 			}
 		})
 
-
-		console.log(`Server for workspace folder "${path.basename(this.options.workspaceFolderPath)}" started`)
+		Logger.log(`CSS Navigation Service for workspace "${path.basename(this.options.workspaceFolderPath)}" started.`)
 	}
 
-	/** Provide finding definition service. */
-	async findDefinitions(positionParams: TextDocumentPositionParams): Promise<Location[] | null> {
-		let documentIdentifier = positionParams.textDocument
+	/** Provide finding definitions service. */
+	async findDefinitions(params: TextDocumentPositionParams): Promise<Location[] | null> {
+		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
 
 		if (!document) {
 			return null
 		}
 
-		let documentExtension = file.getPathExtension(document.uri)
-		let position = positionParams.position
+		let position = params.position
+		let offset = document.offsetAt(position)
+		let documentExtension = getPathExtension(document.uri)
 		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
 		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 		let locations: LocationLink[] | null = null
 
 		if (isHTMLFile) {
-			locations = await this.findDefinitionsInHTMLLikeDocument(document, position)
+			locations = await this.findDefinitionsInHTML(document, offset)
 		}
 		else if (isCSSFile) {
-			locations = await this.findDefinitionsInCSSLikeDocument(document, position)
+			locations = await this.findDefinitionsInCSS(document, offset)
+		}
+
+		if (!locations) {
+			return null
 		}
 
 		// Sort by the longest common subsequence.
-		if (locations) {
-			locations.sort((a, b) => {
-				const aPath = a.targetUri
-				const bPath = b.targetUri
+		let items = locations.map(l => {
+			return {
+				location: l,
+				subsequence: getLongestCommonSubsequenceLength(l.targetUri, documentIdentifier.uri),
+			}
+		})
 
-				return getLongestCommonSubsequenceLength(bPath, documentIdentifier.uri) - getLongestCommonSubsequenceLength(aPath, documentIdentifier.uri)
-			})
-		}
+		items.sort((a, b) => {
+			return a.subsequence - b.subsequence
+		})
 
-		return locations?.map(l => {
-			return Location.create(l.targetUri, l.targetRange)
-		}) || null
+		return items.map(item => {
+			return Location.create(item.location.targetUri, item.location.targetRange)
+		})
 	}
 
 	/** In HTML files, or files that can include HTML codes. */
-	private async findDefinitionsInHTMLLikeDocument(document: TextDocument, position: Position): Promise<LocationLink[] | null> {
+	private async findDefinitionsInHTML(document: TextDocument, offset: number): Promise<LocationLink[] | null> {
+		let currentHTMLService = await this.htmlServiceMap.forceGetServiceByDocument(document)
+
+		let fromPart = currentHTMLService.findPartAt(offset)
+		if (!fromPart || !fromPart.isReferenceType()) {
+			return null
+		}
+
+		let matchPart = fromPart.toDefinitionMode()
 		let locations: LocationLink[] = []
 
-		// After Clicking `<link rel="stylesheet" href="...">` or `<style src="...">`
-		let resolvedImportPath = await HTMLService.getImportPathAt(document, position)
-		if (resolvedImportPath) {
-			locations.push(resolvedImportPath.toLocationLink())
+
+		// Is custom tag, and not available because wanting other plugin to provide it.
+		if (configuration.ignoreCustomElement
+			&& fromPart.type === PartType.Tag
+			&& fromPart.text.includes('-')
+		) {
+			return null
 		}
 
-		// Searching for normal css selector.
-		else {
-			let selector = await HTMLService.getSimpleSelectorAt(document, position)
-			if (!selector) {
+
+		// When mouse locates at `<link rel="stylesheet" href="|...|">` or `<style src="|...|">`, goto file start.
+		if (fromPart.type === PartType.CSSImportPath) {
+			let link = await PathResolver.resolveImportLocationLink(fromPart, document)
+			if (!link) {
 				return null
 			}
 
-			// Is custom tag.
-			if (configuration.ignoreCustomElement && selector.isCustomTag()) {
-				return null
-			}
-
-			// Having `@import...` in a JSX file.
-			if (selector.importURI) {
-				this.cssServiceMap.trackMoreFile(URI.parse(selector.importURI).fsPath)
-				await this.cssServiceMap.makeFresh()
-
-				// Only find in one imported file.
-				let cssService = await this.cssServiceMap.get(selector.importURI)
-				if (cssService) {
-					return cssService.findDefinitions(selector)
-				}
-				else {
-					return null
-				}
-			}
-
-			// Parse `<style src=...>` and load imported files.
-			let resolvedImportPaths = await HTMLService.scanStyleImportPaths(document)
-			for (let filePath of resolvedImportPaths) {
-				this.cssServiceMap.trackMoreFile(filePath)
-			}
-
-			// Find across all CSS files.
-			locations.push(...await this.cssServiceMap.findDefinitions(selector))
-
-			// Find in inner style tags.
-			if (configuration.alsoSearchDefinitionsInStyleTag) {
-				locations.unshift(...HTMLService.findDefinitionsInInnerStyle(document, selector))
-			}
+			return [link]
 		}
+
+
+		// Find definitions for embedded CSS codes within current document.
+		if (fromPart.isCSSType()) {
+			return currentHTMLService.findDefinitions(matchPart, fromPart, document)
+		}
+
+
+		// Try to find definition from split view.
+		// let visibleEditors = vscode.window.visibleTextEditors
+
+		// let cssVisibleEditors = visibleEditors.filter(e => e.document.uri.toString() !== document.uri
+		// 	&& configuration.activeCSSFileExtensions.includes(getPathExtension(e.document.uri.toString()))
+		// )
+
+		// for (let cssEditor of cssVisibleEditors) {
+		// 	let cssURI = cssEditor.document.uri.toString()
+		// 	let cssService = await this.cssServiceMap.forceGetServiceByURI(cssURI)
+		// 	if (!cssService) {
+		// 		continue
+		// 	}
+
+		// 	locations.push(...cssService.findDefinitions(matchPart, fromPart, document))
+		// }
+
+		// if (locations.length > 0) {
+		// 	return locations
+		// }
+
+
+		// Having CSS files imported, firstly search within these files, if has, not searching more.
+		let cssPaths = await currentHTMLService.getImportedCSSPaths()
+
+		// Find embedded style definitions.
+		locations.push(...currentHTMLService.findDefinitions(matchPart, fromPart, document))
+
+		for (let cssPath of cssPaths) {
+			let cssService = await this.cssServiceMap.forceGetServiceByFilePath(cssPath)
+			if (!cssService) {
+				continue
+			}
+
+			locations.push(...cssService.findDefinitions(matchPart, fromPart, document))
+		}
+
+		if (locations.length > 0) {
+			return locations
+		}
+
+
+		// Find across all CSS files.
+		locations.push(...await this.cssServiceMap.findDefinitions(matchPart, fromPart, document))
+
 
 		return locations
 	}
 
 	/** In CSS files, or a sass file. */
-	private async findDefinitionsInCSSLikeDocument(document: TextDocument, position: Position): Promise<LocationLink[] | null> {
+	private async findDefinitionsInCSS(document: TextDocument, offset: number): Promise<LocationLink[] | null> {
+		let currentCSSService = await this.cssServiceMap.forceGetServiceByDocument(document)
+
+		let fromPart = currentCSSService.findPartAt(offset)
+		if (!fromPart || !fromPart.isReferenceType()) {
+			return null
+		}
+
+
+		let matchPart = fromPart.toDefinitionMode()
 		let locations: LocationLink[] = []
 
-		// Clicking `@import '...';` in a CSS file.
-		let resolvedImportPath = await CSSService.getImportPathAt(document, position)
-		if (resolvedImportPath) {
-			locations.push(resolvedImportPath.toLocationLink())
+		// When mouse locates at `<link rel="stylesheet" href="|...|">` or `<style src="|...|">`, goto file start.
+		if (matchPart.type === PartType.CSSVariableDeclaration) {
+			locations.push(...await this.cssServiceMap.findDefinitions(matchPart, fromPart, document))
 		}
 
 		return locations
 	}
 
 	/** Provide finding symbol service. */
-	async findSymbolsMatchQueryParam(symbol: WorkspaceSymbolParams): Promise<SymbolInformation[] | null> {
+	async findSymbols(symbol: WorkspaceSymbolParams): Promise<SymbolInformation[] | null> {
 		let query = symbol.query
 		if (!query) {
 			return null
 		}
 
-		//should have at least one word character
+		// Should have at least one word letter.
 		if (!/[a-z]/i.test(query)) {
 			return null
 		}
@@ -271,249 +323,237 @@ class CSSNavigationServer {
 	}
 
 	/** Provide auto completion service for HTML or CSS document. */
-	async provideCompletion(params: TextDocumentPositionParams): Promise<CompletionItem[] | null> {
+	async getCompletionItems(params: TextDocumentPositionParams): Promise<CompletionItem[] | null> {
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
-		let position = params.position
 
 		if (!document) {
 			return null
 		}
 
 		// HTML or CSS file.
-		let documentExtension = file.getPathExtension(document.uri)
+		let position = params.position
+		let offset = document?.offsetAt(position)
+		let documentExtension = getPathExtension(document.uri)
 		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
 		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
 		if (isHTMLFile) {
-			return await this.provideHTMLDocumentCompletion(document, position)
+			return await this.getCompletionItemsInHTML(document, offset)
 		}
 		else if (isCSSFile) {
-			return await this.provideCSSDocumentCompletion(document, position)
+			return await this.getCompletionItemsInCSS(document, offset)
 		}
 
 		return null
 	}
 
 	/** Provide completion for HTML document. */
-	private async provideHTMLDocumentCompletion(document: TextDocument, position: Position): Promise<CompletionItem[] | null> {
+	private async getCompletionItemsInHTML(document: TextDocument, offset: number): Promise<CompletionItem[] | null> {
+		let currentHTMLService = await this.htmlServiceMap.forceGetServiceByDocument(document)
 
-		// Search for current selector.
-		let selector = await HTMLService.getSimpleSelectorAt(document, position)
-
-		// Complete for class name or id.
-		if (!selector || selector.type === SimpleSelector.Type.Tag || selector.type === SimpleSelector.Type.CSSVariable) {
+		let fromPart = currentHTMLService.findPartAt(offset)
+		if (!fromPart) {
 			return null
 		}
 
-		// Having `@import...` in a JSX file, returns results that exactly in imported document.
-		if (selector.importURI) {
-			this.cssServiceMap.trackMoreFile(URI.parse(selector.importURI).fsPath)
-			await this.cssServiceMap.makeFresh()
 
-			// Only find in one imported file.
-			let cssService = await this.cssServiceMap.get(selector.importURI)
-			if (cssService) {
-				let labels = cssService.findCompletionLabels(selector)
+		let matchPart = fromPart.toDefinitionMode()
+		let items: CompletionItem[] = []
 
-				// Note the complete label doesn't include identifier.
-				let completeLength = selector.label.length
+		// Complete html element class name.
+		if (fromPart.isHTMLType()) {
+			items.push(...currentHTMLService.getCompletionItems(matchPart, fromPart, document))
+			items.push(...await this.cssServiceMap.getCompletionItems(matchPart, fromPart, document))
+		}
 
-				return formatLabelsToCompletionItems(labels, selector.startIndex, completeLength, document)
-			}
-			else {
-				return null
+		// Complete class name for css selector of a css document.
+		else if (fromPart.isCSSType()) {
+			items.push(...await this.htmlServiceMap.getReferencedCompletionItems(fromPart, document))
+
+			// Declare or reference a CSS Variable.
+			if (fromPart.isCSSVariableType()) {
+				items.push(...await this.cssServiceMap.getCompletionItems(matchPart, fromPart, document))
 			}
 		}
 
-		// Get auto completion labels.
-		let labels = await this.cssServiceMap.findCompletionItems(selector)
-
-		// Find completion in inner style tags.
-		if (configuration.alsoSearchDefinitionsInStyleTag) {
-			labels.unshift(...HTMLService.findCompletionLabelsInInnerStyle(document, selector))
-		}
-
-		let completeLength = selector.label.length
-
-		return formatLabelsToCompletionItems(labels, selector.startIndex, completeLength, document)
+		return items
 	}
 
 	/** Provide completion for CSS document. */
-	private async provideCSSDocumentCompletion(document: TextDocument, position: Position): Promise<CompletionItem[] | null> {
+	private async getCompletionItemsInCSS(document: TextDocument, offset: number): Promise<CompletionItem[] | null> {
+		let currentCSSService = await this.cssServiceMap.forceGetServiceByDocument(document)
 
-		// Searching for css selectors in current position.
-		let selectorResults = CSSService.getSimpleSelectorResultsAt(document, position)
-		if (!selectorResults) {
+		let fromPart = currentCSSService.findPartAt(offset)
+		if (!fromPart) {
 			return null
 		}
 
-		this.ensureHTMLServiceMap()
+		let matchPart = fromPart.toDefinitionMode()
+		let items: CompletionItem[] = []
 
-		let completionItems: CompletionItem[] = []
-		let havingReference = selectorResults.raw.startsWith('&')
-		let parentSelectorNames = selectorResults.parentSelectors?.map(s => s.raw) || null
 
-		// Unique selector, no need eliminate parent reference.
-		if (!havingReference) {
-			let labels = await this.htmlServiceMap!.findCompletionLabels(selectorResults.raw)
-
-			// Note the complete label includes identifier.
-			let completeLength = selectorResults.raw.length
-
-			let items = formatLabelsToCompletionItems(labels, selectorResults.startIndex, completeLength, document)
-			completionItems.push(...items)
+		// Find selector referenced completions across all html documents.
+		if (fromPart.isSelectorType()) {
+			items.push(...await this.htmlServiceMap.getReferencedCompletionItems(fromPart, document))
 		}
 
-		// Has parent, must remove prefix after completion.
-		else {
-			for (let selector of selectorResults.selectors) {
-				let labels = await this.htmlServiceMap!.findCompletionLabels(selector.raw)
-
-				// `.a-bc`, parent `.a`,  -> `&-b`.
-				if (labels.length > 0 && havingReference && parentSelectorNames) {
-					labels = labels.map(label => {
-						return removeReferencePrefix(label, parentSelectorNames!)
-					}).flat()
-				}
-
-				// Note the complete label includes identifier.
-				let completeLength = selectorResults.raw.length
-
-				let items = formatLabelsToCompletionItems(labels, selector.startIndex, completeLength, document)
-				completionItems.push(...items)
-			}
+		// Find CSS Variables across all css documents.
+		else if (fromPart.isCSSVariableType()) {
+			items.push(...await this.cssServiceMap.getCompletionItems(matchPart, fromPart, document))
 		}
 
-		return completionItems
+
+		return items
 	}
 
 	/** Provide finding reference service. */
 	async findReferences(params: ReferenceParams): Promise<Location[] | null> {
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
-		let position = params.position
 
 		if (!document) {
 			return null
 		}
 
-		let documentExtension = file.getPathExtension(document.uri)
+		let position = params.position
+		let offset = document.offsetAt(position)
+		let documentExtension = getPathExtension(document.uri)
 		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
-		// Find HTML references inside a style tag.
-		if (isHTMLFile && configuration.alsoSearchDefinitionsInStyleTag) {
-			let htmlService = this.htmlServiceMap ? await this.htmlServiceMap.get(document.uri) : undefined
-			if (!htmlService) {
-				htmlService = HTMLService.create(document)
-			}
-
-			let locations = HTMLService.findReferencesInInnerHTML(document, position, htmlService)
-			if (locations) {
-				return locations
-			}
+		if (isHTMLFile) {
+			return this.findReferencesInHTML(document, offset)
+		}
+		else if (isCSSFile) {
+			return this.findReferencesInCSS(document, offset)
 		}
 
-		let selectors: SimpleSelector[] = []
+		return null
+	}
+
+	/** Provide finding reference service for HTML document. */
+	async findReferencesInHTML(document: TextDocument, offset: number): Promise<Location[] | null> {
+		let currentHTMLService = await this.htmlServiceMap.forceGetServiceByDocument(document)
+
+		let fromPart = currentHTMLService.findPartAt(offset)
+		if (!fromPart || !fromPart.isDefinitionType()) {
+			return null
+		}
+
 		let locations: Location[] = []
 
-		// From current HTML document.
-		if (isHTMLFile) {
-			let selector = await HTMLService.getSimpleSelectorAt(document, position)
-			if (selector) {
-				selectors.push(selector)
-			}
+
+		// Find HTML or CSS Variable references within current document.
+		if (fromPart.isCSSType()) {
+			locations.push(...currentHTMLService.findReferences(fromPart))
 		}
 
-		// From current CSS document.
-		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
-		if (isCSSFile) {
-			selectors.push(...CSSService.getSimpleSelectorsAt(document, position) || [])
+
+		return locations
+	}
+
+	/** Provide finding selector reference service for CSS document. */
+	async findReferencesInCSS(document: TextDocument, offset: number): Promise<Location[] | null> {
+		let currentHTMLService = await this.htmlServiceMap.forceGetServiceByDocument(document)
+
+		let fromPart = currentHTMLService.findPartAt(offset)
+		if (!fromPart || !fromPart.isDefinitionType()) {
+			return null
 		}
 
-		// From HTML documents.
-		if (selectors.length > 0) {
-			this.ensureHTMLServiceMap()
+		let locations: Location[] = []
 
-			for (let selector of selectors) {
-				locations.push(...await this.htmlServiceMap!.findReferences(selector))
-			}
+
+		// Find HTML references across all html documents.
+		if (fromPart.isSelectorType()) {
+			locations.push(...await this.htmlServiceMap.findReferences(fromPart))
 		}
+
+		// Find CSS Variable references across all html documents.
+		else if (fromPart.isCSSVariableType()) {
+			locations.push(...await this.cssServiceMap.findReferences(fromPart))
+		}
+
 
 		return locations
 	}
 
 	/** Provide finding hover service. */
-	async findHovers(params: HoverParams): Promise<Hover[] | null> {
+	async findHover(params: HoverParams): Promise<Hover | null> {
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
-		let position = params.position
 
 		if (!document) {
 			return null
 		}
 
-		let documentExtension = file.getPathExtension(document.uri)
+		let position = params.position
+		let offset = document.offsetAt(position)
+		let documentExtension = getPathExtension(document.uri)
 		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-
-		// Find HTML references inside a style tag.
-		if (isHTMLFile && configuration.alsoSearchDefinitionsInStyleTag) {
-			let htmlService = this.htmlServiceMap ? await this.htmlServiceMap.get(document.uri) : undefined
-			if (!htmlService) {
-				htmlService = HTMLService.create(document)
-			}
-
-			let locations = HTMLService.findReferencesInInnerHTML(document, position, htmlService)
-			if (locations) {
-				return locations
-			}
-		}
-
-		let selectors: SimpleSelector[] = []
-		let locations: Location[] = []
-
-		// From current HTML document.
-		if (isHTMLFile) {
-			let selector = await HTMLService.getSimpleSelectorAt(document, position)
-			if (selector) {
-				selectors.push(selector)
-			}
-		}
-
-		// From current CSS document.
 		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
-		if (isCSSFile) {
-			selectors.push(...CSSService.getSimpleSelectorsAt(document, position) || [])
+
+		if (isHTMLFile) {
+			return this.findHoverInHTML(document, offset)
+		}
+		else if (isCSSFile) {
+			return this.findHoverInCSS(document, offset)
 		}
 
-		// From HTML documents.
-		if (selectors.length > 0) {
-			this.ensureHTMLServiceMap()
-
-			for (let selector of selectors) {
-				locations.push(...await this.htmlServiceMap!.findReferences(selector))
-			}
-		}
-
-		return locations
+		return null
 	}
 
-	/** Ensure having HTML service map. */
-	private ensureHTMLServiceMap() {
-		let {options} = this
-
-		if (!this.htmlServiceMap) {
-			this.htmlServiceMap = new HTMLServiceMap(documents, {
-				includeFileGlobPattern: file.generateGlobPatternFromExtensions(configuration.activeHTMLFileExtensions)!,
-				excludeGlobPattern: file.generateGlobPatternFromPatterns(configuration.excludeGlobPatterns) || undefined,
-				startPath: options.workspaceFolderPath,
-
-				// Track at most 1000 html like files.
-				mostFileCount: 1000,
-			})
-
-			this.serviceMaps.push(this.htmlServiceMap)
+	/** Find hover from a HTML document. */
+	async findHoverInHTML(document: TextDocument, offset: number): Promise<Hover | null> {
+		let currentHTMLService = await this.htmlServiceMap.forceGetServiceByDocument(document)
+		let fromPart = currentHTMLService.findPartAt(offset)
+		if (!fromPart || !fromPart.isReferenceType()) {
+			return null
 		}
+
+		let matchPart = fromPart.toDefinitionMode()
+
+
+		// Find within current document.
+		let hover = currentHTMLService.findHover(matchPart, fromPart, document)
+		if (hover) {
+			return hover
+		}
+
+
+		// Find across all css documents.
+		if (fromPart.isSelectorType() || fromPart.isCSSVariableType()) {
+			hover = await this.cssServiceMap.findHover(matchPart, fromPart, document)
+		}
+
+		return null
+	}
+
+	/** Provide finding hover service. */
+	async findHoverInCSS(document: TextDocument, offset: number): Promise<Hover | null> {
+		let currentCSSService = await this.cssServiceMap.forceGetServiceByDocument(document)
+		let fromPart = currentCSSService.findPartAt(offset)
+		if (!fromPart || !fromPart.isReferenceType()) {
+			return null
+		}
+
+		let matchPart = fromPart.toDefinitionMode()
+
+
+		// Find within current document.
+		let hover = currentCSSService.findHover(matchPart, fromPart, document)
+		if (hover) {
+			return hover
+		}
+
+
+		// Find across all css documents.
+		if (fromPart.isSelectorType() || fromPart.isCSSVariableType()) {
+			hover = await this.cssServiceMap.findHover(matchPart, fromPart, document)
+		}
+
+		return null
 	}
 }
 

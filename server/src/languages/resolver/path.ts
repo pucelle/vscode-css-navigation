@@ -9,7 +9,7 @@ import {Part} from '../trees'
 
 export namespace PathResolver {
 
-	/** Resolve import path, will search `node_modules` directory to find final import path. */
+	/** Resolve import fs path, will search `node_modules` directory to find final import path. */
 	export async function resolveRelativePath(fromPath: string, toPath: string): Promise<string | null> {
 		let isModulePath = toPath.startsWith('~')
 		let fromDir = path.dirname(fromPath)

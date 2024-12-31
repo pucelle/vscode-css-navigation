@@ -5,6 +5,7 @@ import {Picker} from './picker'
 import {isCSSLikePath} from '../../helpers'
 import {CSSTokenTree} from './css-tree'
 import {HTMLTokenNode} from './html-node'
+import {CSSSelectorTokenScanner, CSSSelectorTokenType} from '../scanners'
 
 
 /** 
@@ -232,13 +233,13 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		}
 	}
 
-	/** For import path. */
+	/** For import path, only for CSS imports. */
 	protected *parseImportPart(node: HTMLTokenNode): Iterable<Part> {
 		if (node.tagName === 'link') {
 			if (node.getAttributeValue('rel') === 'stylesheet') {
 				let href = node.getAttribute('href')
 				if (href) {
-					yield new Part(PartType.ImportPath, href.text, href.start).removeQuotes()
+					yield new Part(PartType.CSSImportPath, href.text, href.start).removeQuotes()
 				}
 			}
 		}
@@ -247,7 +248,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		else if (node.tagName === 'style') {
 			let src = node.getAttribute('src')
 			if (src) {
-				yield new Part(PartType.ImportPath, src.text, src.start).removeQuotes()
+				yield new Part(PartType.CSSImportPath, src.text, src.start).removeQuotes()
 			}
 		}
 	}
@@ -290,7 +291,21 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		)
 
 		for (let match of matches) {
-			yield new Part(PartType.SelectorQuery, match[1].text, match[1].start + start).trim()
+			let selector = match[1].text
+			let selectorStart = match[1].start + start
+			let tokens = new CSSSelectorTokenScanner(selector, selectorStart).parseToTokens()
+
+			for (let token of tokens) {
+				if (token.type === CSSSelectorTokenType.Tag) {
+					yield new Part(PartType.CSSSelectorQueryTag, token.text, token.start)
+				}
+				else if (token.type === CSSSelectorTokenType.Id) {
+					yield new Part(PartType.CSSSelectorQueryId, token.text, token.start)
+				}
+				else if (token.type === CSSSelectorTokenType.Class) {
+					yield new Part(PartType.CSSSelectorQueryClass, token.text, token.start)
+				}
+			}
 		}
 
 

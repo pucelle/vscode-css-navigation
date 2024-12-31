@@ -134,11 +134,11 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 				// `|;`
 				else if (this.peekChar() === ';') {
 					yield* this.makeNotDeterminedToken()
-					yield this.makeToken(CSSTokenType.SemiColon)
 
 					// Move to `;|`
 					this.offset += 1
-					this.sync()
+					yield this.makeToken(CSSTokenType.SemiColon)
+
 					this.state = ScanState.AnyContent
 				}
 				

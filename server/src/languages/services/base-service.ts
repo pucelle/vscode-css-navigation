@@ -1,26 +1,34 @@
-import {SymbolInformation, LocationLink, Range} from 'vscode-languageserver'
+import {SymbolInformation, LocationLink, Location, CompletionItem, Hover} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PathResolver} from '../resolver'
-import {CSSTokenTree, Part, PartType} from '../trees'
+import {Part, PartType} from '../trees'
 import {quickBinaryFind} from '../utils'
 import {CSSSelectorPart} from '../trees'
 
 
-/** Gives CSS service for one CSS file. */
-export class CSSService {
+/** Base of HTML or CSS service for one file. */
+export abstract class BaseService {
 
 	readonly document: TextDocument
-	private parts: Part[]
+	protected parts!: Part[]
+	protected resolvedImportedCSSPaths: string[] | undefined = undefined
 
 	constructor(document: TextDocument) {
 		this.document = document
-		this.parts = [...CSSTokenTree.fromString(document.getText(), document.languageId as CSSLanguageId).walkParts()]
 	}
 
-	/** Get resolved import file paths specified by `@import ...`. */
-	async *resolvedImportPaths(): AsyncIterable<string> {
+	/** Get resolved import CSS file paths. */
+	async getImportedCSSPaths(): Promise<string[]> {
+
+		// How low rate to resolving for twice, no matter.
+		if (this.resolvedImportedCSSPaths) {
+			return this.resolvedImportedCSSPaths
+		}
+
+		let paths: string[] = []
+
 		for (let part of this.parts) {
-			if (part.type !== PartType.ImportPath) {
+			if (part.type !== PartType.CSSImportPath) {
 				continue
 			}
 
@@ -31,9 +39,11 @@ export class CSSService {
 
 			let path = await PathResolver.resolveDocumentPath(part.text, this.document)
 			if (path) {
-				yield path
+				paths.push(path)
 			}
 		}
+
+		return this.resolvedImportedCSSPaths = paths
 	}
 
 	/** 
@@ -43,10 +53,10 @@ export class CSSService {
 	findPartAt(offset: number) {
 		let part = quickBinaryFind(this.parts, (part) => {
 			if (part.start > offset) {
-				return -1
+				return 1
 			}
 			else if (part.end < offset) {
-				return 1
+				return -1
 			}
 			else {
 				return 0
@@ -68,7 +78,7 @@ export class CSSService {
 	}
 
 	/** Find definitions match part. */
-	findDefinitions(matchPart: Part, fromRange: Range): LocationLink[] {
+	findDefinitions(matchPart: Part, fromPart: Part, fromDocument: TextDocument): LocationLink[] {
 		let locations: LocationLink[] = []
 
 		for (let part of this.parts) {
@@ -76,7 +86,7 @@ export class CSSService {
 				continue
 			}
 
-			locations.push(part.toLocationLink(this.document, fromRange))
+			locations.push(part.toLocationLink(this.document, fromPart, fromDocument))
 		}
 
 		return locations
@@ -96,7 +106,7 @@ export class CSSService {
 		let re = Part.makeWordStartsMatchExp(query)
 
 		for (let part of this.parts) {
-			if (!part.isExpMatch(re)) {
+			if (!part.isTextExpMatch(re)) {
 				continue
 			}
 
@@ -106,8 +116,8 @@ export class CSSService {
 		return symbols
 	}
 	
-	/** Find completion labels match part. */
-	findCompletionLabels(matchPart: Part): string[] {
+	/** Get completion labels match part. */
+	getCompletionLabels(matchPart: Part): string[] {
 		let labelSet: Set<string> = new Set()
 		let re = Part.makeStartsMatchExp(matchPart.text)
 
@@ -116,7 +126,7 @@ export class CSSService {
 				continue
 			}
 
-			if (!part.isExpMatch(re)) {
+			if (!part.isTextExpMatch(re)) {
 				continue
 			}
 
@@ -125,10 +135,34 @@ export class CSSService {
 			}
 		}
 
+		// Removes match part itself.
+		labelSet.delete(matchPart.text)
+
 		return [...labelSet.values()]
 	}
 
-	/** Find parts for providing hover service. */
+	/** Get completion items match part. */
+	getCompletionItems(matchPart: Part, fromPart: Part, fromDocument: TextDocument): CompletionItem[] {
+		let labels = this.getCompletionLabels(matchPart)
+		return fromPart.toCompletionItems(labels, fromDocument)
+	}
+
+	/** Find the reference locations in the HTML document from a class or id selector. */
+	findReferences(fromPart: Part): Location[] {
+		let locations: Location[] = []
+
+		for (let part of this.parts) {
+			if (!part.isMatchAsReference(fromPart)) {
+				continue
+			}
+
+			locations.push(part.toLocation(this.document))
+		}
+
+		return locations
+	}
+	
+	/** Find parts from CSS document for providing class or id name hover for a HTML document. */
 	findHoverParts(matchPart: Part): CSSSelectorPart[] {
 		let parts: CSSSelectorPart[] = []
 
@@ -143,5 +177,17 @@ export class CSSService {
 		}
 
 		return parts
+	}
+
+	findHover(matchPart: Part, fromPart: Part, fromDocument: TextDocument): Hover | null {
+		let parts = this.findHoverParts(matchPart)
+		if (parts.length === 0) {
+			return null
+		}
+
+		let commentedParts = parts.filter(p => p.comment)
+		let part = commentedParts.find(part => part.detail!.independent) ?? commentedParts[0]
+
+		return fromPart.toHover(part?.comment!, fromDocument)
 	}
 }

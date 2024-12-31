@@ -46,7 +46,7 @@ function quickBinaryFindLowerInsertIndex<T>(sortedList: ArrayLike<T>, fn: (v: T)
  * Returns the found item, or `undefined` if nothing found.
  * 
  * @param fn used to know whether a value is larger or smaller,
- *   it returns negative value to move right, and positive value to move left.
+ *   it returns negative value to move cursor right, and positive value to move cursor left.
  */
 export function quickBinaryFind<T>(sortedList: ArrayLike<T>, fn: (v: T) => number): T | undefined {
 	let index = quickBinaryFindLowerInsertIndex(sortedList, fn)

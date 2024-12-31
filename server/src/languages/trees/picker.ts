@@ -8,7 +8,7 @@ export namespace Picker {
 
 	/** "ab cd" => ["ab", "cd"]. */
 	export function pickWords(text: string): Picked[] {
-		let re = /[\w-]+/
+		let re = /[\w-]+/g
 		let match: RegExpExecArray | null
 		let words: Picked[] = []
 
@@ -41,7 +41,7 @@ export namespace Picker {
 
 	/** ["ab", {cd: ef}] => ["ab", "cd"]. */
 	export function pickWordsFromExpression(text: string): Picked[] {
-		let re = /"(?:\\"|.)*?"|'(?:\\'|.)*?'|`(?:\\`|.)*?`|(\w+)\s*:/
+		let re = /"(?:\\"|.)*?"|'(?:\\'|.)*?'|`(?:\\`|.)*?`|(\w+)\s*:/g
 		let match: RegExpExecArray | null
 		let words: Picked[] = []
 

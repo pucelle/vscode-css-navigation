@@ -25,6 +25,7 @@
 		"CSS Peek Definition",
 		"CSS Completion",
 		"CSS Workspace Symbol",
+		"CSS Find References",
 		"Sass, Less"
 	],
 	"activationEvents": [
@@ -170,8 +171,8 @@
 		"@types/glob": "^7.1.3",
 		"@types/minimatch": "^3.0.3",
 		"@types/mocha": "^5.2.5",
-		"@types/node": "^14.14.10",
-		"typescript": "^4.3.5"
+		"@types/node": "^22.7.4",
+		"vscode": "^1.1.37"
 	},
 	"dependencies": {
 		"fs-extra": "^9.0.1",

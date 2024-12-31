@@ -161,9 +161,10 @@ export class CSSNavigationExtension {
 		
 		// One port for only one server to debug should be ok.
 		let debugOptions = {execArgv: ["--nolazy", '--inspect=6009']}
+
 		let serverOptions: ServerOptions = {
 			run: {module: serverModule, transport: TransportKind.ipc},
-			debug: {module: serverModule, transport: TransportKind.ipc, options: debugOptions}
+			debug: {module: serverModule, transport: TransportKind.ipc, options: debugOptions},
 		}
 
 		// To notify open / close / content changed for html & css files in specified range, and provide language service.
@@ -181,17 +182,19 @@ export class CSSNavigationExtension {
 			outputChannel: this.channel,
 			
 			synchronize: {
-				// Same as client.register(DidChangeConfigurationNotification.type), config section changes will be captured by `onDidChangeConfiguration` in server.
+				// Same as client.register(DidChangeConfigurationNotification.type),
+				// config section changes will be captured by `onDidChangeConfiguration` in server.
 				//configurationSection: 'CSSNavigation',
 				
-				// To notify the server workspace file or folder changes, no matter changes come from vscode or outside, and trigger `onDidChangeWatchedFiles`.
+				// To notify the server workspace file or folder changes,
+				// no matter changes come from vscode or outside, and trigger `onDidChangeWatchedFiles`.
 				fileEvents: vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(workspaceFolderPath, `**`))
 			},
 
 			initializationOptions: <InitializationOptions>{
 				workspaceFolderPath,
-				configuration
-			}
+				configuration,
+			},
 		}
 
 		let client = new LanguageClient('css-navigation', 'CSS Navigation', serverOptions, clientOptions)
