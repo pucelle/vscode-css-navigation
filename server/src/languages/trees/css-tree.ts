@@ -15,7 +15,6 @@ export class CSSTokenTree extends CSSTokenNode {
 		let latestComment: CSSToken | null = null
 		let latestTokens: CSSToken[] = []
 
-
 		function makeCommandOrSelector() {
 			let joint = joinTokens(latestTokens, string)
 
@@ -25,9 +24,12 @@ export class CSSTokenTree extends CSSTokenNode {
 			else {
 				let o = splitPropertyTokens(joint)
 				if (o) {
-					let [nameTokens, valueTokens] = o
-					current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyName, nameTokens, current, latestComment))
-					current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyValue, valueTokens, current))
+					let [nameToken, valueToken] = o
+					let propertyNode = new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, latestComment)
+					let valueNode = new CSSTokenNode(CSSTokenNodeType.PropertyValue, valueToken, current)
+
+					propertyNode.defEnd = valueToken.end
+					current.children!.push(propertyNode, valueNode)
 				}
 			}
 
@@ -56,7 +58,6 @@ export class CSSTokenTree extends CSSTokenNode {
 					let type = isCommandToken(joint) ? CSSTokenNodeType.Command : CSSTokenNodeType.Selector
 					let node: CSSTokenNode = new CSSTokenNode(type, joint, current, latestComment)
 
-					node.closureStart = token.start
 					current.children!.push(node)
 					current = node
 
@@ -70,7 +71,7 @@ export class CSSTokenTree extends CSSTokenNode {
 					makeCommandOrSelector()
 				}
 
-				current.closureEnd = token.end
+				current.defEnd = token.end
 				current = current.parent ?? tree
 			}
 
@@ -133,7 +134,7 @@ export class CSSTokenTree extends CSSTokenNode {
 	/** Quickly find a part at specified offset. */
 	findPart(offset: number): Part | undefined {
 		let walking = this.filterWalk((node: CSSTokenNode) => {
-			return node.token.start >= offset && node.closureLikeEnd <= offset
+			return node.token.start >= offset && node.defLikeEnd <= offset
 		})
 
 		for (let node of walking) {
@@ -179,20 +180,24 @@ export class CSSTokenTree extends CSSTokenNode {
 
 	/** Parse a selector string to parts. */
 	private *parseSelectorPart(node: CSSTokenNode): Iterable<Part> {
-		let groups = new CSSSelectorTokenScanner(node.token.text, node.token.start, this.isSassSyntax).parseToSeparatedTokens()
+		yield* this.parseSelectorString(node.token.text, node.token.start, node)
+	}
+
+	/** Parse a selector content to parts. */
+	private *parseSelectorString(text: string, start: number, node: CSSTokenNode): Iterable<Part> {
+		let groups = new CSSSelectorTokenScanner(text, start, this.isSassSyntax).parseToSeparatedTokens()
 		let parentParts = this.nodePartMap.get(node.parent!)
 		let commandWrapped = node.parent ? !!this.commandWrappedMap.get(node.parent) : false
 
 		for (let group of groups) {
 			let joint = joinTokens(group, this.string)
 
-			let part = new CSSSelectorPart(
-				group,
+			let part = CSSSelectorPart.parseFrom(
 				joint,
+				group,
 				parentParts,
+				node.defEnd,
 				commandWrapped,
-				node.closureStart,
-				node.closureEnd,
 				node.commentToken?.text
 			)
 
@@ -207,13 +212,16 @@ export class CSSTokenTree extends CSSTokenNode {
 	/** For property name part. */
 	private *parsePropertyNamePart(node: CSSTokenNode): Iterable<Part> {
 		if (node.token.text.startsWith('--')) {
+
+			// Will not set defEnd to value end, because default vscode plugin will
+			// also generate a definition, but end with property name end.
 			yield new Part(PartType.CSSVariableDeclaration, node.token.text, node.token.start)
 		}
 	}
 
 	/** For property value part. */
 	private *parsePropertyValuePart(node: CSSTokenNode): Iterable<Part> {
-		let matches = Picker.locateAllMatchGroups(node.token.text, /var\(\s*--([\w-]+)\s*\)/g)
+		let matches = Picker.locateAllMatches(node.token.text, /var\(\s*(--[\w-]+)\s*\)/g)
 
 		for (let match of matches) {
 			yield new Part(PartType.CSSVariableReference, match[1].text, match[1].start + node.token.start)
@@ -224,7 +232,7 @@ export class CSSTokenTree extends CSSTokenNode {
 	private *parseCommandPart(node: CSSTokenNode): Iterable<Part> {
 		let commandName = node.token.text.match(/@([\w-]+)/)?.[1]
 
-		// See `https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Nesting_at-rules`
+		// See https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Nesting_at-rules
 		if (commandName === 'media'
 			|| commandName === 'supports'
 			|| commandName === 'layer'
@@ -241,13 +249,26 @@ export class CSSTokenTree extends CSSTokenNode {
 
 			// `@import ''`.
 			// `class={style['class-name']}`.
-			let match = Picker.locateMatchGroups(
+			let match = Picker.locateMatches(
 				node.token.text,
 				/@import\s+['"](.+?)['"]/
 			)
 
 			if (match) {
-				yield new Part(PartType.CSSImportPath, match[1].text, match[1].start + node.token.start)
+				yield new Part(PartType.CSSImportPath, match[1].text, match[1].start + node.token.start, node.defEnd)
+			}
+		}
+
+		else if (commandName === 'at-root') {
+
+			// `@at-root .class`.
+			let selectorMatch = Picker.locateMatches(
+				node.token.text,
+				/@at-root\s+(.+)/
+			)
+
+			if (selectorMatch) {
+				yield* this.parseSelectorString(selectorMatch[1].text, selectorMatch[1].start + node.token.start, node)
 			}
 		}
 

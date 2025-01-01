@@ -102,6 +102,12 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 					
 					// Move to `\n|`
 					this.offset += 1
+
+					// Move to `\r\n|`
+					if (this.peekChar() === '\r' || this.peekChar() === '\n') {
+						this.offset += 1
+					}
+
 					this.sync()
 
 					this.state = ScanState.LineWrap

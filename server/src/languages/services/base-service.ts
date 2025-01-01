@@ -2,7 +2,7 @@ import {SymbolInformation, LocationLink, Location, CompletionItem, Hover} from '
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PathResolver} from '../resolver'
 import {Part, PartType} from '../trees'
-import {quickBinaryFind} from '../utils'
+import {quickBinaryFind, quickBinaryFindIndex} from '../utils'
 import {CSSSelectorPart} from '../trees'
 
 
@@ -75,6 +75,19 @@ export abstract class BaseService {
 		}
 
 		return part
+	}
+
+	/** Find part before specified part. */
+	findPreviousPart(part: Part) {
+		let partIndex = quickBinaryFindIndex(this.parts, p => {
+			return p.start - part.start
+		})
+
+		if (partIndex <= 0) {
+			return null
+		}
+
+		return this.parts[partIndex - 1]
 	}
 
 	/** Find definitions match part. */

@@ -107,13 +107,13 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 	/** Make a HTML token tree by string. */
 	static fromString(string: string, isJSLikeSyntax: boolean = false): HTMLTokenTree {
-		let tokens = new HTMLTokenScanner(string).parseToTokens()
+		let tokens = new HTMLTokenScanner(string, isJSLikeSyntax).parseToTokens()
 		return HTMLTokenTree.fromTokens(tokens, isJSLikeSyntax)
 	}
 
 	/** Make a partial HTML token tree by string and offset. */
 	static fromStringAtOffset(string: string, offset: number, isJSLikeSyntax: boolean = false): HTMLTokenTree {
-		let tokens = new HTMLTokenScanner(string).parsePartialTokens(offset)
+		let tokens = new HTMLTokenScanner(string, isJSLikeSyntax).parsePartialTokens(offset)
 		return HTMLTokenTree.fromTokens(tokens, isJSLikeSyntax)
 	}
 
@@ -134,7 +134,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	/** Quickly find a part at specified offset. */
 	findPart(offset: number): Part | undefined {
 		let walking = this.filterWalk((node: HTMLTokenNode) => {
-			return node.token.start >= offset && node.closureLikeEnd <= offset
+			return node.token.start >= offset && node.defLikeEnd <= offset
 		})
 
 		for (let node of walking) {
@@ -165,7 +165,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	/** Parse node and attributes. */
 	protected *parseNodeParts(node: HTMLTokenNode): Iterable<Part> {
 		if (node.token.type === HTMLTokenType.StartTagName) {
-			yield new Part(PartType.Tag, node.token.text, node.token.start)
+			yield new Part(PartType.Tag, node.token.text, node.token.start, node.tagLikeEnd)
 
 			for (let attr of node.attrs!) {
 				yield* this.parseAttrPart(attr.name, attr.value)
@@ -213,7 +213,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 						yield new Part(PartType.Class, word.text, attrValue.start + word.start)
 					}
 
-					this.parseReactModulePart(attrValue)
+					yield* this.parseReactModulePart(attrValue)
 				}
 				else {
 					for (let word of Picker.pickWords(value)) {

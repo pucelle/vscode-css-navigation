@@ -18,7 +18,7 @@ import {
 	Hover,
 } from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {HTMLServiceMap, CSSServiceMap, PartType, PathResolver} from './languages'
+import {HTMLServiceMap, CSSServiceMap, PartType, PathResolver, ModuleResolver} from './languages'
 import {generateGlobPatternByExtensions, generateGlobPatternByPatterns, getPathExtension, Ignore, Logger} from './helpers'
 import {getLongestCommonSubsequenceLength} from './utils'
 
@@ -203,21 +203,12 @@ class CSSNavigationServer {
 		let currentHTMLService = await this.htmlServiceMap.forceGetServiceByDocument(document)
 
 		let fromPart = currentHTMLService.findPartAt(offset)
-		if (!fromPart || !fromPart.isReferenceType()) {
+		if (!fromPart) {
 			return null
 		}
 
 		let matchPart = fromPart.toDefinitionMode()
 		let locations: LocationLink[] = []
-
-
-		// Is custom tag, and not available because wanting other plugin to provide it.
-		if (configuration.ignoreCustomElement
-			&& fromPart.type === PartType.Tag
-			&& fromPart.text.includes('-')
-		) {
-			return null
-		}
 
 
 		// When mouse locates at `<link rel="stylesheet" href="|...|">` or `<style src="|...|">`, goto file start.
@@ -231,9 +222,59 @@ class CSSNavigationServer {
 		}
 
 
-		// Find definitions for embedded CSS codes within current document.
-		if (fromPart.isCSSType()) {
-			return currentHTMLService.findDefinitions(matchPart, fromPart, document)
+		// When mouse locates at `styleName="class-name"`, search within default imported css module.
+		if (fromPart.type === PartType.ReactDefaultImportedCSSModule) {
+			let filePaths = await ModuleResolver.resolveReactDefaultCSSModulePaths(document)
+
+			for (let filePath of filePaths) {
+				let cssModuleService = await this.cssServiceMap.forceGetServiceByFilePath(filePath)
+				if (!cssModuleService) {
+					return null
+				}
+
+				let defs = cssModuleService.findDefinitions(matchPart, fromPart, document)
+				if (defs.length > 0) {
+					return defs
+				}
+			}
+
+			return null
+		}
+
+
+		// When mouse locates at `class={style.className}`, search within specified named imported css module.
+		if (fromPart.type === PartType.ReactImportedCSSModuleProperty) {
+			let importedCSSModulePart = currentHTMLService.findPreviousPart(fromPart)
+			if (!importedCSSModulePart || importedCSSModulePart.type !== PartType.ReactImportedCSSModuleName) {
+				return null
+			}
+
+			let filePath = await ModuleResolver.resolveReactCSSModuleByName(importedCSSModulePart.text, document)
+			if (!filePath) {
+				return null
+			}
+
+			let cssModuleService = await this.cssServiceMap.forceGetServiceByFilePath(filePath)
+			if (!cssModuleService) {
+				return null
+			}
+
+			return cssModuleService.findDefinitions(matchPart, fromPart, document)
+		}
+
+
+		// Must be reference type.
+		if (!fromPart.isReferenceType()) {
+			return null
+		}
+
+
+		// Is custom tag, and not available because wanting other plugin to provide it.
+		if (configuration.ignoreCustomElement
+			&& fromPart.type === PartType.Tag
+			&& fromPart.text.includes('-')
+		) {
+			return null
 		}
 
 
@@ -259,11 +300,16 @@ class CSSNavigationServer {
 		// }
 
 
-		// Having CSS files imported, firstly search within these files, if has, not searching more.
-		let cssPaths = await currentHTMLService.getImportedCSSPaths()
-
-		// Find embedded style definitions.
+		// Find embedded style definitions, if found, stop.
 		locations.push(...currentHTMLService.findDefinitions(matchPart, fromPart, document))
+
+		if (locations.length > 0) {
+			return locations
+		}
+		
+
+		// Having CSS files imported, firstly search within these files, if found, not searching more.
+		let cssPaths = await currentHTMLService.getImportedCSSPaths()
 
 		for (let cssPath of cssPaths) {
 			let cssService = await this.cssServiceMap.forceGetServiceByFilePath(cssPath)
@@ -279,7 +325,7 @@ class CSSNavigationServer {
 		}
 
 
-		// Find across all CSS files.
+		// Search across all CSS files.
 		locations.push(...await this.cssServiceMap.findDefinitions(matchPart, fromPart, document))
 
 
@@ -291,7 +337,23 @@ class CSSNavigationServer {
 		let currentCSSService = await this.cssServiceMap.forceGetServiceByDocument(document)
 
 		let fromPart = currentCSSService.findPartAt(offset)
-		if (!fromPart || !fromPart.isReferenceType()) {
+		if (!fromPart) {
+			return null
+		}
+
+
+		// When mouse locates at `<link rel="stylesheet" href="|...|">` or `<style src="|...|">`, goto file start.
+		if (fromPart.type === PartType.CSSImportPath) {
+			let link = await PathResolver.resolveImportLocationLink(fromPart, document)
+			if (!link) {
+				return null
+			}
+
+			return [link]
+		}
+
+
+		if (!fromPart.isReferenceType()) {
 			return null
 		}
 
@@ -299,8 +361,36 @@ class CSSNavigationServer {
 		let matchPart = fromPart.toDefinitionMode()
 		let locations: LocationLink[] = []
 
+
 		// When mouse locates at `<link rel="stylesheet" href="|...|">` or `<style src="|...|">`, goto file start.
 		if (matchPart.type === PartType.CSSVariableDeclaration) {
+				
+			// Find embedded style definitions, if found, stop.
+			locations.push(...currentCSSService.findDefinitions(matchPart, fromPart, document))
+
+			if (locations.length > 0) {
+				return locations
+			}
+			
+
+			// Having CSS files imported, firstly search within these files, if found, not searching more.
+			let cssPaths = await currentCSSService.getImportedCSSPaths()
+
+			for (let cssPath of cssPaths) {
+				let cssService = await this.cssServiceMap.forceGetServiceByFilePath(cssPath)
+				if (!cssService) {
+					continue
+				}
+
+				locations.push(...cssService.findDefinitions(matchPart, fromPart, document))
+			}
+
+			if (locations.length > 0) {
+				return locations
+			}
+
+
+			// Search across all css files.
 			locations.push(...await this.cssServiceMap.findDefinitions(matchPart, fromPart, document))
 		}
 

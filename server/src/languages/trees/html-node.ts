@@ -9,6 +9,9 @@ export class HTMLTokenNode extends AnyTokenNode<HTMLToken> {
 	declare readonly parent: HTMLTokenNode | null
 	declare readonly children: HTMLTokenNode[] | null
 
+	/** `<a>|`, for only tag node. */
+	tagEnd: number = -1
+
 	readonly attrs: {name: HTMLToken, value: HTMLToken | null}[] | null = null
 
 	constructor(token: HTMLToken, parent: HTMLTokenNode | null) {
@@ -37,30 +40,15 @@ export class HTMLTokenNode extends AnyTokenNode<HTMLToken> {
 	 * If not tag, returns token end.
 	 */
 	get tagLikeEnd(): number {
-		if (this.attrs && this.attrs.length > 0) {
-			let lastAttr = this.attrs[this.attrs.length - 1]
-
-			if (lastAttr.value) {
-				return lastAttr.value.start + lastAttr.value.text.length
-			}
-			else {
-				return lastAttr.name.start + lastAttr.name.text.length
-			}
-		}
-
-		return this.token.end
+		return this.tagEnd > -1 ? this.tagEnd : this.token.end
 	}
 
 	/** 
-	 * Get closure end, normally after last child end.
+	 * Get definition end, `<div>...</div>|`.
 	 * If not tag, returns token end.
 	 */
-	get closureLikeEnd(): number {
-		if (this.children && this.children.length > 0) {
-			return this.children[this.children.length - 1].closureLikeEnd
-		}
-
-		return this.tagLikeEnd
+	get defLikeEnd(): number {
+		return this.defEnd > -1 ? this.defEnd : this.token.end
 	}
 
 	/** Attribute value text, with quotes removed. */

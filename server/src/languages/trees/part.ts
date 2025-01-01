@@ -131,13 +131,17 @@ export class Part {
 	 */
 	readonly text: string
 
-	/** Offset of start. */
-	readonly start: number
+	/** Start offset. */
+	start: number
 
-	constructor(type: PartType, label: string, start: number) {
+	/** End of Definition. */
+	defEnd: number
+
+	constructor(type: PartType, label: string, start: number, declarationEnd: number = -1) {
 		this.type = type
 		this.text = label
 		this.start = start
+		this.defEnd = declarationEnd
 	}
 
 	/** End offset. */
@@ -197,9 +201,11 @@ export class Part {
 			|| this.type === PartType.CSSSelectorMainClass
 	}
 
-	/** Translate start offset. */
-	translate(offset: number): Part {
-		return new Part(this.type, this.text, this.start + offset)
+	/** Translate start offset, returns this. */
+	translate(offset: number): this {
+		this.start += offset
+
+		return this
 	}
 
 	/** `"ab"` => `ab`. */
@@ -211,7 +217,7 @@ export class Part {
 			text = text.slice(1, -1)
 			start++
 			
-			return new Part(this.type, text, start)
+			return new Part(this.type, text, start, this.defEnd)
 		}
 		else {
 			return this
@@ -227,7 +233,7 @@ export class Part {
 			text = text.trimLeft()
 			start += this.text.length - text.length
 			
-			return new Part(this.type, text, start)
+			return new Part(this.type, text, start, this.defEnd)
 		}
 
 		if (/\s+$/.test(text)) {
@@ -235,7 +241,7 @@ export class Part {
 		}
 
 		if (text !== this.text) {
-			return new Part(this.type, text, start)
+			return new Part(this.type, text, start, this.defEnd)
 		}
 		else {
 			return this
@@ -247,7 +253,7 @@ export class Part {
 		let type = this.typeToDefinition()
 		let text = this.textToDefinition()
 
-		return new Part(type, text, -1)
+		return new Part(type, text, -1, -1)
 	}
 
 	/** Convert current type to definition part type. */
@@ -273,6 +279,9 @@ export class Part {
 		else if (this.type === PartType.CSSVariableAssignment ||this. type === PartType.CSSVariableReference) {
 			return PartType.CSSVariableDeclaration
 		}
+		else if (this.type === PartType.ReactDefaultImportedCSSModule || this.type === PartType.ReactImportedCSSModuleProperty) {
+			return PartType.CSSSelectorMainClass
+		}
 
 		return this.type
 	}
@@ -284,7 +293,10 @@ export class Part {
 		if (this.type === PartType.Id) {
 			text = '#' + text
 		}
-		else if (this.type === PartType.Class) {
+		else if (this.type === PartType.Class
+			|| this.type === PartType.ReactDefaultImportedCSSModule
+			|| this.type === PartType.ReactImportedCSSModuleProperty
+		) {
 			text = '.' + text
 		}
 
@@ -338,10 +350,12 @@ export class Part {
 
 	/** To a location link for going to definition. */
 	toLocationLink(document: TextDocument, fromPart: Part, fromDocument: TextDocument) {
-		let range = this.toRange(document)
+		let selectionRange = this.toRange(document)
+		let end = this.defEnd > -1 ? this.defEnd : this.end
+		let definitionRange = Range.create(selectionRange.start, document.positionAt(end))
 		let fromRange = fromPart.toRange(fromDocument)
 
-		return LocationLink.create(document.uri, range, range, fromRange)
+		return LocationLink.create(document.uri, definitionRange, selectionRange, fromRange)
 	}
 
 	/** To a location for finding references. */

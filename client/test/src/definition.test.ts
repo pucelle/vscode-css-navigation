@@ -1,5 +1,5 @@
 import * as assert from 'assert'
-import {prepare, searchSymbolNames as gs, jsxDocument} from './helper'
+import {prepare, searchSymbolNames as gs, jsxDocument, vueDocument} from './helper'
 
 
 describe('Test Finding Definition from HTML', () => {
@@ -169,18 +169,18 @@ describe('Test Finding Definition from JSX', () => {
 })
 
 
-// describe('Test Finding Definition for Vue Files', () => {
-// 	before(prepare)
+describe('Test Finding Definition for Vue Files', () => {
+	before(prepare)
 
-// 	it('Should find inner class definition', async () => {
-// 		assert.deepStrictEqual(await gs(['"', 'test-vue-inner-class', '"'], vueDocument), ['.test-vue-inner-class'])
-// 	})
+	it('Should find inner class definition', async () => {
+		assert.deepStrictEqual(await gs(['"', 'test-vue-inner-class', '"'], vueDocument), ['.test-vue-inner-class'])
+	})
 
-// 	it('Should find imported class definition', async () => {
-// 		assert.deepStrictEqual(await gs(['"', 'test-vue-import-class', '"'], vueDocument), ['.test-vue-import-class'])
-// 	})
+	it('Should find imported class definition', async () => {
+		assert.deepStrictEqual(await gs(['"', 'test-vue-import-class', '"'], vueDocument), ['.test-vue-import-class'])
+	})
 
-// 	it('Should find imported class definition inside node_modules by style tag', async () => {
-// 		assert.deepStrictEqual(await gs(['"', 'class-style-imported', '"'], vueDocument), ['.class-style-imported'])
-// 	})
-// })
+	it('Should find imported class definition inside node_modules by style tag', async () => {
+		assert.deepStrictEqual(await gs(['"', 'class-style-imported', '"'], vueDocument), ['.class-style-imported'])
+	})
+})

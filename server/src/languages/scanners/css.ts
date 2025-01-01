@@ -42,9 +42,9 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 	declare protected state: ScanState
 	private isScssLessSyntax: boolean
 
-	constructor(string: string, isSassSyntax: boolean = false) {
+	constructor(string: string, isScssLessSyntax: boolean = false) {
 		super(string)
-		this.isScssLessSyntax = isSassSyntax
+		this.isScssLessSyntax = isScssLessSyntax
 	}
 
 	*parsePartialTokens(offset: number): Iterable<CSSToken> {
@@ -89,14 +89,6 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 
 		while (this.offset < this.string.length) {
 			if (this.state === ScanState.AnyContent) {
-
-				// Skip white spaces.
-				if (!this.readWhiteSpaces()) {
-					break
-				}
-
-				this.sync()
-
 				if (!this.readUntil(/[\/#{};"']/g)) {
 					break
 				}

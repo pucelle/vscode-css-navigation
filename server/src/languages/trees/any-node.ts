@@ -8,6 +8,9 @@ export class AnyTokenNode<T extends AnyToken<number>> {
 	readonly parent: AnyTokenNode<T> | null
 	readonly children: AnyTokenNode<T>[] | null = null
 
+	/** Definition end. */
+	defEnd: number = -1
+
 	constructor(token: T, parent: AnyTokenNode<T> | null) {
 		this.token = token
 		this.parent = parent

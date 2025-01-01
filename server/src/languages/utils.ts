@@ -1,24 +1,34 @@
 
 /** 
- * Binary find an insert index from a list, which has been sorted.
- * And make the list is still in sorted state after inserting the new value.
- * Returned index is betweens `0 ~ list length`.
- * Note when some equal values exist, the returned index prefers lower.
+ * Binary find index of an item from a list, which has been sorted.
+ * Returns the found item index, or `-1` if nothing found.
  * 
- * @param fn: used to know whether a value is larger or smaller,
- * 	   it returns negative value to move right, and positive value to move left.
+ * @param fn used to know whether a value is larger or smaller,
+ *   it returns negative value to move cursor right, and positive value to move cursor left.
  */
-function quickBinaryFindLowerInsertIndex<T>(sortedList: ArrayLike<T>, fn: (v: T) => number): number {
+export function quickBinaryFindIndex<T>(sortedList: ArrayLike<T>, fn: (v: T) => number): number {
 	if (sortedList.length === 0) {
-		return 0
+		return -1
 	}
 
-	if (fn(sortedList[0]) > 0) {
+	let firstResult = fn(sortedList[0])
+
+	if (firstResult === 0) {
 		return 0
 	}
+	
+	if (firstResult > 0) {
+		return -1
+	}
 
-	if (fn(sortedList[sortedList.length - 1]) <= 0) {
-		return sortedList.length
+	let lastResult = fn(sortedList[sortedList.length - 1])
+
+	if (lastResult === 0) {
+		return sortedList.length - 1
+	}
+
+	if (lastResult < 0) {
+		return -1
 	}
 
 	let start = 0
@@ -28,7 +38,10 @@ function quickBinaryFindLowerInsertIndex<T>(sortedList: ArrayLike<T>, fn: (v: T)
 		let center = Math.floor((end + start) / 2)
 		let result = fn(sortedList[center])
 
-		if (result <= 0) {
+		if (result === 0) {
+			return center
+		}
+		else if (result < 0) {
 			start = center
 		}
 		else {
@@ -36,8 +49,7 @@ function quickBinaryFindLowerInsertIndex<T>(sortedList: ArrayLike<T>, fn: (v: T)
 		}
 	}
 
-	// Value at start index always <= `value`, and value at end index always > `value`.
-	return start
+	return -1
 }
 
 
@@ -49,14 +61,11 @@ function quickBinaryFindLowerInsertIndex<T>(sortedList: ArrayLike<T>, fn: (v: T)
  *   it returns negative value to move cursor right, and positive value to move cursor left.
  */
 export function quickBinaryFind<T>(sortedList: ArrayLike<T>, fn: (v: T) => number): T | undefined {
-	let index = quickBinaryFindLowerInsertIndex(sortedList, fn)
-	if (index === sortedList.length) {
+	let index = quickBinaryFindIndex(sortedList, fn)
+	if (index === -1) {
 		return undefined
 	}
 
-	if (fn(sortedList[index]) === 0) {
-		return sortedList[index]
-	}
-
-	return undefined
+	return sortedList[index]
 }
+

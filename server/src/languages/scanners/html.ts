@@ -83,6 +83,12 @@ function isAttrName(char: string): boolean {
 export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 
 	declare protected state: ScanState
+	private isJSLikeSyntax: boolean
+
+	constructor(string: string, isJSLikeSyntax: boolean = false) {
+		super(string)
+		this.isJSLikeSyntax = isJSLikeSyntax
+	}
 
 	/** 
 	 * Parse for partial tokens at offset.
@@ -256,7 +262,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 
 				// If meet another tag start, use the late one.
 				// For js codes like `if (a<b){<div>}`.
-				if (char === '<' && isAttrName(this.peekChar(1))) {
+				if (char === '<' && this.isJSLikeSyntax && isAttrName(this.peekChar(1))) {
 					yield* this.makeTextToken()
 
 					// Move to `<|a`

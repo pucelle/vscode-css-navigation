@@ -103,7 +103,7 @@ export namespace PathResolver {
 	
 	/** Resolve import path to full path. */
 	export async function resolveDocumentPath(importPath: string, document: TextDocument): Promise<string | null> {
-		let currentPath = path.dirname(URI.parse(document.uri).fsPath)
+		let currentPath = URI.parse(document.uri).fsPath
 		let fullPath = await resolveRelativePath(currentPath, importPath)
 
 		return fullPath

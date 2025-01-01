@@ -20,12 +20,6 @@ export class CSSTokenNode extends AnyTokenNode<CSSToken> {
 
 	readonly type: CSSTokenNodeType
 
-	// `|{`, for only selector node.
-	closureStart: number = -1
-
-	// `}|`, for only selector node.
-	closureEnd: number = -1
-
 	/** Comment Token */
 	commentToken: CSSToken | null
 
@@ -43,8 +37,9 @@ export class CSSTokenNode extends AnyTokenNode<CSSToken> {
 		return this.type === CSSTokenNodeType.Root
 	}
 
-	get closureLikeEnd(): number {
-		return this.closureEnd > -1 ? this.closureEnd : this.token.end
+	/** Definition end, or end. */
+	get defLikeEnd(): number {
+		return this.defEnd > -1 ? this.defEnd : this.token.end
 	}
 }
 

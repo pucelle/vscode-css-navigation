@@ -3,7 +3,7 @@
 
 html{
 	height: 100%;
-	color: --css-variable-name;
+	--css-variable-name: red;
 }
 
 body{
@@ -172,13 +172,6 @@ div.class-match10{
 	color: red;
 }
 
-$variable: 'abc';
-.scss-class {
-    #{$variable} {
-		color: red;
-    }
-
-    &-contains-variable {
-		color: red;
-    }
+.scss-class-use-variable {
+	color: var(--css-variable-name);
 }

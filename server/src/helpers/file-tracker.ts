@@ -280,6 +280,18 @@ export class FileTracker {
 		}
 	}
 
+	/** 
+	 * Track more file like directly imported file.
+	 * or should be excluded by exclude glob path.
+	 */
+	trackMoreFile(filePath: string) {
+
+		// Not validate `alwaysIncludeMatcher` and `excludeMatcher` here.
+		if (this.includeFileMatcher.match(filePath)) {
+			this.trackFile(filePath)
+		}
+	}
+
 	/** Track file, not validate should track here. */
 	private trackFile(filePath: string) {
 		let uri = URI.file(filePath).toString()
@@ -296,19 +308,6 @@ export class FileTracker {
 
 			this.map.set(uri, item)
 			this.afterTrackedFile(uri, item)
-		}
-	}
-
-	/** 
-	 * Track more file like imported file of not yet.
-	 * although it may not in `startPath`,
-	 * or should be excluded by exclude glob path.
-	 */
-	trackMoreFile(filePath: string) {
-
-		// Not validate `alwaysIncludeMatcher` and `excludeMatcher` here.
-		if (this.includeFileMatcher.match(filePath)) {
-			this.trackFile(filePath)
 		}
 	}
 

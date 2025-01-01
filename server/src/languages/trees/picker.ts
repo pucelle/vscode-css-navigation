@@ -48,19 +48,19 @@ export namespace Picker {
 		while (match = re.exec(text)) {
 			let start = match.index
 
-			if (match[0] === '"' || match[0] === '\'') {
+			if (match[1]) {
+				words.push({
+					text: match[1],
+					start,
+				})
+			}
+			else {
 				for (let item of pickWords(match[0])) {
 					words.push({
 						start: start + item.start,
 						text: item.text,
 					})
 				}
-			}
-			else {
-				words.push({
-					text: match[1],
-					start,
-				})
 			}
 		}
 
@@ -93,14 +93,16 @@ export namespace Picker {
 
 		for (let i = 0; i < match.length; i++) {
 			let m = match[i]
-			let start = i === 0 ? lastIndex : match[0].indexOf(m, lastIndex)
+			let start = i === 0 ? 0 : match[0].indexOf(m, lastIndex)
 
 			o.push({
 				text: m,
 				start: match.index! + start,
 			})
 
-			lastIndex = start + m.length
+			if (i > 0) {
+				lastIndex = start + m.length
+			}
 		}
 
 		return o

@@ -95,9 +95,17 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		return this.forceGetServiceByURI(uri)
 	}
 
-	/** Force get a service by file path, create it but not cache if not in service map. */
-	async forceGetServiceByURI(fsPath: string): Promise<S | null> {
-		let uri = URI.file(fsPath).toString()
+	/** Force get a service by uri, create it but not cache if not in service map. */
+	async forceGetServiceByURI(uri: string): Promise<S | null> {
+
+		// Path been included.
+		if (!this.has(uri) && this.startPath) {
+			let filePath = URI.parse(uri).fsPath
+
+			if (filePath.startsWith(this.startPath)) {
+				this.trackMoreFile(filePath)
+			}
+		}
 
 		// Already included.
 		if (this.has(uri)) {
