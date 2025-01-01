@@ -55,7 +55,7 @@ export class CSSTokenTree extends CSSTokenNode {
 			else if (token.type === CSSTokenType.ClosureStart) {
 				if (latestTokens.length > 0) {
 					let joint = joinTokens(latestTokens, string)
-					let type = isCommandToken(joint) ? CSSTokenNodeType.Command : CSSTokenNodeType.Selector
+					let type = getSelectorLikeNodeType(joint, current)
 					let node: CSSTokenNode = new CSSTokenNode(type, joint, current, latestComment)
 
 					current.children!.push(node)
@@ -230,7 +230,7 @@ export class CSSTokenTree extends CSSTokenNode {
 	
 	/** Parse a command string to parts. */
 	private *parseCommandPart(node: CSSTokenNode): Iterable<Part> {
-		let commandName = node.token.text.match(/@([\w-]+)/)?.[1]
+		let commandName = getCommandName(node.token.text)
 
 		// See https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Nesting_at-rules
 		if (commandName === 'media'
@@ -277,9 +277,24 @@ export class CSSTokenTree extends CSSTokenNode {
 }
 
 
-
 function isCommandToken(token: CSSToken): boolean {
-	return token.text[0] === '@'
+	return /^\s*@/.test(token.text)
+}
+
+function getCommandName(text: string): string | undefined {
+	return text.match(/@([\w-]+)/)?.[1]
+}
+
+function getSelectorLikeNodeType(token: CSSToken, current: CSSTokenNode): CSSTokenNodeType {
+	if (current.type === CSSTokenNodeType.Command && getCommandName(current.token.text) === 'keyframes') {
+		return CSSTokenNodeType.ClosureName
+	}
+	else if (isCommandToken(token)) {
+		return CSSTokenNodeType.Command
+	}
+	else {
+		return CSSTokenNodeType.Selector
+	}
 }
 
 function splitPropertyTokens(token: CSSToken): [CSSToken, CSSToken] | null {

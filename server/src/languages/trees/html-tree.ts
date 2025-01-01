@@ -228,7 +228,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		// `styleName="class-name"`
 		else if (this.isJSLikeSyntax && name === 'styleName') {
 			if (attrValue) {
-				yield new Part(PartType.ReactDefaultImportedCSSModule, attrValue.text, attrValue.start).removeQuotes()
+				yield new Part(PartType.ReactDefaultImportedCSSModuleClass, attrValue.text, attrValue.start).removeQuotes()
 			}
 		}
 	}

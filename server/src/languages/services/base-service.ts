@@ -77,7 +77,7 @@ export abstract class BaseService {
 		return part
 	}
 
-	/** Find part before specified part. */
+	/** Find part before */
 	findPreviousPart(part: Part) {
 		let partIndex = quickBinaryFindIndex(this.parts, p => {
 			return p.start - part.start

@@ -7,6 +7,10 @@ export enum CSSTokenNodeType {
 	Root,
 	Command,
 	Selector,
+
+	/** Like `from`, `to` of `@keyframes{from{}, to{}}`. */
+	ClosureName,
+
 	PropertyName,
 	PropertyValue,
 }
@@ -20,7 +24,7 @@ export class CSSTokenNode extends AnyTokenNode<CSSToken> {
 
 	readonly type: CSSTokenNodeType
 
-	/** Comment Token */
+	/** Comment Token. */
 	commentToken: CSSToken | null
 
 	constructor(type: CSSTokenNodeType, token: CSSToken, parent: CSSTokenNode | null, commentToken: CSSToken | null = null) {
@@ -28,7 +32,11 @@ export class CSSTokenNode extends AnyTokenNode<CSSToken> {
 		this.type = type
 		this.commentToken = commentToken
 
-		if (type === CSSTokenNodeType.Command || type === CSSTokenNodeType.Selector || !parent) {
+		if (type === CSSTokenNodeType.Command
+			|| type === CSSTokenNodeType.Selector
+			|| type === CSSTokenNodeType.ClosureName
+			|| type === CSSTokenNodeType.Root
+		) {
 			this.children = []
 		}
 	}

@@ -62,7 +62,7 @@ export enum PartType {
 	 * `import 'xxx.css'`
 	 * `styleName="class-name"`
 	*/
-	ReactDefaultImportedCSSModule,
+	ReactDefaultImportedCSSModuleClass,
 
 
 	//// From CSS.
@@ -186,6 +186,8 @@ export class Part {
 			|| this.type === PartType.CSSSelectorQueryClass
 			|| this.type === PartType.CSSVariableAssignment
 			|| this.type === PartType.CSSVariableReference
+			|| this.type === PartType.ReactDefaultImportedCSSModuleClass
+			|| this.type === PartType.ReactImportedCSSModuleProperty
 	}
 
 	isSelectorType() {
@@ -279,7 +281,7 @@ export class Part {
 		else if (this.type === PartType.CSSVariableAssignment ||this. type === PartType.CSSVariableReference) {
 			return PartType.CSSVariableDeclaration
 		}
-		else if (this.type === PartType.ReactDefaultImportedCSSModule || this.type === PartType.ReactImportedCSSModuleProperty) {
+		else if (this.type === PartType.ReactDefaultImportedCSSModuleClass || this.type === PartType.ReactImportedCSSModuleProperty) {
 			return PartType.CSSSelectorMainClass
 		}
 
@@ -294,7 +296,7 @@ export class Part {
 			text = '#' + text
 		}
 		else if (this.type === PartType.Class
-			|| this.type === PartType.ReactDefaultImportedCSSModule
+			|| this.type === PartType.ReactDefaultImportedCSSModuleClass
 			|| this.type === PartType.ReactImportedCSSModuleProperty
 		) {
 			text = '.' + text
