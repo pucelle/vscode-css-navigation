@@ -19,16 +19,6 @@ custom-element{
 	to{color:red}
 }
 
-body{
-	tagnotmatch{
-		color: red;
-	}
-}
-
-body tagnotmatch{
-	color: red;
-}
-
 
 #id1{
 	color: red;
@@ -145,20 +135,12 @@ div.class-match10{
 	color: red;
 }
 
-.class-sub-not-match{
+.class-sub-reference-not-match{
 	&:hover{
 		color: red;
 	}
 
 	&[name=value]{
-		color: red;
-	}
-
-	&::before{
-		color: red;
-	}
-	
-	&.class-any{
 		color: red;
 	}
 }

@@ -137,7 +137,7 @@ export async function searchWorkspaceSymbolNames(query: string): Promise<string[
 
 
 
-export async function searchReferences (searchWord: string, document: vscode.TextDocument = cssDocument): Promise<string[] | null> {
+export async function searchReferences(searchWord: string, document: vscode.TextDocument = cssDocument): Promise<string[] | null> {
 	let ranges = searchWordInDocument(searchWord, document)
 	if (!ranges) {
 		assert.fail(`Can't find "${searchWord}" in ${path.basename(document.uri.toString())}`)

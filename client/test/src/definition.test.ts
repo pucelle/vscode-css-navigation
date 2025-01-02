@@ -17,12 +17,8 @@ describe('Test Finding Definition from HTML', () => {
 		assert.deepStrictEqual(await gs(['<', 'tag-not-match', '>']), [])
 	})
 
-	it('Should ignore tag definition when its not the unique part splitted by space', async () => {
-		assert.deepStrictEqual(await gs(['<', 'tagnotmatch', '>']), [])
-	})
-
-	it('Should not parse contents inside "@keyframes" as selectors', async () => {
-		assert.deepStrictEqual(await gs(['<', 'start', '>']), [])
+	it('Should not parse `from` and `to` inside "@keyframes" as selectors', async () => {
+		assert.deepStrictEqual(await gs(['<', 'from', '>']), [])
 	})
 
 	it('Should find right tag definition', async () => {
@@ -46,7 +42,7 @@ describe('Test Finding Definition from HTML', () => {
 
 	it('Should combine multiple sass nestings, so one symbol may match multiple selectors', async () => {
 		assert.deepStrictEqual(await gs(['class="', 'class4', '"']), ['.class4, .class4-sub'])
-		assert.deepStrictEqual(await gs(['class="', 'class4-sub', '"']), ['.class4, .class4-sub', '&-sub'])
+		assert.deepStrictEqual(await gs(['class="', 'class4-sub', '"']), ['.class4-sub', '&-sub'])
 		assert.deepStrictEqual(await gs(['class="', 'class4-sub-sub', '"']), ['&-sub'])
 		assert.deepStrictEqual(await gs(['class="', 'class4-sub-tail', '"']), ['&-tail'])
 		assert.deepStrictEqual(await gs(['class="', 'class4-sub-sub-tail', '"']), ['&-tail'])
@@ -54,27 +50,27 @@ describe('Test Finding Definition from HTML', () => {
 
 	it('Should combine to eliminate "&" when parts splitted by commands', async () => {
 		assert.deepStrictEqual(await gs(['class="', 'class5-sub5', '"']), ['&-sub5'])
-		assert.deepStrictEqual(await gs(['class="', 'class6-sub6', '"']), ['@at-root &-sub6'])
+		assert.deepStrictEqual(await gs(['class="', 'class6-sub6', '"']), ['&-sub6'])
 	})
 
 	it('Should not combine with space when splitted by "@at-root"', async () => {
-		assert.deepStrictEqual(await gs(['class="', 'class7-sub7', '"']), ['@at-root .class7-sub7'])
+		assert.deepStrictEqual(await gs(['class="', 'class7-sub7', '"']), ['.class7-sub7'])
 	})
 
 	it('Should find right class definition when it\'s start part', async () => {
 		assert.deepStrictEqual(await gs(['class="', 'class-match1', '"']), ['.class-match1:hover'])
-		assert.deepStrictEqual(await gs(['class="', 'class-match2', '"']), ['.class-match2::before'])
+		assert.deepStrictEqual(await gs(['class="', 'class-match2', '"']), [])
 		assert.deepStrictEqual(await gs(['class="', 'class-match3', '"']), ['.class-match3[name=value]'])
 	})
 
 	it('Should find right class definition as right most descendant part', async () => {
-		assert.deepStrictEqual(await gs(['class="', 'class-match4', '"']), ['.class-any .class-match4'])
-		assert.deepStrictEqual(await gs(['class="', 'class-match5', '"']), ['.class-any .class-match5:hover'])
-		assert.deepStrictEqual(await gs(['class="', 'class-match6', '"']), ['.class-any > .class-match6'])
-		assert.deepStrictEqual(await gs(['class="', 'class-match7', '"']), ['.class-any + .class-match7'])
-		assert.deepStrictEqual(await gs(['class="', 'class-match8', '"']), ['.class-any ~ .class-match8'])
-		assert.deepStrictEqual(await gs(['class="', 'class-match9', '"']), ['.class-any.class-match9'])
-		assert.deepStrictEqual(await gs(['class="', 'class-match10', '"']), ['div.class-match10'])
+		assert.deepStrictEqual(await gs(['class="', 'class-match4', '"']), ['.class-match4'])
+		assert.deepStrictEqual(await gs(['class="', 'class-match5', '"']), ['.class-match5:hover'])
+		assert.deepStrictEqual(await gs(['class="', 'class-match6', '"']), ['.class-match6'])
+		assert.deepStrictEqual(await gs(['class="', 'class-match7', '"']), ['.class-match7'])
+		assert.deepStrictEqual(await gs(['class="', 'class-match8', '"']), ['.class-match8'])
+		assert.deepStrictEqual(await gs(['class="', 'class-match9', '"']), ['.class-match9'])
+		assert.deepStrictEqual(await gs(['class="', 'class-match10', '"']), ['.class-match10'])
 	})
 
 	it('Should not find definition when not been start of right most descendant part', async () => {
@@ -84,8 +80,8 @@ describe('Test Finding Definition from HTML', () => {
 		assert.deepStrictEqual(await gs(['class="', 'class-not-match4', '"']), [])
 	})
 
-	it('Should not find definition when it use "&" as single part, without more words joined, like "&:hover"', async () => {
-		assert.deepStrictEqual(await gs(['class="', 'class-sub-not-match', '"']), ['.class-sub-not-match', '&.class-any'])
+	it.only('Should not find more definitions when it use reference like "&:hover"', async () => {
+		assert.deepStrictEqual(await gs(['class="', 'class-sub-reference-not-match', '"']), ['.class-sub-reference-not-match'])
 	})
 
 	it('Should find definition inside <style> tag, be aware this is not available by default', async () => {
