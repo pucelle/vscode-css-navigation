@@ -42,13 +42,13 @@ export class CSSSelectorPart extends Part {
 	constructor(
 		text: string,
 		start: number,
-		definitionEnd: number,
+		defEnd: number,
 		comment: string | undefined,
 		formatted: string[],
 		detailed: CSSSelectorDetailedPart[],
 		primary: CSSSelectorDetailedPart | null
 	) {
-		super(PartType.CSSSelector, text, start, definitionEnd)
+		super(PartType.CSSSelector, text, start, defEnd)
 
 		this.comment = comment
 		this.formatted = formatted

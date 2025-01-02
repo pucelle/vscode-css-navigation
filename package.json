@@ -62,6 +62,11 @@
 					"default": true,
 					"description": "Enable CSS selector hover comment message in HTML files."
 				},
+				"CSSNavigation.maxHoverStylePropertyCount": {
+					"type": "number",
+					"default": 0,
+					"description": "When mouse hover at a class or id attribute, at most how many style properties should show."
+				},
 				"CSSNavigation.activeHTMLFileExtensions": {
 					"type": "array",
 					"default": [

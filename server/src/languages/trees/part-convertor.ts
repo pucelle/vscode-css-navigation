@@ -3,6 +3,8 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {escapeAsRegExpSource} from './utils'
 import {Part, PartType} from './part'
 import {CSSSelectorPart} from './part-css-selector'
+import {CSSTokenTree} from './css-tree'
+import {CSSTokenNodeType} from './css-node'
 
 
 /** Help to convert part type and text. */
@@ -219,10 +221,19 @@ export namespace PartConvertor {
 		})
 	}
 
-	/** To hover. */
-	export function toHover(part: Part, comment: string | undefined, document: TextDocument): Hover {
-		let cssPart = part.toDefinitionMode()
-		let content = '```css\n' + cssPart.text + '\n```'
+	/** Part to hover. */
+	export function toHover(part: CSSSelectorPart, matchPart: Part, document: TextDocument, fromDocument: TextDocument, maxStylePropertyCount: number): Hover {
+		let comment = part.comment
+		let content = '```css\n' + matchPart.text + '{'
+
+		if (maxStylePropertyCount > 0) {
+			content += parseStyleProperties(part, document.getText(), maxStylePropertyCount)
+		}
+		else {
+			content += '...'
+		}
+
+		content += '}\n```'
 
 		if (comment) {
 			content += '\n' + comment.trim()
@@ -233,7 +244,55 @@ export namespace PartConvertor {
 				kind: MarkupKind.Markdown,
 				value: content,
 			},
-			range: toRange(part, document)
+			range: toRange(part, fromDocument),
 		}
+	}
+
+	function parseStyleProperties(part: CSSSelectorPart, string: string, maxStylePropertyCount: number): string {
+		let text = string.slice(part.start, part.defEnd)
+		let tree = CSSTokenTree.fromString(text, 0, 'css')
+		let content = ''
+		let count = 0
+		let hasAdditional = false
+		let selectorNode = tree.children!.find(child => child.type === CSSTokenNodeType.Selector)
+
+		if (!selectorNode) {
+			return '...'
+		}
+
+		for (let child of selectorNode.children!) {
+			if (count === maxStylePropertyCount) {
+				hasAdditional = true
+				break
+			}
+
+			if (child.type === CSSTokenNodeType.PropertyName) {
+				content += '\n\t' + child.token.text.trim()
+			}
+
+			else if (child.type === CSSTokenNodeType.PropertyValue) {
+				content += ': ' + child.token.text.trim() + ';'
+				count++
+			}
+
+			else {
+				hasAdditional = true
+				break
+			}
+		}
+
+		if (hasAdditional) {
+			if (count > 0) {
+				content += '\n\t...\n'
+			}
+			else {
+				content += '...'
+			}
+		}
+		else {
+			content += '\n'
+		}
+
+		return content
 	}
 }

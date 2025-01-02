@@ -1,7 +1,7 @@
 import {SymbolInformation, LocationLink, CompletionItem, Hover, Location} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {FileTracker} from '../../helpers'
-import {CSSSelectorPart, Part, PartConvertor} from '../trees'
+import {Part, PartConvertor} from '../trees'
 import {BaseService} from './base-service'
 import {URI} from 'vscode-uri'
 
@@ -145,22 +145,16 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		return locations
 	}
 
-	async findHover(matchPart: Part, fromPart: Part, fromDocument: TextDocument): Promise<Hover | null> {
+	async findHover(matchPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Promise<Hover | null> {
 		await this.beFresh()
 
-		let parts: CSSSelectorPart[] = []
-
 		for (let service of this.walkAvailableServices()) {
-			parts.push(...service.findHoverParts(matchPart))
+			let hover = service.findHover(matchPart, fromDocument, maxStylePropertyCount)
+			if (hover) {
+				return hover
+			}
 		}
 
-		if (parts.length === 0) {
-			return null
-		}
-
-		let commentedParts = parts.filter(p => p.comment)
-		let part = commentedParts.find(part => part.primary!.independent) ?? commentedParts[0]
-
-		return PartConvertor.toHover(fromPart, part?.comment!, fromDocument)
+		return null
 	}
 }

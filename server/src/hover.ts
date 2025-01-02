@@ -24,7 +24,7 @@ export async function findHover(
 			return null
 		}
 
-		return await findHoverInHTML(fromPart, currentHTMLService, cssServiceMap, document)
+		return await findHoverInHTML(fromPart, currentHTMLService, cssServiceMap, document, configuration)
 	}
 	else if (isCSSFile) {
 		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
@@ -34,7 +34,7 @@ export async function findHover(
 			return null
 		}
 
-		return await findHoverInCSS(fromPart, currentCSSService, document, cssServiceMap)
+		return await findHoverInCSS(fromPart, currentCSSService, document, cssServiceMap, configuration)
 	}
 
 	return null
@@ -46,13 +46,14 @@ async function findHoverInHTML(
 	fromPart: Part,
 	currentService: HTMLService,
 	cssServiceMap: CSSServiceMap,
-	document: TextDocument
+	document: TextDocument,
+	configuration: Configuration
 ): Promise<Hover | null> {
 	let matchPart = fromPart.toDefinitionMode()
 
 
 	// Find within current document.
-	let hover = currentService.findHover(matchPart, fromPart, document)
+	let hover = currentService.findHover(matchPart, document, configuration.maxHoverStylePropertyCount)
 	if (hover) {
 		return hover
 	}
@@ -60,7 +61,7 @@ async function findHoverInHTML(
 
 	// Find across all css documents.
 	if (fromPart.isSelectorType() || fromPart.isCSSVariableType()) {
-		hover = await cssServiceMap.findHover(matchPart, fromPart, document)
+		hover = await cssServiceMap.findHover(matchPart, document, configuration.maxHoverStylePropertyCount)
 	}
 
 	if (hover) {
@@ -76,7 +77,8 @@ async function findHoverInCSS(
 	fromPart: Part,
 	currentService: HTMLService | CSSService,
 	document: TextDocument,
-	cssServiceMap: CSSServiceMap
+	cssServiceMap: CSSServiceMap,
+	configuration: Configuration
 ): Promise<Hover | null> {
 	if (!fromPart.isReferenceType()) {
 		return null
@@ -86,7 +88,7 @@ async function findHoverInCSS(
 
 
 	// Find within current document.
-	let hover = currentService.findHover(matchPart, fromPart, document)
+	let hover = currentService.findHover(matchPart, document, configuration.maxHoverStylePropertyCount)
 	if (hover) {
 		return hover
 	}
@@ -94,7 +96,7 @@ async function findHoverInCSS(
 
 	// Find across all css documents.
 	if (fromPart.isSelectorType() || fromPart.isCSSVariableType()) {
-		hover = await cssServiceMap.findHover(matchPart, fromPart, document)
+		hover = await cssServiceMap.findHover(matchPart, document, configuration.maxHoverStylePropertyCount)
 	}
 
 	return null

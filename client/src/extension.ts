@@ -79,15 +79,17 @@ export class CSSNavigationExtension {
 			enableFindAllReferences: config.get('enableFindAllReferences', true),
 			enableHover: config.get('enableHover', true),
 			enableLogLevelMessage: config.get('enableLogLevelMessage', false),
+
 			activeHTMLFileExtensions: config.get('activeHTMLFileExtensions', []),
 			activeCSSFileExtensions: config.get('activeCSSFileExtensions', []),
 			excludeGlobPatterns: config.get('excludeGlobPatterns') || [],
 			alwaysIncludeGlobPatterns: config.get('alwaysIncludeGlobPatterns', []),
-			alwaysIncludeImportedFiles: config.get('alwaysIncludeImportedFiles', true),
-			alsoSearchDefinitionsInStyleTag: config.get('alsoSearchDefinitionsInStyleTag', false),
+
 			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
 			ignoreCustomElement: config.get('ignoreCustomElement', false),
 			ignoreFilesBy: config.get('ignoreFilesBy', []),
+
+			maxHoverStylePropertyCount: config.get('maxHoverStylePropertyCount', 0),
 		}
 	}
 

@@ -213,30 +213,25 @@ export abstract class BaseService {
 		return locations
 	}
 	
-	/** Find parts from CSS document for providing class or id name hover for a HTML document. */
-	findHoverParts(matchPart: Part): CSSSelectorPart[] {
-		let parts: CSSSelectorPart[] = []
-
+	/** Find hover from CSS document for providing class or id name hover for a HTML document. */
+	findHover(matchPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Hover | null {
 		for (let part of this.parts) {
-			if (!part.isMayPrimaryMatch(matchPart)) {
+			if (part.type !== PartType.CSSSelector) {
 				continue
 			}
 
-			parts.push(part as CSSSelectorPart)
+			let primary = (part as CSSSelectorPart).primary
+
+			if (!primary
+				|| !primary.independent
+				|| !primary.isMatch(matchPart)
+			) {
+				continue
+			}
+	
+			return PartConvertor.toHover(part as CSSSelectorPart, matchPart, this.document, fromDocument, maxStylePropertyCount)
 		}
 
-		return parts
-	}
-
-	findHover(matchPart: Part, fromPart: Part, fromDocument: TextDocument): Hover | null {
-		let parts = this.findHoverParts(matchPart)
-		if (parts.length === 0) {
-			return null
-		}
-
-		let commentedParts = parts.filter(p => p.comment)
-		let part = commentedParts.find(part => part.primary!.independent) ?? commentedParts[0]
-
-		return PartConvertor.toHover(fromPart, part?.comment!, fromDocument)
+		return null
 	}
 }

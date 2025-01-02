@@ -23,6 +23,7 @@ import {findDefinitions} from './definition'
 import {getCompletionItems} from './completion'
 import {findReferences} from './reference'
 import {findHover} from './hover'
+import '../../client/out/types'
 
 
 let connection: Connection = createConnection(ProposedFeatures.all)
