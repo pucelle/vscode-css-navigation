@@ -57,6 +57,11 @@
 					"default": true,
 					"description": "Enable searching CSS selector references in HTML files."
 				},
+				"CSSNavigation.enableHover": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable CSS selector hover comment message in HTML files."
+				},
 				"CSSNavigation.activeHTMLFileExtensions": {
 					"type": "array",
 					"default": [

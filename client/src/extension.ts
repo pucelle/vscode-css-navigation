@@ -77,6 +77,8 @@ export class CSSNavigationExtension {
 			enableIdAndClassNameCompletion: config.get('enableIdAndClassNameCompletion', true),
 			enableWorkspaceSymbols: config.get('enableWorkspaceSymbols', true),
 			enableFindAllReferences: config.get('enableFindAllReferences', true),
+			enableHover: config.get('enableHover', true),
+			enableLogLevelMessage: config.get('enableLogLevelMessage', false),
 			activeHTMLFileExtensions: config.get('activeHTMLFileExtensions', []),
 			activeCSSFileExtensions: config.get('activeCSSFileExtensions', []),
 			excludeGlobPatterns: config.get('excludeGlobPatterns') || [],
@@ -86,7 +88,6 @@ export class CSSNavigationExtension {
 			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
 			ignoreCustomElement: config.get('ignoreCustomElement', false),
 			ignoreFilesBy: config.get('ignoreFilesBy', []),
-			enableLogLevelMessage: config.get('enableLogLevelMessage', false),
 		}
 	}
 

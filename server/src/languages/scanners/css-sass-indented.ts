@@ -21,31 +21,6 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 		super(string, scannerStart)
 	}
 
-	*parsePartialTokens(offset: number): Iterable<CSSToken> {
-		while (offset > 0) {
-			offset = this.backSearch(offset, ['\r', '\n']) + 1
-
-			if (offset === 0) {
-				break
-			}
-
-			let charAfter = this.string[offset]
-			if (!/[\t ]/.test(charAfter)) {
-				break
-			}
-
-			offset -= 2
-		}
-
-		for (let token of this.parseToTokens(offset)) {
-			yield token
-
-			if (token.end >= offset) {
-				break
-			}
-		}
-	}
-
 	/** 
 	 * Parse html string to tokens.
 	 * This is rough tokens, more details wait to be determined.

@@ -18,9 +18,11 @@ import {
 } from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {HTMLServiceMap, CSSServiceMap} from './languages'
-import {generateGlobPatternByExtensions, generateGlobPatternByPatterns, getPathExtension, Ignore, Logger} from './helpers'
+import {generateGlobPatternByExtensions, generateGlobPatternByPatterns, Ignore, Logger} from './helpers'
 import {findDefinitions} from './definition'
 import {getCompletionItems} from './completion'
+import {findReferences} from './reference'
+import {findHover} from './hover'
 
 
 let connection: Connection = createConnection(ProposedFeatures.all)
@@ -214,65 +216,8 @@ class CSSNavigationServer {
 
 		let position = params.position
 		let offset = document.offsetAt(position)
-		let documentExtension = getPathExtension(document.uri)
-		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
-		if (isHTMLFile) {
-			return this.findReferencesInHTML(document, offset)
-		}
-		else if (isCSSFile) {
-			return this.findReferencesInCSS(document, offset)
-		}
-
-		return null
-	}
-
-	/** Provide finding reference service for HTML document. */
-	async findReferencesInHTML(document: TextDocument, offset: number): Promise<Location[] | null> {
-		let currentHTMLService = await this.htmlServiceMap.forceGetServiceByDocument(document)
-
-		let fromPart = currentHTMLService.findPartAt(offset)
-		if (!fromPart || !fromPart.isDefinitionType()) {
-			return null
-		}
-
-		let locations: Location[] = []
-
-
-		// Find HTML or CSS Variable references within current document.
-		if (fromPart.isCSSType()) {
-			locations.push(...currentHTMLService.findReferences(fromPart))
-		}
-
-
-		return locations
-	}
-
-	/** Provide finding selector reference service for CSS document. */
-	async findReferencesInCSS(document: TextDocument, offset: number): Promise<Location[] | null> {
-		let currentHTMLService = await this.htmlServiceMap.forceGetServiceByDocument(document)
-
-		let fromPart = currentHTMLService.findPartAt(offset)
-		if (!fromPart || !fromPart.isDefinitionType()) {
-			return null
-		}
-
-		let locations: Location[] = []
-
-
-		// Find HTML references across all html documents.
-		if (fromPart.isSelectorType()) {
-			locations.push(...await this.htmlServiceMap.findReferences(fromPart))
-		}
-
-		// Find CSS Variable references across all html documents.
-		else if (fromPart.isCSSVariableType()) {
-			locations.push(...await this.cssServiceMap.findReferences(fromPart))
-		}
-
-
-		return locations
+		return findReferences(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
 
 	/** Provide finding hover service. */
@@ -286,70 +231,8 @@ class CSSNavigationServer {
 
 		let position = params.position
 		let offset = document.offsetAt(position)
-		let documentExtension = getPathExtension(document.uri)
-		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
-
-		if (isHTMLFile) {
-			return this.findHoverInHTML(document, offset)
-		}
-		else if (isCSSFile) {
-			return this.findHoverInCSS(document, offset)
-		}
-
-		return null
-	}
-
-	/** Find hover from a HTML document. */
-	async findHoverInHTML(document: TextDocument, offset: number): Promise<Hover | null> {
-		let currentHTMLService = await this.htmlServiceMap.forceGetServiceByDocument(document)
-		let fromPart = currentHTMLService.findPartAt(offset)
-		if (!fromPart || !fromPart.isReferenceType()) {
-			return null
-		}
-
-		let matchPart = fromPart.toDefinitionMode()
-
-
-		// Find within current document.
-		let hover = currentHTMLService.findHover(matchPart, fromPart, document)
-		if (hover) {
-			return hover
-		}
-
-
-		// Find across all css documents.
-		if (fromPart.isSelectorType() || fromPart.isCSSVariableType()) {
-			hover = await this.cssServiceMap.findHover(matchPart, fromPart, document)
-		}
-
-		return null
-	}
-
-	/** Provide finding hover service. */
-	async findHoverInCSS(document: TextDocument, offset: number): Promise<Hover | null> {
-		let currentCSSService = await this.cssServiceMap.forceGetServiceByDocument(document)
-		let fromPart = currentCSSService.findPartAt(offset)
-		if (!fromPart || !fromPart.isReferenceType()) {
-			return null
-		}
-
-		let matchPart = fromPart.toDefinitionMode()
-
-
-		// Find within current document.
-		let hover = currentCSSService.findHover(matchPart, fromPart, document)
-		if (hover) {
-			return hover
-		}
-
-
-		// Find across all css documents.
-		if (fromPart.isSelectorType() || fromPart.isCSSVariableType()) {
-			hover = await this.cssServiceMap.findHover(matchPart, fromPart, document)
-		}
-
-		return null
+		
+		return findHover(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
 }
 

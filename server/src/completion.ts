@@ -19,7 +19,7 @@ export async function getCompletionItems(
 	if (isHTMLFile) {
 		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 
-		let fromPart = currentHTMLService.findPartAt(offset)
+		let fromPart = currentHTMLService.findDetailedPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -29,7 +29,7 @@ export async function getCompletionItems(
 	else if (isCSSFile) {
 		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
 
-		let fromPart = currentCSSService.findPartAt(offset)
+		let fromPart = currentCSSService.findDetailedPartAt(offset)
 		if (!fromPart) {
 			return null
 		}

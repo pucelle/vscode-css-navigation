@@ -18,9 +18,9 @@ export class CSSSelectorPart extends Part {
 		comment: string | undefined
 	) {
 		let formatted = parseFormatted(jointToken, parents)
-		let primary = parsePrimary(group, parents, definitionEnd, commandWrapped)
+		let {detailed, primary} = parseDetailedParts(group, parents, definitionEnd, commandWrapped)
 
-		return new CSSSelectorPart(jointToken.text, jointToken.start, definitionEnd, comment, formatted, primary)
+		return new CSSSelectorPart(jointToken.text, jointToken.start, definitionEnd, comment, formatted, detailed, primary)
 	}
 
 
@@ -33,8 +33,11 @@ export class CSSSelectorPart extends Part {
 	 */
 	readonly formatted: string[]
 
-	/** Primary parts can be used for completion / definition searching. */
-	readonly primary: CSSSelectorPrimaryPart | null
+	/** Detailed parts, use it for completion */
+	readonly detailed: CSSSelectorDetailedPart[]
+
+	/** Primary parts can be used for definition searching. */
+	readonly primary: CSSSelectorDetailedPart | null
 
 	constructor(
 		text: string,
@@ -42,12 +45,14 @@ export class CSSSelectorPart extends Part {
 		definitionEnd: number,
 		comment: string | undefined,
 		formatted: string[],
-		primary: CSSSelectorPrimaryPart | null
+		detailed: CSSSelectorDetailedPart[],
+		primary: CSSSelectorDetailedPart | null
 	) {
 		super(PartType.CSSSelector, text, start, definitionEnd)
 
 		this.comment = comment
 		this.formatted = formatted
+		this.detailed = detailed
 		this.primary = primary
 	}
 
@@ -99,8 +104,8 @@ export class CSSSelectorPart extends Part {
 }
 
 
-/** Main part for a tag/class/id selector. */
-export class CSSSelectorPrimaryPart extends Part {
+/** Detailed part, normally contains a tag/class/id selector. */
+export class CSSSelectorDetailedPart extends Part {
 
 	/** 
 	 * Formatted selector name can be used for workspace symbol searching.
@@ -211,58 +216,77 @@ function joinMainReferenceSelectorWithParent(token: CSSSelectorToken, parents: C
 }
 
 
-/** Parse a CSS selector name to primary. */
-function parsePrimary(
+/** Parse a CSS selector name to detailed part. */
+function parseDetailedParts(
 	group: CSSSelectorToken[],
 	parents: CSSSelectorPart[] | undefined,
 	definitionEnd: number,
 	commandWrapped: boolean
-): CSSSelectorPrimaryPart | null {
-	let mainToken = parsePrimaryTokenOfGroup(group)
-	if (!mainToken) {
-		return null
+): {detailed: CSSSelectorDetailedPart[], primary: CSSSelectorDetailedPart | null} {
+	let detailedTokens = group.filter(item => item.type === CSSSelectorTokenType.Tag
+		|| item.type === CSSSelectorTokenType.Nesting
+		|| item.type === CSSSelectorTokenType.Class
+		|| item.type === CSSSelectorTokenType.Id)
+		
+	let primaryToken = detailedTokens.length > 0 ? detailedTokens[detailedTokens.length - 1] : null
+	let primaryTokenIndex = primaryToken ? group.lastIndexOf(primaryToken) : -1
+
+	// Has combinator or separator followed.
+	// `a b` -> `b`
+	// `a + b` -> `b`
+	// `a:hover` -> `a`
+	// `.a.b` -> `.b`
+	// `.a::before` -> `null`
+	if (primaryTokenIndex !== -1) {
+		for (let i = primaryTokenIndex + 1; i < group.length; i++) {
+			let item = group[i]
+
+			if (item.type === CSSSelectorTokenType.Combinator
+				|| item.type === CSSSelectorTokenType.Separator
+				|| item.type === CSSSelectorTokenType.PseudoElement
+			) {
+				primaryToken = null
+				break
+			}
+		}
 	}
 
+	let detailed: CSSSelectorDetailedPart[] = []
+	let primary: CSSSelectorDetailedPart | null = null
 	let independent = commandWrapped || group.length === 1
-	let formatted = joinMainReferenceSelectorWithParent(mainToken, parents)
 
-	if (formatted.length === 0) {
-		return null
+	for (let token of detailedTokens) {
+		let formatted = joinMainReferenceSelectorWithParent(token, parents)
+		if (formatted.length === 0) {
+			continue
+		}
+
+		let type = getDetailedPartType(token.type, formatted)
+		let part = new CSSSelectorDetailedPart(type, token.text, token.start, definitionEnd, formatted, independent)
+
+		detailed.push(part)
+
+		if (token === primaryToken) {
+			primary = part
+		}
 	}
 
-	let type = mainToken.type === CSSSelectorTokenType.Tag
-		? PartType.CSSSelectorTag
-		: mainToken.type === CSSSelectorTokenType.Id
-		? PartType.CSSSelectorId
-		: mainToken.type === CSSSelectorTokenType.Class
-		? PartType.CSSSelectorClass
-		: PartConvertor.getCSSSelectorTypeByText(formatted[0])
-
-	return new CSSSelectorPrimaryPart(type, mainToken.text, mainToken.start, definitionEnd, formatted, independent)
+	return {detailed, primary}
 }
 
 
-/**
- * `a b` -> `b`
- * `a + b` -> `b`
- * `a:hover` -> `a`
- * `.a.b` -> `.b`
- * `.a::before` -> `null`
- */
-function parsePrimaryTokenOfGroup(group: CSSSelectorToken[]): CSSSelectorToken | null {
-	let lastCombinatorIndex = group.findLastIndex(item => {
-		return item.type === CSSSelectorTokenType.Combinator
-			|| item.type === CSSSelectorTokenType.Separator
-	})
-	
-	if (lastCombinatorIndex !== -1) {
-		group = group.slice(lastCombinatorIndex + 1)
+/** Get part type by detailed token type, and formatted text. */
+function getDetailedPartType(type: CSSSelectorTokenType, formatted: string[]): PartType {
+	if (type === CSSSelectorTokenType.Tag) {
+		return PartType.CSSSelectorTag
 	}
-
-	let main = group.findLast(item => item.type === CSSSelectorTokenType.Tag
-		|| item.type === CSSSelectorTokenType.Nesting
-		|| item.type === CSSSelectorTokenType.Class
-		|| item.type === CSSSelectorTokenType.Id) ?? null
-
-	return main
+	else if (type === CSSSelectorTokenType.Id) {
+		return PartType.CSSSelectorId
+	}
+	else if (type === CSSSelectorTokenType.Class) {
+		return PartType.CSSSelectorClass
+	}
+	else {
+		return PartConvertor.getCSSSelectorTypeByText(formatted[0])
+	}
 }

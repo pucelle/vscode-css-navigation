@@ -47,39 +47,6 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 		this.isScssLessSyntax = isScssLessSyntax
 	}
 
-	*parsePartialTokens(offset: number): Iterable<CSSToken> {
-		while (offset > 0) {
-			let selectorEnd = this.backSearch(offset, ['{']) - 1
-			if (selectorEnd < 0) {
-				offset = 0
-				break
-			}
-
-			let selectorStart = this.backSearch(selectorEnd, ['}', ';']) + 1
-			if (selectorStart <= 0) {
-				offset = 0
-				break
-			}
-
-			offset = selectorStart
-
-			let maySelector = this.string.slice(selectorStart, selectorEnd)
-			if (!maySelector.includes('&')) {
-				break
-			}
-
-			offset -= 2
-		}
-
-		for (let token of this.parseToTokens(offset)) {
-			yield token
-
-			if (token.end >= offset) {
-				break
-			}
-		}
-	}
-
 	/** 
 	 * Parse css string to tokens.
 	 * This is rough tokens, more details wait to be determined.

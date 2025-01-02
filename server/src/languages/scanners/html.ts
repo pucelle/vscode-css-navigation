@@ -90,30 +90,6 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 		this.isJSLikeSyntax = isJSLikeSyntax
 	}
 
-	/** 
-	 * Parse for partial tokens at offset.
-	 * Note this fails when located inside of a string literal.
-	 */
-	*parsePartialTokens(offset: number): Iterable<HTMLToken> {
-		let start = this.backSearch(offset, ['<'], 256)
-		if (start === -1) {
-			start = 0
-		}
-
-		for (let token of this.parseToTokens(start)) {
-			yield token
-
-			// End with `>`.
-			if (token.end >= offset && (
-				token.type === HTMLTokenType.SelfCloseTagEnd
-				|| token.type === HTMLTokenType.TagEnd
-				|| token.type === HTMLTokenType.EndTagName
-			)) {
-				break
-			}
-		}
-	}
-
 	/** Parse html string to tokens. */
 	*parseToTokens(start: number = 0): Iterable<HTMLToken> {
 		this.start = this.offset = start

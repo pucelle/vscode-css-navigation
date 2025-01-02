@@ -111,12 +111,6 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		return HTMLTokenTree.fromTokens(tokens, isJSLikeSyntax)
 	}
 
-	/** Make a partial HTML token tree by string and offset. */
-	static fromStringAtOffset(string: string, scannerStart: number = 0, offset: number, isJSLikeSyntax: boolean = false): HTMLTokenTree {
-		let tokens = new HTMLTokenScanner(string, scannerStart, isJSLikeSyntax).parsePartialTokens(offset)
-		return HTMLTokenTree.fromTokens(tokens, isJSLikeSyntax)
-	}
-
 
 	readonly isJSLikeSyntax: boolean
 
@@ -129,27 +123,6 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		}, null)
 
 		this.isJSLikeSyntax = isJSLikeSyntax
-	}
-	
-	/** Quickly find a part at specified offset. */
-	findPart(offset: number): Part | undefined {
-		let walking = this.filterWalk((node: HTMLTokenNode) => {
-			return node.token.start >= offset && node.defLikeEnd <= offset
-		})
-
-		for (let node of walking) {
-			if (node.token.start > offset || node.tagLikeEnd < offset) {
-				continue
-			}
-
-			for (let part of this.parseNodeParts(node)) {
-				if (part.start >= offset && part.end <= offset) {
-					return part
-				}
-			}
-		}
-
-		return undefined
 	}
 
 	*walkParts(): Iterable<Part> {

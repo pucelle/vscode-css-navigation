@@ -222,15 +222,15 @@ export namespace PartConvertor {
 	/** To hover. */
 	export function toHover(part: Part, comment: string | undefined, document: TextDocument): Hover {
 		let cssPart = part.toDefinitionMode()
-		let content = cssPart.text
+		let content = '```css\n' + cssPart.text + '\n```'
 
 		if (comment) {
-			content += '\n' + comment
+			content += '\n' + comment.trim()
 		}
 
 		return {
 			contents: {
-				kind: MarkupKind.PlainText,
+				kind: MarkupKind.Markdown,
 				value: content,
 			},
 			range: toRange(part, document)

@@ -46,10 +46,7 @@ export abstract class BaseService {
 		return this.resolvedImportedCSSPaths = paths
 	}
 
-	/** 
-	 * Find a part at specified offset.
-	 * Note it may return a selector detail part.
-	 */
+	/** Find a part at specified offset. */
 	findPartAt(offset: number) {
 		let part = quickBinaryFind(this.parts, (part) => {
 			if (part.start > offset) {
@@ -62,6 +59,17 @@ export abstract class BaseService {
 				return 0
 			}
 		})
+
+		return part
+	}
+
+	/** 
+	 * Find a part at specified offset.
+	 * Note it may return a selector primary part,
+	 * and returns css selector part if no primary or primary not match.
+	 */
+	findMayPrimaryPartAt(offset: number) {
+		let part = this.findPartAt(offset)
 
 		// Returns detail if in range.
 		if (part && part.type === PartType.CSSSelector) {
@@ -77,7 +85,36 @@ export abstract class BaseService {
 		return part
 	}
 
-	/** Find part before */
+	/** 
+	 * Find a part at specified offset.
+	 * Note if match a css selector part, it may return a selector detail part.
+	 */
+	findDetailedPartAt(offset: number) {
+		let part = this.findPartAt(offset)
+
+		// Returns detail if in range.
+		if (part && part.type === PartType.CSSSelector) {
+			let detailed = (part as CSSSelectorPart).detailed
+
+			for (let detail of detailed) {
+				if (detail
+					&& detail.start <= offset
+					&& detail.end >= offset
+				) {
+					return detail
+				}
+			}
+
+			return undefined
+		}
+
+		return part
+	}
+
+	/** 
+	 * Find part before.
+	 * Not it will not look up detailed parts.
+	 */
 	findPreviousPart(part: Part) {
 		let partIndex = quickBinaryFindIndex(this.parts, p => {
 			return p.start - part.start
@@ -181,9 +218,7 @@ export abstract class BaseService {
 		let parts: CSSSelectorPart[] = []
 
 		for (let part of this.parts) {
-			if (!part.isMatch(matchPart)
-				|| part.type !== PartType.CSSSelector
-			) {
+			if (!part.isMayPrimaryMatch(matchPart)) {
 				continue
 			}
 

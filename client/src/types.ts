@@ -8,6 +8,8 @@ interface Configuration {
 	enableWorkspaceSymbols: boolean
 	enableIdAndClassNameCompletion: boolean
 	enableFindAllReferences: boolean
+	enableHover: boolean
+	enableLogLevelMessage: boolean
 	activeHTMLFileExtensions: string[]
 	activeCSSFileExtensions: string[]
 	excludeGlobPatterns: string[]
@@ -17,5 +19,4 @@ interface Configuration {
 	ignoreSameNameCSSFile: boolean
 	ignoreCustomElement: boolean
 	ignoreFilesBy: string[]
-	enableLogLevelMessage: boolean
 }

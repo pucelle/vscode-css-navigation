@@ -104,20 +104,6 @@ export class CSSTokenTree extends CSSTokenNode {
 		return CSSTokenTree.fromTokens(tokens, string, languageId)
 	}
 
-	/** Make a partial CSS token tree by string and offset. */
-	static fromStringAtOffset(string: string, scannerStart: number, offset: number, languageId: CSSLanguageId): CSSTokenTree {
-		let tokens: Iterable<CSSToken>
-		
-		if (languageId === 'sass') {
-			tokens = new SassIndentedTokenScanner(string).parsePartialTokens(offset)
-		}
-		else {
-			tokens = new CSSTokenScanner(string, scannerStart, languageId !== 'css').parsePartialTokens(offset)
-		}
-
-		return CSSTokenTree.fromTokens(tokens, string, languageId)
-	}
-
 	/** For property name part. */
 	static *parsePropertyNamePart(text: string, start: number): Iterable<Part> {
 		if (text.startsWith('-')) {
@@ -153,27 +139,6 @@ export class CSSTokenTree extends CSSTokenNode {
 
 		this.string = string
 		this.isSassSyntax = isSassSyntax
-	}
-
-	/** Quickly find a part at specified offset. */
-	findPart(offset: number): Part | undefined {
-		let walking = this.filterWalk((node: CSSTokenNode) => {
-			return node.token.start >= offset && node.defLikeEnd <= offset
-		})
-
-		for (let node of walking) {
-			if (node.token.start > offset || node.token.end < offset) {
-				continue
-			}
-
-			for (let part of this.parseNodePart(node)) {
-				if (part.start >= offset && part.end <= offset) {
-					return part
-				}
-			}
-		}
-
-		return undefined
 	}
 
 	/** 
