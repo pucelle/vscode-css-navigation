@@ -17,8 +17,8 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 
 	declare protected state: ScanState
 
-	constructor(string: string) {
-		super(string)
+	constructor(string: string, scannerStart: number = 0) {
+		super(string, scannerStart)
 	}
 
 	*parsePartialTokens(offset: number): Iterable<CSSToken> {
@@ -55,7 +55,7 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 		let indentCountStack: number[] = []
 		let currentIndentCount = 0
 
-		while (this.offset < this.string.length) {
+		while (this.state !== ScanState.EOF) {
 			if (this.state === ScanState.AnyContent) {
 				this.readUntil(/[\/#"'\r\n]/g)
 

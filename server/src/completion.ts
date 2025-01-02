@@ -1,5 +1,5 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CSSServiceMap, HTMLServiceMap} from './languages'
+import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartType} from './languages'
 import {CompletionItem} from 'vscode-languageserver'
 import {getPathExtension} from './helpers'
 
@@ -17,36 +17,55 @@ export async function getCompletionItems(
 	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
 	if (isHTMLFile) {
-		return await getCompletionItemsInHTML(document, offset, htmlServiceMap, cssServiceMap)
+		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+
+		let fromPart = currentHTMLService.findPartAt(offset)
+		if (!fromPart) {
+			return null
+		}
+
+		return await getCompletionItemsInHTML(fromPart, currentHTMLService, document, htmlServiceMap, cssServiceMap, configuration)
 	}
 	else if (isCSSFile) {
-		return await getCompletionItemsInCSS(document, offset, htmlServiceMap, cssServiceMap)
+		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+
+		let fromPart = currentCSSService.findPartAt(offset)
+		if (!fromPart) {
+			return null
+		}
+
+		return await getCompletionItemsInCSS(fromPart, currentCSSService, document, htmlServiceMap, cssServiceMap)
 	}
 
 	return null
 }
 
+
 /** Provide completion for HTML document. */
 async function getCompletionItemsInHTML(
+	fromPart: Part,
+	currentService: HTMLService,
 	document: TextDocument,
-	offset: number,
 	htmlServiceMap: HTMLServiceMap,
-	cssServiceMap: CSSServiceMap
+	cssServiceMap: CSSServiceMap,
+	configuration: Configuration,
 ): Promise<CompletionItem[] | null> {
-	let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 
-	let fromPart = currentHTMLService.findPartAt(offset)
-	if (!fromPart) {
-		return null
+	// If custom tag, and not ignore custom element, continue.
+	if (fromPart.type === PartType.Tag) {
+		if (configuration.ignoreCustomElement || !fromPart.text.includes('-')) {
+			return null
+		}
 	}
 
 
+	// `#i` -> `i` to do completion is not working.
 	let matchPart = fromPart.toDefinitionMode()
 	let items: CompletionItem[] = []
 
 	// Complete html element class name.
 	if (fromPart.isHTMLType()) {
-		items.push(...currentHTMLService.getCompletionItems(matchPart, fromPart, document))
+		items.push(...currentService.getCompletionItems(matchPart, fromPart, document))
 		items.push(...await cssServiceMap.getCompletionItems(matchPart, fromPart, document))
 	}
 
@@ -63,20 +82,15 @@ async function getCompletionItemsInHTML(
 	return items
 }
 
+
 /** Provide completion for CSS document. */
 async function getCompletionItemsInCSS(
+	fromPart: Part,
+	_currentService: HTMLService | CSSService,
 	document: TextDocument,
-	offset: number,
 	htmlServiceMap: HTMLServiceMap,
 	cssServiceMap: CSSServiceMap
 ): Promise<CompletionItem[] | null> {
-	let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
-
-	let fromPart = currentCSSService.findPartAt(offset)
-	if (!fromPart) {
-		return null
-	}
-
 	let matchPart = fromPart.toDefinitionMode()
 	let items: CompletionItem[] = []
 

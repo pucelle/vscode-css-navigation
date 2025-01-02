@@ -9,7 +9,7 @@ export class CSSService extends BaseService {
 	constructor(document: TextDocument) {
 		super(document)
 
-		let tree = CSSTokenTree.fromString(document.getText(), document.languageId as CSSLanguageId)
+		let tree = CSSTokenTree.fromString(document.getText(), 0, document.languageId as CSSLanguageId)
 		this.parts = [...tree.walkParts()]
 	}
 }

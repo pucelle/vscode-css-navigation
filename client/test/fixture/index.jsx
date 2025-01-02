@@ -5,6 +5,8 @@ import './css/app.css'
 class App {
 	render() {
 		$('.class10')
+		document.querySelector('.class10')
+		document.querySelectorAll('.class10')
 
 		return (
 			<div>

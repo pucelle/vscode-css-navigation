@@ -1,7 +1,7 @@
 import {HTMLService} from './html-service'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {BaseServiceMap} from './base-service-map'
-import {Part} from '../trees'
+import {Part, PartConvertor} from '../trees'
 import {CompletionItem} from 'vscode-languageserver'
 
 
@@ -28,6 +28,6 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 			}
 		}
 
-		return fromPart.toCompletionItems([...labelSet.values()], fromDocument)
+		return PartConvertor.toCompletionItems(fromPart, [...labelSet.values()], fromDocument)
 	}
 }

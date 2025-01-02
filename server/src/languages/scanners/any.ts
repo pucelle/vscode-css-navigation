@@ -20,13 +20,16 @@ enum ScanState {
 
 export class AnyTokenScanner<T extends number> {
 
-	protected string: string
+	readonly string: string
+	readonly scannerStart: number
+
 	protected start = 0
 	protected offset = 0
 	protected state: number = ScanState.AnyContent
 
-	constructor(string: string) {
+	constructor(string: string, scannerStart: number = 0) {
 		this.string = string
+		this.scannerStart = scannerStart
 	}
 
 	protected isEnded(): boolean {
@@ -223,8 +226,8 @@ export class AnyTokenScanner<T extends number> {
 		return {
 			type,
 			text: this.string.slice(start, end),
-			start,
-			end,
+			start: start + this.scannerStart,
+			end: end + this.scannerStart,
 		}
 	}
 

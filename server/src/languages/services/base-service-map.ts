@@ -1,29 +1,16 @@
-import {SymbolInformation, TextDocuments, LocationLink, CompletionItem, Hover, Location} from 'vscode-languageserver'
+import {SymbolInformation, LocationLink, CompletionItem, Hover, Location} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {FileTrackerOptions, FileTracker} from '../../helpers'
-import {CSSSelectorPart, Part} from '../trees'
+import {FileTracker} from '../../helpers'
+import {CSSSelectorPart, Part, PartConvertor} from '../trees'
 import {BaseService} from './base-service'
 import {URI} from 'vscode-uri'
 
-
-export interface BaseServiceMapOptions extends FileTrackerOptions {
-
-	/** If not use service after some milliseconds, release all resources. */
-	releaseTimeoutMs?: number
-}
 
 
 /** Gives HTML/CSS service for multiple files. */
 export abstract class BaseServiceMap<S extends BaseService> extends FileTracker {
 
 	protected serviceMap: Map<string, S> = new Map()
-	protected releaseTimeoutMs: number
-	protected releaseTimeout: NodeJS.Timeout | null = null
-
-	constructor(documents: TextDocuments<TextDocument>, options: BaseServiceMapOptions) {
-		super(documents, options)
-		this.releaseTimeoutMs = options.releaseTimeoutMs ?? Infinity
-	}
 
 	protected onFileExpired(uri: string) {
 		this.serviceMap.delete(uri)
@@ -33,25 +20,8 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		this.serviceMap.delete(uri)
 	}
 
-	async beFresh() {
-		await super.beFresh()
-		this.mayResetTimeout()
-	}
-
-	protected mayResetTimeout() {
-		if (this.releaseTimeout) {
-			clearTimeout(this.releaseTimeout)
-		}
-
-		if (isFinite(this.releaseTimeoutMs)) {
-			this.releaseTimeout = setTimeout(this.releaseResources.bind(this), this.releaseTimeoutMs)
-		}
-	}
-
-	protected releaseResources() {
+	protected onReleaseResources() {
 		this.serviceMap.clear()
-		this.allFresh = false
-		this.startDataLoaded = false
 	}
 
 	protected *walkAvailableServices(): IterableIterator<S> {
@@ -155,15 +125,12 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		let labelSet: Set<string> = new Set()
 
 		for (let service of this.walkAvailableServices()) {
-			for (let label of service.getCompletionLabels(matchPart)) {
+			for (let label of service.getCompletionLabels(matchPart, fromPart)) {
 				labelSet.add(label)
 			}
 		}
 
-		// Removes match part itself.
-		labelSet.delete(matchPart.text)
-
-		return fromPart.toCompletionItems([...labelSet.values()], fromDocument)
+		return PartConvertor.toCompletionItems(fromPart, [...labelSet.values()], fromDocument)
 	}
 
 	async findReferences(fromPart: Part): Promise<Location[]> {
@@ -192,8 +159,8 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		}
 
 		let commentedParts = parts.filter(p => p.comment)
-		let part = commentedParts.find(part => part.detail!.independent) ?? commentedParts[0]
+		let part = commentedParts.find(part => part.primary!.independent) ?? commentedParts[0]
 
-		return fromPart.toHover(part?.comment!, fromDocument)
+		return PartConvertor.toHover(fromPart, part?.comment!, fromDocument)
 	}
 }

@@ -1,4 +1,5 @@
 import {AnyToken} from '../scanners'
+import {Part} from './part'
 
 
 /** Build a simple tree by tokens. */
@@ -18,6 +19,13 @@ export class AnyTokenNode<T extends AnyToken<number>> {
 
 	get isRoot(): boolean {
 		return this.token.start === -1
+	}
+
+	/** Sort walking of parts. */
+	*sortParts(walk: Iterable<Part>): Iterable<Part> {
+		let list = [...walk]
+		list.sort((a, b) => a.start - b.start)
+		yield* list
 	}
 
 	/** Walk all nodes, exclude root node. */

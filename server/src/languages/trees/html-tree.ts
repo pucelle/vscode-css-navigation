@@ -106,14 +106,14 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	}
 
 	/** Make a HTML token tree by string. */
-	static fromString(string: string, isJSLikeSyntax: boolean = false): HTMLTokenTree {
-		let tokens = new HTMLTokenScanner(string, isJSLikeSyntax).parseToTokens()
+	static fromString(string: string, scannerStart: number = 0, isJSLikeSyntax: boolean = false): HTMLTokenTree {
+		let tokens = new HTMLTokenScanner(string, scannerStart, isJSLikeSyntax).parseToTokens()
 		return HTMLTokenTree.fromTokens(tokens, isJSLikeSyntax)
 	}
 
 	/** Make a partial HTML token tree by string and offset. */
-	static fromStringAtOffset(string: string, offset: number, isJSLikeSyntax: boolean = false): HTMLTokenTree {
-		let tokens = new HTMLTokenScanner(string, isJSLikeSyntax).parsePartialTokens(offset)
+	static fromStringAtOffset(string: string, scannerStart: number = 0, offset: number, isJSLikeSyntax: boolean = false): HTMLTokenTree {
+		let tokens = new HTMLTokenScanner(string, scannerStart, isJSLikeSyntax).parsePartialTokens(offset)
 		return HTMLTokenTree.fromTokens(tokens, isJSLikeSyntax)
 	}
 
@@ -167,12 +167,9 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		if (node.token.type === HTMLTokenType.StartTagName) {
 			yield new Part(PartType.Tag, node.token.text, node.token.start, node.tagLikeEnd)
 
-			for (let attr of node.attrs!) {
-				yield* this.parseAttrPart(attr.name, attr.value)
-			}
-
-			yield* this.parseImportPart(node)
-
+			// Parse attributes and sort them.
+			yield* this.sortParts(this.parseAttrParts(node))
+			
 			if (node.tagName === 'script') {
 				yield* this.parseScriptPart(node)
 			}
@@ -181,10 +178,23 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			}
 		}
 		
-		// Parsing text parts as script may be expensive.
-		if (this.isJSLikeSyntax && node.token.type === HTMLTokenType.Text) {
-			yield* this.parseScriptTextParts(node)
+		// Parsing text parts as script may be expensive,
+		// so only for those not contained by other tags.
+		if (this.isJSLikeSyntax
+			&& node.token.type === HTMLTokenType.Text
+			&& node.parent?.isRoot
+		) {
+			yield* this.sortParts(this.parseScriptTextParts(node))
 		}
+	}
+
+	/** Parse attributes for parts. */
+	protected *parseAttrParts(node: HTMLTokenNode) {
+		for (let attr of node.attrs!) {
+			yield* this.parseAttrPart(attr.name, attr.value)
+		}
+
+		yield* this.parseImportPart(node)
 	}
 
 	/** For attribute part. */
@@ -194,6 +204,12 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		if (name === 'id') {
 			if (attrValue) {
 				yield new Part(PartType.Id, attrValue.text, attrValue.start).removeQuotes()
+			}
+		}
+
+		else if (name === 'style') {
+			if (attrValue) {
+				yield* this.parseStylePropertyParts(attrValue.text, attrValue.start)
 			}
 		}
 
@@ -274,7 +290,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	protected *parseScriptPart(node: HTMLTokenNode): Iterable<Part> {
 		let textNode = node.firstTextNode
 		if (textNode && textNode.token.text) {
-			yield* this.parseScriptTextParts(textNode)
+			yield* this.sortParts(this.parseScriptTextParts(textNode))
 		}
 	}
 
@@ -287,7 +303,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	 	// `$('.class-name')`
 		let matches = Picker.locateAllMatches(
 			text,
-			/(?:\$|\.querySelect|\.querySelectAll)\s*\(\s*['"`](.*?)['"`]/g
+			/(?:\$|\.querySelector|\.querySelectorAll)\s*\(\s*['"`](.*?)['"`]/g
 		)
 
 		for (let match of matches) {
@@ -342,18 +358,27 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		let textNode = node.firstTextNode
 		if (textNode) {
 			let languageId = node.getAttributeValue('lang') ?? 'css'
-			yield* this.parseStyleTextParts(textNode, languageId as CSSLanguageId)
+			yield* this.parseStyleTextParts(textNode.token.text, textNode.token.start, languageId as CSSLanguageId)
 		}
 	}
 
 	/** Parse style content for parts. */
-	protected *parseStyleTextParts(node: HTMLTokenNode, languageId: CSSLanguageId): Iterable<Part> {
-		let text = node.token.text
-		let start = node.token.start
-		let cssTree = CSSTokenTree.fromString(text, languageId)
+	protected *parseStyleTextParts(text: string, start: number, languageId: CSSLanguageId): Iterable<Part> {
+		let cssTree = CSSTokenTree.fromString(text, start, languageId)
+		yield* cssTree.walkParts()
+	}
 
-		for (let part of cssTree.walkParts()) {
-			yield part.translate(start)
+	/** Parse style property content for parts. */
+	protected *parseStylePropertyParts(text: string, start: number): Iterable<Part> {
+		let matches = Picker.locateAllMatches(text, /([\w-]+)\s*:\s*(.+?)\s*(?:;|$)/g)
+
+		for (let match of matches) {
+			let name = match[1]
+			let value = match[2]
+		
+			yield* CSSTokenTree.parsePropertyNamePart(name.text, name.start + start)
+			yield* CSSTokenTree.parsePropertyValuePart(value.text, value.start + start)
 		}
+
 	}
 }

@@ -1,7 +1,6 @@
-import {TextDocument} from 'vscode-languageserver-textdocument'
 import {CSSSelectorToken, CSSSelectorTokenType} from '../scanners'
 import {Part, PartType} from './part'
-import {LocationLink, Range} from 'vscode-languageserver'
+import {PartConvertor} from './part-convertor'
 
 
 /** 
@@ -19,9 +18,9 @@ export class CSSSelectorPart extends Part {
 		comment: string | undefined
 	) {
 		let formatted = parseFormatted(jointToken, parents)
-		let detail = parseDetails(group, parents, definitionEnd, commandWrapped)
+		let primary = parsePrimary(group, parents, definitionEnd, commandWrapped)
 
-		return new CSSSelectorPart(jointToken.text, jointToken.start, definitionEnd, comment, formatted, detail)
+		return new CSSSelectorPart(jointToken.text, jointToken.start, definitionEnd, comment, formatted, primary)
 	}
 
 
@@ -34,8 +33,8 @@ export class CSSSelectorPart extends Part {
 	 */
 	readonly formatted: string[]
 
-	/** Detailed parts can be used for completion / definition searching. */
-	readonly detail: CSSSelectorMainPart | null
+	/** Primary parts can be used for completion / definition searching. */
+	readonly primary: CSSSelectorPrimaryPart | null
 
 	constructor(
 		text: string,
@@ -43,58 +42,65 @@ export class CSSSelectorPart extends Part {
 		definitionEnd: number,
 		comment: string | undefined,
 		formatted: string[],
-		detail: CSSSelectorMainPart | null
+		primary: CSSSelectorPrimaryPart | null
 	) {
 		super(PartType.CSSSelector, text, start, definitionEnd)
 
 		this.comment = comment
 		this.formatted = formatted
-		this.detail = detail
+		this.primary = primary
 	}
 
 	get textList(): string[] {
 		return this.formatted
 	}
 
-	translate(offset: number): this {
-		this.start += offset
-		this.defEnd += offset
-
-		if (this.detail) {
-			this.detail.translate(offset)
+	get mayPrimaryTextList(): string[] {
+		if (this.primary) {
+			return this.primary.textList
 		}
-
-		return this
+		else {
+			return this.textList
+		}
 	}
 
 	isMatch(matchPart: Part): boolean {
-		if (!this.detail) {
-			return false
-		}
-
-		return this.detail.isMatch(matchPart)
+		return this.isTypeMatch(matchPart)
+			&& this.formatted.some(text => text === matchPart.text)
 	}
 
 	isTextExpMatch(re: RegExp): boolean {
 		return this.formatted.some(text => re.test(text))
 	}
 
-	toLocationLink(document: TextDocument, fromPart: Part, fromDocument: TextDocument) {
-		let selectionRange = this.detail ? this.detail.toRange(document) : this.toRange(document)
-		let end = this.defEnd > -1 ? this.defEnd : this.end
+	isMayPrimaryTypeMatch(matchPart: Part): boolean {
+		if (!this.primary) {
+			return false
+		}
 
-		// Selection range doesn't work as expected, finally cursor move to definition start.
-		let definitionRange = Range.create(selectionRange.start, document.positionAt(end))
+		return this.primary.isTypeMatch(matchPart)
+	}
 
-		let fromRange = fromPart.toRange(fromDocument)
+	isMayPrimaryMatch(matchPart: Part): boolean {
+		if (!this.primary) {
+			return false
+		}
 
-		return LocationLink.create(document.uri, definitionRange, selectionRange, fromRange)
+		return this.primary.isMatch(matchPart)
+	}
+
+	isMayPrimaryTextExpMatch(re: RegExp): boolean {
+		if (!this.primary) {
+			return false
+		}
+
+		return this.primary.isTextExpMatch(re)
 	}
 }
 
 
 /** Main part for a tag/class/id selector. */
-export class CSSSelectorMainPart extends Part {
+export class CSSSelectorPrimaryPart extends Part {
 
 	/** 
 	 * Formatted selector name can be used for workspace symbol searching.
@@ -128,7 +134,6 @@ export class CSSSelectorMainPart extends Part {
 		return this.formatted.some(text => re.test(text))
 	}
 }
-
 
 
 
@@ -189,12 +194,12 @@ function joinMainReferenceSelectorWithParent(token: CSSSelectorToken, parents: C
 		let joint: string[] = []
 
 		for (let parent of parents) {
-			if (!parent.detail) {
+			if (!parent.primary) {
 				continue
 			}
 
-			for (let detailFormatted of parent.detail.formatted) {
-				joint.push(text.replace(re, detailFormatted))
+			for (let primaryFormatted of parent.primary.formatted) {
+				joint.push(text.replace(re, primaryFormatted))
 			}
 		}
 		
@@ -206,13 +211,13 @@ function joinMainReferenceSelectorWithParent(token: CSSSelectorToken, parents: C
 }
 
 
-/** Parse a CSS selector name to detail. */
-function parseDetails(
+/** Parse a CSS selector name to primary. */
+function parsePrimary(
 	group: CSSSelectorToken[],
 	parents: CSSSelectorPart[] | undefined,
 	definitionEnd: number,
 	commandWrapped: boolean
-): CSSSelectorMainPart | null {
+): CSSSelectorPrimaryPart | null {
 	let mainToken = parsePrimaryTokenOfGroup(group)
 	if (!mainToken) {
 		return null
@@ -226,14 +231,14 @@ function parseDetails(
 	}
 
 	let type = mainToken.type === CSSSelectorTokenType.Tag
-		? PartType.CSSSelectorMainTag
+		? PartType.CSSSelectorTag
 		: mainToken.type === CSSSelectorTokenType.Id
-		? PartType.CSSSelectorMainId
+		? PartType.CSSSelectorId
 		: mainToken.type === CSSSelectorTokenType.Class
-		? PartType.CSSSelectorMainClass
-		: Part.getCSSSelectorTypeByText(formatted[0])
+		? PartType.CSSSelectorClass
+		: PartConvertor.getCSSSelectorTypeByText(formatted[0])
 
-	return new CSSSelectorMainPart(type, mainToken.text, mainToken.start, definitionEnd, formatted, independent)
+	return new CSSSelectorPrimaryPart(type, mainToken.text, mainToken.start, definitionEnd, formatted, independent)
 }
 
 

@@ -67,7 +67,7 @@ This functionality should not be very useful, and it needs to load and parse all
 | `alwaysIncludeGlobPatterns`       | A glob pattern, which always use `/` as a path separator, files matched will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`. You may use this to include some special codes inside `node_modules`.
 | `searchAcrossWorkspaceFolders`    | When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current workspace, you should set this to `true`.
 | `ignoreSameNameCSSFile`           | When `true` by default, e.g.: If 'the-name.scss and 'the-name.css', which share the same basename, are exist in the same directory, the 'the-name.css' will be skipped. If you prefer compiling Scss or Less file to the same name CSS file, this would be helpful.
-| `ignoreCustomElement`             | When `true` by default, custom element definitions in CSS will be ignored, such that it will go to it's defined place directly.
+| `ignoreCustomElement`             | When `true` by default, custom element CSS definitions will be ignored, it will not provide definition and completion, such that it goes to it's custom-element defined place directly which has implemented by other plugins.
 | `ignoreFilesBy`                   | Specifies this to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions. Default value is `[".gitignore"]`.
 | `enableLogLevelMessage`           | Whether enables log level message, set it to `true` for debugging.
 | `enableGoToDefinition`            | Whether enables goto definition service, default value is `true`.
@@ -75,6 +75,7 @@ This functionality should not be very useful, and it needs to load and parse all
 | `enableIdAndClassNameCompletion`  | Whether enables id and class name completion service, default value is `true`.
 | `enableFindAllReferences`         | Whether enables finding references service, default value is `true`.
 | `enableHover`                     | Whether enables id and class name hover service, default value is `true`.
+
 
 ## Why started this project
 
@@ -147,6 +148,7 @@ But the Web architecture is extremely complex today, all you got in your hand ma
 My suggestion is using unique class name, avoid nesting, which would be also helpful for the code quality of you project.
 
 If you prefer scoped style, and write html and css codes in the same file, searching definitions should be less important for you. But checking option `alsoSearchDefinitionsInStyleTag` will help you to search css definitions in the `<style>` inside your current document.
+
 
 ## License
 

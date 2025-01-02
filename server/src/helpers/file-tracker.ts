@@ -61,6 +61,9 @@ export interface FileTrackerOptions {
 
 	/** Most count of files to track, default value is `Infinity`. */
 	mostFileCount?: number
+
+	/** If not use service after some milliseconds, release all resources. */
+	releaseTimeoutMs?: number
 }
 
 /** Class to track one type of files in a directory. */
@@ -71,6 +74,7 @@ export class FileTracker {
 	readonly alwaysIncludeGlobPattern: string | null
 	readonly ignoreFilesBy: Ignore[]
 	readonly mostFileCount: number
+	readonly releaseTimeoutMs: number
 
 	protected includeFileMatcher: minimatch.IMinimatch
 	protected excludeMatcher: minimatch.IMinimatch | null
@@ -81,6 +85,7 @@ export class FileTracker {
 	protected allFresh: boolean = true
 	protected startDataLoaded: boolean = true
 	protected updating: Promise<void> | null = null
+	protected releaseTimeout: NodeJS.Timeout | null = null
 
 	/** May push more promises when updating, so there is a property. */
 	protected updatePromises: Promise<void>[] = []
@@ -91,6 +96,7 @@ export class FileTracker {
 		this.alwaysIncludeGlobPattern = options.alwaysIncludeGlobPattern || null
 		this.ignoreFilesBy = options.ignoreFilesBy || []
 		this.mostFileCount = options.mostFileCount ?? Infinity
+		this.releaseTimeoutMs = options.releaseTimeoutMs ?? Infinity
 
 		this.includeFileMatcher = new minimatch.Minimatch(options.includeFileGlobPattern)
 		this.excludeMatcher = options.excludeGlobPattern ? new minimatch.Minimatch(options.excludeGlobPattern) : null
@@ -458,7 +464,30 @@ export class FileTracker {
 			this.updating = null
 			this.allFresh = true
 		}
+
+		this.mayResetReleaseTimeout()
 	}
+
+	/** Reset release timeout if needed. */
+	protected mayResetReleaseTimeout() {
+		if (this.releaseTimeout) {
+			clearTimeout(this.releaseTimeout)
+		}
+
+		if (isFinite(this.releaseTimeoutMs)) {
+			this.releaseTimeout = setTimeout(this.releaseResources.bind(this), this.releaseTimeoutMs)
+		}
+	}
+
+	/** Release all resources. */
+	protected releaseResources() {
+		this.allFresh = false
+		this.startDataLoaded = false
+		this.map.clear()
+		this.onReleaseResources()
+	}
+
+	protected onReleaseResources() {}
 
 	/** Ensure specified content be fresh, if it has been included. */
 	async uriBeFresh(uri: string): Promise<boolean> {

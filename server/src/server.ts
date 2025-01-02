@@ -29,6 +29,13 @@ let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument)
 let server: CSSNavigationServer
 
 
+
+//////// Debug Help
+// 1. How to inspect textmate tokens: Ctrl + Shift + P, then choose `Inspect Editor Tokens and Scopes`
+// 2. How to inspect completion details: Ctrl + /
+
+
+
 // Do initializing.
 connection.onInitialize((params: InitializeParams) => {
 	let options: InitializationOptions = params.initializationOptions
@@ -191,7 +198,7 @@ class CSSNavigationServer {
 
 		// HTML or CSS file.
 		let position = params.position
-		let offset = document?.offsetAt(position)
+		let offset = document.offsetAt(position)
 
 		return getCompletionItems(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}

@@ -42,8 +42,8 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 	declare protected state: ScanState
 	private isScssLessSyntax: boolean
 
-	constructor(string: string, isScssLessSyntax: boolean = false) {
-		super(string)
+	constructor(string: string, scannerStart: number = 0, isScssLessSyntax: boolean = false) {
+		super(string, scannerStart)
 		this.isScssLessSyntax = isScssLessSyntax
 	}
 
@@ -87,7 +87,7 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 	*parseToTokens(start: number = 0): Iterable<CSSToken> {
 		this.start = this.offset = start
 
-		while (this.offset < this.string.length) {
+		while (this.state !== ScanState.EOF) {
 			if (this.state === ScanState.AnyContent) {
 				if (!this.readUntil(/[\/#{};"']/g)) {
 					break

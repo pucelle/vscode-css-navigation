@@ -4,7 +4,7 @@ import {URI} from 'vscode-uri'
 import * as path from 'path'
 import * as fs from 'fs-extra'
 import {getPathExtension} from '../../helpers'
-import {Part} from '../trees'
+import {Part, PartConvertor} from '../trees'
 
 
 export namespace PathResolver {
@@ -95,7 +95,7 @@ export namespace PathResolver {
 		let uri = URI.file(importPath).toString()
 		let targetRange = Range.create(0, 0, 0, 0)
 		let selectionRange = targetRange
-		let fromRange = part.toRange(document)
+		let fromRange = PartConvertor.toRange(part, document)
 
 		return LocationLink.create(uri, targetRange, selectionRange, fromRange)
 	}

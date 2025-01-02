@@ -1,5 +1,5 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {HTMLTokenTree, Part} from '../trees'
+import {HTMLTokenTree, Part, PartConvertor} from '../trees'
 import {BaseService} from './base-service'
 import {CompletionItem} from 'vscode-languageserver'
 
@@ -11,7 +11,7 @@ export class HTMLService extends BaseService {
 		super(document)
 
 		let isJSLikeSyntax = ['javascriptreact', 'typescriptreact', 'javascript', 'typescript'].includes(document.languageId)
-		let tree = HTMLTokenTree.fromString(document.getText(), isJSLikeSyntax)
+		let tree = HTMLTokenTree.fromString(document.getText(), 0, isJSLikeSyntax)
 		this.parts = [...tree.walkParts()]
 	}
 
@@ -24,10 +24,11 @@ export class HTMLService extends BaseService {
 	 */
 	getReferencedCompletionLabels(fromPart: Part): string[] {
 		let labelSet: Set<string> = new Set()
-		let re = Part.makeStartsMatchExp(fromPart.text)
+		let re = PartConvertor.makeMayIdentifierStartsMatchExp(fromPart.text, fromPart.type)
+		let definitionPart = fromPart.toDefinitionMode()
 
 		for (let part of this.parts) {
-			if (part.isTypeMatchAsReference(fromPart)) {
+			if (!part.isTypeMatchAsReference(definitionPart)) {
 				continue
 			}
 
@@ -36,7 +37,7 @@ export class HTMLService extends BaseService {
 			}
 
 			for (let text of part.textList) {
-				labelSet.add(text)
+				labelSet.add(PartConvertor.textToType(text, part.type, fromPart.type))
 			}
 		}
 
@@ -48,6 +49,6 @@ export class HTMLService extends BaseService {
 	 */
 	getReferencedCompletionItems(fromPart: Part, fromDocument: TextDocument): CompletionItem[] {
 		let labels = this.getReferencedCompletionLabels(fromPart)
-		return fromPart.toCompletionItems(labels, fromDocument)
+		return PartConvertor.toCompletionItems(fromPart, labels, fromDocument)
 	}
 }

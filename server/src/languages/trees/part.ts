@@ -1,6 +1,5 @@
-import {CompletionItem, CompletionItemKind, Hover, Location, LocationLink, MarkupKind, Range, SymbolInformation, SymbolKind, TextEdit} from 'vscode-languageserver'
-import {TextDocument} from 'vscode-languageserver-textdocument'
-import {escapeAsRegExpSource, hasQuotes} from './utils'
+import {PartConvertor} from './part-convertor'
+import {hasQuotes} from './utils'
 
 
 /** Part types. */
@@ -70,13 +69,14 @@ export enum PartType {
 	/** Any selector string like `#id`, `.class-name`. */
 	CSSSelector,
 
-	CSSSelectorMainTag,
+	/** div{...} */
+	CSSSelectorTag,
 
 	/** It includes identifier `#`. */
-	CSSSelectorMainId,
+	CSSSelectorId,
 
 	/** It includes identifier `.`. */
-	CSSSelectorMainClass,
+	CSSSelectorClass,
 
 	/** `--variable-name: ...;` */
 	CSSVariableDeclaration,
@@ -91,35 +91,6 @@ export enum PartType {
  * Trees will be destroyed, and parts will be cached, so ensure part cost few memories.
  */
 export class Part {
-
-	/** Get css part type from text which includes identifiers like `.`, `#`. */
-	static getCSSSelectorTypeByText(text: string): PartType {
-		if (text[0] === '#') {
-			return PartType.CSSSelectorMainId
-		}
-		else if (text[0] === '.') {
-			return PartType.CSSSelectorMainClass
-		}
-		else {
-			return PartType.Tag
-		}
-	}
-
-	/** `ab` -> /\bab/i. */
-	static makeWordStartsMatchExp(text: string): RegExp {
-		if (/^[a-z]/i.test(text)) {
-			return new RegExp('\\b' + escapeAsRegExpSource(text), 'i')
-		}
-		else {
-			return new RegExp(escapeAsRegExpSource(text), 'i')
-		}
-	}
-
-	/** `ab` -> /^ab/i. */
-	static makeStartsMatchExp(text: string): RegExp {
-		return new RegExp('^' + escapeAsRegExpSource(text), 'i')
-	}
-
 	
 	/** Part type. */
 	readonly type: PartType
@@ -154,6 +125,14 @@ export class Part {
 		return [this.text]
 	}
 
+	/** 
+	 * If is `CSSSelectorPart`, returns primary text list.
+	 * Otherwise returns current text list.
+	 */
+	get mayPrimaryTextList(): string[] {
+		return [this.text]
+	}
+
 	isHTMLType() {
 		return this.type < PartType.CSSSelector
 			&& this.type >= PartType.Tag
@@ -171,9 +150,9 @@ export class Part {
 
 	isDefinitionType() {
 		return this.type === PartType.CSSSelector
-			|| this.type === PartType.CSSSelectorMainTag
-			|| this.type === PartType.CSSSelectorMainId
-			|| this.type === PartType.CSSSelectorMainClass
+			|| this.type === PartType.CSSSelectorTag
+			|| this.type === PartType.CSSSelectorId
+			|| this.type === PartType.CSSSelectorClass
 			|| this.type === PartType.CSSVariableDeclaration
 	}
 
@@ -198,16 +177,11 @@ export class Part {
 			|| this.type === PartType.CSSSelectorQueryId
 			|| this.type === PartType.CSSSelectorQueryClass
 			|| this.type === PartType.CSSSelector
-			|| this.type === PartType.CSSSelectorMainTag
-			|| this.type === PartType.CSSSelectorMainId
-			|| this.type === PartType.CSSSelectorMainClass
-	}
-
-	/** Translate start offset, returns this. */
-	translate(offset: number): this {
-		this.start += offset
-
-		return this
+			|| this.type === PartType.CSSSelectorTag
+			|| this.type === PartType.CSSSelectorId
+			|| this.type === PartType.CSSSelectorClass
+			|| this.type === PartType.ReactDefaultImportedCSSModuleClass
+			|| this.type === PartType.ReactImportedCSSModuleProperty
 	}
 
 	/** `"ab"` => `ab`. */
@@ -250,81 +224,35 @@ export class Part {
 		}
 	}
 
-	/** Transform to definition type for doing match. */
+	/** Transform to definition type, normally use it for matching. */
 	toDefinitionMode() {
-		let type = this.typeToDefinition()
-		let text = this.textToDefinition()
+		let type = PartConvertor.typeToDefinition(this.type)
+		let text = PartConvertor.textToType(this.text, this.type, type)
 
 		return new Part(type, text, -1, -1)
-	}
-
-	/** Convert current type to definition part type. */
-	typeToDefinition(): PartType {
-		if (this.type === PartType.Tag) {
-			return PartType.CSSSelectorMainTag
-		}
-		else if (this.type === PartType.Id) {
-			return PartType.CSSSelectorMainId
-		}
-		else if (this.type === PartType.Class) {
-			return PartType.CSSSelectorMainClass
-		}
-		else if (this.type === PartType.CSSSelectorQueryTag) {
-			return PartType.CSSSelectorMainTag
-		}
-		else if (this.type === PartType.CSSSelectorQueryId) {
-			return PartType.CSSSelectorMainId
-		}
-		else if (this.type === PartType.CSSSelectorQueryClass) {
-			return PartType.CSSSelectorMainClass
-		}
-		else if (this.type === PartType.CSSVariableAssignment ||this. type === PartType.CSSVariableReference) {
-			return PartType.CSSVariableDeclaration
-		}
-		else if (this.type === PartType.ReactDefaultImportedCSSModuleClass || this.type === PartType.ReactImportedCSSModuleProperty) {
-			return PartType.CSSSelectorMainClass
-		}
-
-		return this.type
-	}
-
-	/** Convert current text to definition part text. */
-	textToDefinition(): string {
-		let text = this.text
-
-		if (this.type === PartType.Id) {
-			text = '#' + text
-		}
-		else if (this.type === PartType.Class
-			|| this.type === PartType.ReactDefaultImportedCSSModuleClass
-			|| this.type === PartType.ReactImportedCSSModuleProperty
-		) {
-			text = '.' + text
-		}
-
-		return text
 	}
 
 	/** 
 	 * Whether typeof current HTML reference part matches type of a CSS definition part.
 	 * Use it for finding references and do class name completions for a css document.
 	 */
-	isTypeMatchAsReference(matchPart: Part): boolean {
-		return this.typeToDefinition() === matchPart.type
-
-			// Means can't search within types of itself.
-			&& this.type !== matchPart.type
-
-			&& this.textToDefinition() === matchPart.text
+	isTypeMatchAsReference(definitionPart: Part): boolean {
+		return this.isReferenceType()
+			&& PartConvertor.typeToDefinition(this.type) === definitionPart.type
 	}
 
 	/** 
 	 * Whether current HTML reference part matches a CSS definition part.
 	 * Use it for finding references.
 	 */
-	isMatchAsReference(matchPart: Part): boolean {
-		return this.isTypeMatchAsReference(matchPart)
-			&& this.textToDefinition() === matchPart.text
+	isMatchAsReference(definitionPart: Part): boolean {
+		return this.isTypeMatchAsReference(definitionPart)
+			&& PartConvertor.textToType(this.text, this.type, definitionPart.type) === definitionPart.text
+	}
+
+	/** Whether part type matches another part. */
+	isTypeMatch(matchPart: Part): boolean {
+		return this.type === matchPart.type
 	}
 
 	/** 
@@ -333,7 +261,7 @@ export class Part {
 	 * Use it for finding definition and hover.
 	 */
 	isMatch(matchPart: Part): boolean {
-		return this.type === matchPart.type
+		return this.isTypeMatch(matchPart)
 			&& this.text === matchPart.text
 	}
 
@@ -341,88 +269,32 @@ export class Part {
 	 * Whether part text is wild match an regexp.
 	 * Use it for finding workspace symbol.
 	 */
-	isTextExpMatch(re: RegExp) {
+	isTextExpMatch(re: RegExp): boolean {
 		return re.test(this.text)
 	}
 
-	/** Get a range from its related document. */
-	toRange(document: TextDocument): Range {
-		return Range.create(document.positionAt(this.start), document.positionAt(this.end))
+	/** 
+	 * If is `CSSSelectorPart`, do primary type match.
+	 * Otherwise do normal type match.
+	 */
+	isMayPrimaryTypeMatch(matchPart: Part): boolean {
+		return this.isTypeMatch(matchPart)
 	}
 
-	/** To a location link for going to definition. */
-	toLocationLink(document: TextDocument, fromPart: Part, fromDocument: TextDocument) {
-		let selectionRange = this.toRange(document)
-		let end = this.defEnd > -1 ? this.defEnd : this.end
-		let definitionRange = Range.create(selectionRange.start, document.positionAt(end))
-		let fromRange = fromPart.toRange(fromDocument)
-
-		return LocationLink.create(document.uri, definitionRange, selectionRange, fromRange)
+	/** 
+	 * If is `CSSSelectorPart`, do primary match.
+	 * Otherwise do normal match.
+	 */
+	isMayPrimaryMatch(matchPart: Part): boolean {
+		return this.isMatch(matchPart)
 	}
 
-	/** To a location for finding references. */
-	toLocation(document: TextDocument) {
-		return Location.create(document.uri, this.toRange(document))
-	}
-
-	/** To several symbol information for workspace symbol searching. */
-	toSymbolInformationList(document: TextDocument): SymbolInformation[] {
-		let kind = this.type === PartType.CSSSelector
-			|| this.type === PartType.CSSSelectorMainTag
-			|| this.type === PartType.CSSSelectorMainClass
-			|| this.type === PartType.CSSSelectorMainId
-				? SymbolKind.Class
-				: SymbolKind.Variable
-
-		return this.textList.map(text => SymbolInformation.create(
-			text,
-			kind,
-			this.toRange(document),
-			document.uri
-		))
-	}
-
-	/** To completion item list. */
-	toCompletionItems(labels: string[], document: TextDocument): CompletionItem[] {
-		let kind = this.type === PartType.CSSSelector
-			|| this.type === PartType.CSSSelectorMainTag
-			|| this.type === PartType.CSSSelectorMainClass
-			|| this.type === PartType.CSSSelectorMainId
-			|| this.type === PartType.Tag
-			|| this.type === PartType.Class
-			|| this.type === PartType.Id
-				? CompletionItemKind.Class
-				: CompletionItemKind.Variable
-
-		return labels.map(text => {
-			let item = CompletionItem.create(text)
-			item.kind = kind
-	
-			item.textEdit = TextEdit.replace(
-				this.toRange(document),
-				text,
-			)
-
-			return item
-		})
-	}
-
-	/** To hover. */
-	toHover(comment: string | undefined, document: TextDocument): Hover {
-		let cssPart = this.toDefinitionMode()
-		let content = cssPart.text
-
-		if (comment) {
-			content += '\n' + comment
-		}
-
-		return {
-			contents: {
-				kind: MarkupKind.PlainText,
-				value: content,
-			},
-			range: this.toRange(document)
-		}
+	/** 
+	 * If is `CSSSelectorPart`, do primary text exp match.
+	 * Otherwise do normal text exp match.
+	 */
+	isMayPrimaryTextExpMatch(re: RegExp): boolean {
+		return this.isTextExpMatch(re)
 	}
 }
 

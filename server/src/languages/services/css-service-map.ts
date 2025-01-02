@@ -1,12 +1,12 @@
 import * as path from 'path'
 import {TextDocuments} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {replacePathExtension} from '../../helpers'
+import {FileTrackerOptions, replacePathExtension} from '../../helpers'
 import {CSSService} from './css-service'
-import {BaseServiceMap, BaseServiceMapOptions} from './base-service-map'
+import {BaseServiceMap} from './base-service-map'
 
 
-export interface CSSServiceMapOptions extends BaseServiceMapOptions {
+export interface CSSServiceMapOptions extends FileTrackerOptions {
 
 	/** Whether ignore css when same name scss files exists. */
 	ignoreSameNameCSSFile: boolean

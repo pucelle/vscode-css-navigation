@@ -1,7 +1,7 @@
 import {SymbolInformation, LocationLink, Location, CompletionItem, Hover} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PathResolver} from '../resolver'
-import {Part, PartType} from '../trees'
+import {Part, PartConvertor, PartType} from '../trees'
 import {quickBinaryFind, quickBinaryFindIndex} from '../utils'
 import {CSSSelectorPart} from '../trees'
 
@@ -65,7 +65,7 @@ export abstract class BaseService {
 
 		// Returns detail if in range.
 		if (part && part.type === PartType.CSSSelector) {
-			let detail = (part as CSSSelectorPart).detail
+			let detail = (part as CSSSelectorPart).primary
 			if (detail
 				&& detail.start <= offset
 				&& detail.end >= offset
@@ -95,11 +95,11 @@ export abstract class BaseService {
 		let locations: LocationLink[] = []
 
 		for (let part of this.parts) {
-			if (!part.isMatch(matchPart)) {
+			if (!part.isMayPrimaryMatch(matchPart)) {
 				continue
 			}
 
-			locations.push(part.toLocationLink(this.document, fromPart, fromDocument))
+			locations.push(PartConvertor.mayPrimaryToLocationLink(part, this.document, fromPart, fromDocument))
 		}
 
 		return locations
@@ -116,35 +116,36 @@ export abstract class BaseService {
 	 */
 	findSymbols(query: string): SymbolInformation[] {
 		let symbols: SymbolInformation[] = []
-		let re = Part.makeWordStartsMatchExp(query)
+		let re = PartConvertor.makeWordStartsMatchExp(query)
 
 		for (let part of this.parts) {
 			if (!part.isTextExpMatch(re)) {
 				continue
 			}
 
-			symbols.push(...part.toSymbolInformationList(this.document))
+			symbols.push(...PartConvertor.toSymbolInformationList(part, this.document))
 		}
 
 		return symbols
 	}
 	
 	/** Get completion labels match part. */
-	getCompletionLabels(matchPart: Part): string[] {
+	getCompletionLabels(matchPart: Part, fromPart: Part): string[] {
 		let labelSet: Set<string> = new Set()
-		let re = Part.makeStartsMatchExp(matchPart.text)
+		let re = PartConvertor.makeStartsMatchExp(matchPart.text)
 
 		for (let part of this.parts) {
-			if (part.type !== matchPart.type) {
+			if (!part.isMayPrimaryTypeMatch(matchPart)) {
 				continue
 			}
 
-			if (!part.isTextExpMatch(re)) {
+			if (!part.isMayPrimaryTextExpMatch(re)) {
 				continue
 			}
 
-			for (let text of part.textList) {
-				labelSet.add(text)
+			// Convert text from current type to original type.
+			for (let text of part.mayPrimaryTextList) {
+				labelSet.add(PartConvertor.textToType(text, matchPart.type, fromPart.type))
 			}
 		}
 
@@ -156,8 +157,8 @@ export abstract class BaseService {
 
 	/** Get completion items match part. */
 	getCompletionItems(matchPart: Part, fromPart: Part, fromDocument: TextDocument): CompletionItem[] {
-		let labels = this.getCompletionLabels(matchPart)
-		return fromPart.toCompletionItems(labels, fromDocument)
+		let labels = this.getCompletionLabels(matchPart, fromPart)
+		return PartConvertor.toCompletionItems(fromPart, labels, fromDocument)
 	}
 
 	/** Find the reference locations in the HTML document from a class or id selector. */
@@ -169,7 +170,7 @@ export abstract class BaseService {
 				continue
 			}
 
-			locations.push(part.toLocation(this.document))
+			locations.push(PartConvertor.toLocation(part, this.document))
 		}
 
 		return locations
@@ -199,8 +200,8 @@ export abstract class BaseService {
 		}
 
 		let commentedParts = parts.filter(p => p.comment)
-		let part = commentedParts.find(part => part.detail!.independent) ?? commentedParts[0]
+		let part = commentedParts.find(part => part.primary!.independent) ?? commentedParts[0]
 
-		return fromPart.toHover(part?.comment!, fromDocument)
+		return PartConvertor.toHover(fromPart, part?.comment!, fromDocument)
 	}
 }

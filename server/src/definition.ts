@@ -1,6 +1,6 @@
 import {Location, LocationLink} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CSSServiceMap, HTMLServiceMap, ModuleResolver, PartType, PathResolver} from './languages'
+import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, ModuleResolver, Part, PartType, PathResolver} from './languages'
 import {getPathExtension} from './helpers'
 import {getLongestCommonSubsequenceLength} from './utils'
 
@@ -19,10 +19,24 @@ export async function findDefinitions(
 	let locations: LocationLink[] | null = null
 
 	if (isHTMLFile) {
-		locations = await findDefinitionsInHTML(document, offset, htmlServiceMap, cssServiceMap, configuration)
+		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+
+		let fromPart = currentHTMLService.findPartAt(offset)
+		if (!fromPart) {
+			return null
+		}
+
+		locations = await findDefinitionsInHTML(fromPart, currentHTMLService, document, cssServiceMap, configuration)
 	}
 	else if (isCSSFile) {
-		locations = await findDefinitionsInCSS(document, offset, cssServiceMap)
+		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+
+		let fromPart = currentCSSService.findPartAt(offset)
+		if (!fromPart) {
+			return null
+		}
+
+		locations = await findDefinitionsInCSS(fromPart, currentCSSService, document, cssServiceMap)
 	}
 
 	if (!locations) {
@@ -46,21 +60,15 @@ export async function findDefinitions(
 	})
 }
 
+
 /** In HTML files, or files that can include HTML codes. */
 async function findDefinitionsInHTML(
+	fromPart: Part,
+	currentService: HTMLService,
 	document: TextDocument,
-	offset: number,
-	htmlServiceMap: HTMLServiceMap,
 	cssServiceMap: CSSServiceMap,
-	configuration: Configuration,
+	configuration: Configuration
 ): Promise<LocationLink[] | null> {
-	let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
-
-	let fromPart = currentHTMLService.findPartAt(offset)
-	if (!fromPart) {
-		return null
-	}
-
 	let matchPart = fromPart.toDefinitionMode()
 	let locations: LocationLink[] = []
 
@@ -98,7 +106,7 @@ async function findDefinitionsInHTML(
 
 	// When mouse locates at `class={style.className}`, search within specified named imported css module.
 	if (fromPart.type === PartType.ReactImportedCSSModuleProperty) {
-		let importedCSSModulePart = currentHTMLService.findPreviousPart(fromPart)
+		let importedCSSModulePart = currentService.findPreviousPart(fromPart)
 		if (!importedCSSModulePart || importedCSSModulePart.type !== PartType.ReactImportedCSSModuleName) {
 			return null
 		}
@@ -154,30 +162,12 @@ async function findDefinitionsInHTML(
 	// }
 
 
-	// Find embedded style definitions, if found, stop.
-	locations.push(...currentHTMLService.findDefinitions(matchPart, fromPart, document))
-
+	// Find embedded style definitions or definitions from all imported css files, if any found, stop.
+	locations.push(...await findEmbeddedOrImported(currentService, matchPart, fromPart, document, cssServiceMap))
 	if (locations.length > 0) {
 		return locations
 	}
 	
-
-	// Having CSS files imported, firstly search within these files, if found, not searching more.
-	let cssPaths = await currentHTMLService.getImportedCSSPaths()
-
-	for (let cssPath of cssPaths) {
-		let cssService = await cssServiceMap.forceGetServiceByFilePath(cssPath)
-		if (!cssService) {
-			continue
-		}
-
-		locations.push(...cssService.findDefinitions(matchPart, fromPart, document))
-	}
-
-	if (locations.length > 0) {
-		return locations
-	}
-
 
 	// Search across all CSS files.
 	locations.push(...await cssServiceMap.findDefinitions(matchPart, fromPart, document))
@@ -186,21 +176,16 @@ async function findDefinitionsInHTML(
 	return locations
 }
 
+
 /** In CSS files, or a sass file. */
 async function findDefinitionsInCSS(
+	fromPart: Part,
+	currentService: HTMLService | CSSService,
 	document: TextDocument,
-	offset: number,
 	cssServiceMap: CSSServiceMap
 ): Promise<LocationLink[] | null> {
-	let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
 
-	let fromPart = currentCSSService.findPartAt(offset)
-	if (!fromPart) {
-		return null
-	}
-
-
-	// When mouse locates at `<link rel="stylesheet" href="|...|">` or `<style src="|...|">`, goto file start.
+	// When mouse locates at `@import`, goto file start.
 	if (fromPart.type === PartType.CSSImportPath) {
 		let link = await PathResolver.resolveImportLocationLink(fromPart, document)
 		if (!link) {
@@ -220,29 +205,11 @@ async function findDefinitionsInCSS(
 	let locations: LocationLink[] = []
 
 
-	// When mouse locates at `<link rel="stylesheet" href="|...|">` or `<style src="|...|">`, goto file start.
-	if (matchPart.type === PartType.CSSVariableDeclaration) {
-			
-		// Find embedded style definitions, if found, stop.
-		locations.push(...currentCSSService.findDefinitions(matchPart, fromPart, document))
-
-		if (locations.length > 0) {
-			return locations
-		}
+	// When mouse locates at `var(--variable-name)`, goto file start.
+	if (fromPart.isCSSVariableType()) {
 		
-
-		// Having CSS files imported, firstly search within these files, if found, not searching more.
-		let cssPaths = await currentCSSService.getImportedCSSPaths()
-
-		for (let cssPath of cssPaths) {
-			let cssService = await cssServiceMap.forceGetServiceByFilePath(cssPath)
-			if (!cssService) {
-				continue
-			}
-
-			locations.push(...cssService.findDefinitions(matchPart, fromPart, document))
-		}
-
+		// Find embedded style definitions or definitions from all imported css files, if any found, stop.
+		locations.push(...await findEmbeddedOrImported(currentService, matchPart, fromPart, document, cssServiceMap))
 		if (locations.length > 0) {
 			return locations
 		}
@@ -250,6 +217,43 @@ async function findDefinitionsInCSS(
 
 		// Search across all css files.
 		locations.push(...await cssServiceMap.findDefinitions(matchPart, fromPart, document))
+	}
+
+	return locations
+}
+
+
+async function findEmbeddedOrImported(
+	currentService: HTMLService | CSSService,
+	matchPart: Part,
+	fromPart: Part,
+	document: TextDocument,
+	cssServiceMap: CSSServiceMap
+): Promise<LocationLink[]> {
+	let locations: LocationLink[] = []
+
+	// Find embedded style definitions, if found, stop.
+	locations.push(...currentService.findDefinitions(matchPart, fromPart, document))
+
+	if (locations.length > 0) {
+		return locations
+	}
+	
+
+	// Having CSS files imported, firstly search within these files, if found, not searching more.
+	let cssPaths = await currentService.getImportedCSSPaths()
+
+	for (let cssPath of cssPaths) {
+		let cssService = await cssServiceMap.forceGetServiceByFilePath(cssPath)
+		if (!cssService) {
+			continue
+		}
+
+		locations.push(...cssService.findDefinitions(matchPart, fromPart, document))
+	}
+
+	if (locations.length > 0) {
+		return locations
 	}
 
 	return locations

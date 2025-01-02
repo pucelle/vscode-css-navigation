@@ -85,8 +85,8 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	declare protected state: ScanState
 	private isJSLikeSyntax: boolean
 
-	constructor(string: string, isJSLikeSyntax: boolean = false) {
-		super(string)
+	constructor(string: string, scannerStart: number = 0, isJSLikeSyntax: boolean = false) {
+		super(string, scannerStart)
 		this.isJSLikeSyntax = isJSLikeSyntax
 	}
 
@@ -119,7 +119,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 		this.start = this.offset = start
 		let mustMatchTagName: string | null = null
 
-		while (this.offset < this.string.length) {
+		while (this.state !== ScanState.EOF) {
 			if (this.state === ScanState.AnyContent) {
 
 				// `|<`

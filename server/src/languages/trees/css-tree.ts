@@ -25,11 +25,11 @@ export class CSSTokenTree extends CSSTokenNode {
 				let o = splitPropertyTokens(joint)
 				if (o) {
 					let [nameToken, valueToken] = o
-					let propertyNode = new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, latestComment)
+					let nameNode = new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, latestComment)
 					let valueNode = new CSSTokenNode(CSSTokenNodeType.PropertyValue, valueToken, current)
 
-					propertyNode.defEnd = valueToken.end
-					current.children!.push(propertyNode, valueNode)
+					nameNode.defEnd = valueToken.end
+					current.children!.push(nameNode, valueNode)
 				}
 			}
 
@@ -82,35 +82,59 @@ export class CSSTokenTree extends CSSTokenNode {
 			}
 		}
 
+		// Although has no `{` followed, still parse it as selector.
+		if (latestTokens.length > 0) {
+			makeCommandOrSelector()
+		}
+
 		return tree
 	}
 
 	/** Make a CSS token tree by string. */
-	static fromString(string: string, languageId: CSSLanguageId): CSSTokenTree {
+	static fromString(string: string, scannerStart: number, languageId: CSSLanguageId): CSSTokenTree {
 		let tokens: Iterable<CSSToken>
 
 		if (languageId === 'sass') {
-			tokens = new SassIndentedTokenScanner(string).parseToTokens()
+			tokens = new SassIndentedTokenScanner(string, scannerStart).parseToTokens()
 		}
 		else {
-			tokens = new CSSTokenScanner(string, languageId !== 'css').parseToTokens()
+			tokens = new CSSTokenScanner(string, scannerStart, languageId !== 'css').parseToTokens()
 		}
 
 		return CSSTokenTree.fromTokens(tokens, string, languageId)
 	}
 
 	/** Make a partial CSS token tree by string and offset. */
-	static fromStringAtOffset(string: string, offset: number, languageId: CSSLanguageId): CSSTokenTree {
+	static fromStringAtOffset(string: string, scannerStart: number, offset: number, languageId: CSSLanguageId): CSSTokenTree {
 		let tokens: Iterable<CSSToken>
 		
 		if (languageId === 'sass') {
 			tokens = new SassIndentedTokenScanner(string).parsePartialTokens(offset)
 		}
 		else {
-			tokens = new CSSTokenScanner(string, languageId !== 'css').parsePartialTokens(offset)
+			tokens = new CSSTokenScanner(string, scannerStart, languageId !== 'css').parsePartialTokens(offset)
 		}
 
 		return CSSTokenTree.fromTokens(tokens, string, languageId)
+	}
+
+	/** For property name part. */
+	static *parsePropertyNamePart(text: string, start: number): Iterable<Part> {
+		if (text.startsWith('-')) {
+
+			// Will not set defEnd to value end, because default vscode plugin will
+			// also generate a definition, but end with property name end.
+			yield new Part(PartType.CSSVariableDeclaration, text, start)
+		}
+	}
+
+	/** For property value part. */
+	static *parsePropertyValuePart(text: string, start: number): Iterable<Part> {
+		let matches = Picker.locateAllMatches(text, /var\(\s*([\w-]*)\s*\)/g)
+
+		for (let match of matches) {
+			yield new Part(PartType.CSSVariableReference, match[1].text, match[1].start + start)
+		}
 	}
 
 
@@ -152,7 +176,10 @@ export class CSSTokenTree extends CSSTokenNode {
 		return undefined
 	}
 
-	/** Walk all the parts. */
+	/** 
+	 * Walk all the parts.
+	 * Note it ignores all non-primary selectors.
+	 */
 	*walkParts(): Iterable<Part> {
 		for (let node of this.walk()) {
 			yield* this.parseNodePart(node)
@@ -168,10 +195,10 @@ export class CSSTokenTree extends CSSTokenNode {
 			yield* this.parseSelectorPart(node)
 		}
 		else if (node.type === CSSTokenNodeType.PropertyName) {
-			yield* this.parsePropertyNamePart(node)
+			yield* CSSTokenTree.parsePropertyNamePart(node.token.text, node.token.start)
 		}
 		else if (node.type === CSSTokenNodeType.PropertyValue) {
-			yield* this.parsePropertyValuePart(node)
+			yield* CSSTokenTree.parsePropertyValuePart(node.token.text, node.token.start)
 		}
 		else if (node.type === CSSTokenNodeType.Command) {
 			yield* this.parseCommandPart(node)
@@ -207,25 +234,6 @@ export class CSSTokenTree extends CSSTokenNode {
 
 		// Broadcast wrapped to children.
 		this.commandWrappedMap.set(node, commandWrapped)
-	}
-	
-	/** For property name part. */
-	private *parsePropertyNamePart(node: CSSTokenNode): Iterable<Part> {
-		if (node.token.text.startsWith('--')) {
-
-			// Will not set defEnd to value end, because default vscode plugin will
-			// also generate a definition, but end with property name end.
-			yield new Part(PartType.CSSVariableDeclaration, node.token.text, node.token.start)
-		}
-	}
-
-	/** For property value part. */
-	private *parsePropertyValuePart(node: CSSTokenNode): Iterable<Part> {
-		let matches = Picker.locateAllMatches(node.token.text, /var\(\s*(--[\w-]+)\s*\)/g)
-
-		for (let match of matches) {
-			yield new Part(PartType.CSSVariableReference, match[1].text, match[1].start + node.token.start)
-		}
 	}
 	
 	/** Parse a command string to parts. */
