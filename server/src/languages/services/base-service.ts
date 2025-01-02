@@ -136,6 +136,13 @@ export abstract class BaseService {
 				continue
 			}
 
+			// `.a{&:hover}`, `&` not match `.a` because it reference parent totally.
+			if (part.type === PartType.CSSSelector
+				&& (part as CSSSelectorPart).primary!.text === '&'
+			) {
+				continue
+			}
+
 			locations.push(PartConvertor.mayPrimaryToLocationLink(part, this.document, fromPart, fromDocument))
 		}
 

@@ -80,7 +80,7 @@ describe('Test Finding Definition from HTML', () => {
 		assert.deepStrictEqual(await gs(['class="', 'class-not-match4', '"']), [])
 	})
 
-	it.only('Should not find more definitions when it use reference like "&:hover"', async () => {
+	it('Should not find as definition when it use reference like "&:hover"', async () => {
 		assert.deepStrictEqual(await gs(['class="', 'class-sub-reference-not-match', '"']), ['.class-sub-reference-not-match'])
 	})
 
@@ -99,8 +99,8 @@ describe('Test Finding Definition from HTML', () => {
 		assert.deepStrictEqual(await gs(['class="', 'class1-sub-tail', '"']), ['&-tail'])
 	})
 
-	it('Should find right class definition when contains sass variable', async () => {
-		assert.deepStrictEqual(await gs(['class="', 'scss-class-contains-variable', '"']), ['&-contains-variable'])
+	it('Should find right css variable definition', async () => {
+		assert.deepStrictEqual(await gs(['var(', '--css-variable-name', ')']), ['--css-variable-name'])
 	})
 })
 
@@ -118,11 +118,15 @@ describe('Test Less', () => {
 		assert.deepStrictEqual(await gs(['class="', 'class1-sub', '"']), ['&-sub'])
 		assert.deepStrictEqual(await gs(['class="', 'class1-sub-tail', '"']), ['&-tail'])
 	})
+
+	it('Should find right css variable definition', async () => {
+		assert.deepStrictEqual(await gs(['var(', '--css-variable-name', ')']), ['--css-variable-name'])
+	})
 })
 
 
 
-describe('Test Sass', () => {
+describe('Test Sass Indented', () => {
 	before(prepare)
 
 	it('Should support sass language', async () => {
@@ -137,7 +141,7 @@ describe('Test Sass', () => {
 describe('Test Finding Definitions in `@import ...`', () => {
 	before(prepare)
 
-	it('Should find right class definition in `@import...`', async () => {
+	it.only('Should find right class definition in `@import...`', async () => {
 		assert.deepStrictEqual(await gs(['class="', 'class-imported', '"']), ['.class-imported'])
 	})
 })
