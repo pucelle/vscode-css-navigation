@@ -172,11 +172,11 @@ export class CSSTokenTree extends CSSTokenNode {
 
 	/** Parse a selector string to parts. */
 	private *parseSelectorPart(node: CSSTokenNode): Iterable<Part> {
-		yield* this.parseSelectorString(node.token.text, node.token.start, node)
+		yield* this.parseSelectorString(node.token.text, node.token.start, node, false)
 	}
 
 	/** Parse a selector content to parts. */
-	private *parseSelectorString(text: string, start: number, node: CSSTokenNode): Iterable<Part> {
+	private *parseSelectorString(text: string, start: number, node: CSSTokenNode, breaksSeparatorNesting: boolean): Iterable<Part> {
 		let groups = new CSSSelectorTokenScanner(text, start, this.isSassSyntax).parseToSeparatedTokens()
 		let parentParts = this.nodePartMap.get(node.parent!)
 		let commandWrapped = node.parent ? !!this.commandWrappedMap.get(node.parent) : false
@@ -188,12 +188,14 @@ export class CSSTokenTree extends CSSTokenNode {
 				joint,
 				group,
 				parentParts,
+				breaksSeparatorNesting,
 				node.defEnd,
 				commandWrapped,
 				node.commentToken?.text
 			)
 
 			yield part
+
 			this.nodePartMap.add(node, part)
 		}
 
@@ -228,7 +230,7 @@ export class CSSTokenTree extends CSSTokenNode {
 			)
 
 			if (match) {
-				yield new Part(PartType.CSSImportPath, match[1].text, match[1].start + node.token.start, node.defEnd)
+				yield new Part(PartType.CSSImportPath, match[1].text, match[1].start + node.token.start)
 			}
 		}
 
@@ -241,8 +243,12 @@ export class CSSTokenTree extends CSSTokenNode {
 			)
 
 			if (selectorMatch) {
-				yield* this.parseSelectorString(selectorMatch[1].text, selectorMatch[1].start + node.token.start, node)
+				yield* this.parseSelectorString(selectorMatch[1].text, selectorMatch[1].start + node.token.start, node, true)
 			}
+		}
+
+		else if (commandName === 'keyframes') {
+			yield new Part(PartType.CSSImportPath, node.token.text, node.token.start, node.defEnd).trim()
 		}
 
 		this.commandWrappedMap.set(node, true)

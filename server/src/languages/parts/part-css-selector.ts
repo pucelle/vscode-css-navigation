@@ -13,14 +13,15 @@ export class CSSSelectorPart extends Part {
 		jointToken: CSSSelectorToken,
 		group: CSSSelectorToken[],
 		parents: CSSSelectorPart[] | undefined,
+		breaksSeparatorNesting: boolean,
 		definitionEnd: number,
 		commandWrapped: boolean,
 		comment: string | undefined
 	) {
-		let formatted = parseFormatted(jointToken, parents)
-		let {detailed, primary} = parseDetailedParts(group, parents, definitionEnd, commandWrapped)
+		let formatted = parseFormatted(jointToken, parents, breaksSeparatorNesting)
+		let {details, primary} = parseDetailedParts(group, parents, definitionEnd, commandWrapped)
 
-		return new CSSSelectorPart(jointToken.text, jointToken.start, definitionEnd, comment, formatted, detailed, primary)
+		return new CSSSelectorPart(jointToken.text, jointToken.start, definitionEnd, comment, formatted, details, primary)
 	}
 
 
@@ -97,13 +98,13 @@ export class CSSSelectorDetailedPart extends Part {
 
 
 /** Join parent selectors. */
-function parseFormatted(jointToken: CSSSelectorToken, parents: CSSSelectorPart[] | undefined): string[] {
-	return joinSelectorWithParent(jointToken, parents)
+function parseFormatted(jointToken: CSSSelectorToken, parents: CSSSelectorPart[] | undefined, breaksSeparatorNesting: boolean): string[] {
+	return joinSelectorWithParent(jointToken, parents, breaksSeparatorNesting)
 }
 
 
 /** Join parent selectors. */
-function joinSelectorWithParent(token: CSSSelectorToken, parents: CSSSelectorPart[] | undefined): string[] {
+function joinSelectorWithParent(token: CSSSelectorToken, parents: CSSSelectorPart[] | undefined, breaksSeparatorNesting: boolean): string[] {
 	let text = token.text
 	let re = /&/g
 
@@ -125,7 +126,7 @@ function joinSelectorWithParent(token: CSSSelectorToken, parents: CSSSelectorPar
 	}
 
 	// `a{b}` -> `a b`.
-	else {
+	else if (!breaksSeparatorNesting) {
 		let joint: string[] = []
 
 		for (let parent of parents) {
@@ -135,6 +136,11 @@ function joinSelectorWithParent(token: CSSSelectorToken, parents: CSSSelectorPar
 		}
 		
 		return joint
+	}
+
+	// `a{@at-root b}` -> `b`
+	else {
+		return [text]
 	}
 }
 
@@ -176,7 +182,7 @@ function parseDetailedParts(
 	parents: CSSSelectorPart[] | undefined,
 	definitionEnd: number,
 	commandWrapped: boolean
-): {detailed: CSSSelectorDetailedPart[], primary: CSSSelectorDetailedPart | null} {
+): {details: CSSSelectorDetailedPart[], primary: CSSSelectorDetailedPart | null} {
 	let detailedTokens = group.filter(item => item.type === CSSSelectorTokenType.Tag
 		|| item.type === CSSSelectorTokenType.Nesting
 		|| item.type === CSSSelectorTokenType.Class
@@ -205,7 +211,7 @@ function parseDetailedParts(
 		}
 	}
 
-	let detailed: CSSSelectorDetailedPart[] = []
+	let details: CSSSelectorDetailedPart[] = []
 	let primary: CSSSelectorDetailedPart | null = null
 	let independent = commandWrapped || group.length === 1
 
@@ -218,14 +224,14 @@ function parseDetailedParts(
 		let type = getDetailedPartType(token.type, formatted)
 		let part = new CSSSelectorDetailedPart(type, token.text, token.start, definitionEnd, formatted, independent)
 
-		detailed.push(part)
+		details.push(part)
 
 		if (token === primaryToken) {
 			primary = part
 		}
 	}
 
-	return {detailed, primary}
+	return {details, primary}
 }
 
 

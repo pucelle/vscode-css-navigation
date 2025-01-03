@@ -286,6 +286,16 @@ export class FileTracker {
 		}
 	}
 
+	/** Test whether specified uri mapped fs path is included in start path. */
+	isURIWithinStartPath(uri: string): boolean {
+		if (!this.startPath) {
+			return false
+		}
+
+		let filePath = URI.parse(uri).fsPath
+		return filePath.startsWith(this.startPath)
+	}
+
 	/** 
 	 * Track more file like directly imported file.
 	 * or should be excluded by exclude glob path.
@@ -318,7 +328,7 @@ export class FileTracker {
 	}
 
 	/** Track opened file from document, or update tracking, no matter files inside or outside workspace. */
-	private trackOpenedDocument(document: TextDocument) {
+	trackOpenedDocument(document: TextDocument) {
 		let uri = document.uri
 		let item = this.map.get(uri)
 

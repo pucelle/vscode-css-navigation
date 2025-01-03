@@ -49,6 +49,10 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async forceGetServiceByDocument(document: TextDocument): Promise<S> {
 		let uri = document.uri
 
+		if (!this.has(uri) && this.isURIWithinStartPath(uri)) {
+			this.trackOpenedDocument(document)
+		}
+
 		// Already included.
 		if (this.has(uri)) {
 			return this.get(uri) as Promise<S>
@@ -69,12 +73,8 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async forceGetServiceByURI(uri: string): Promise<S | null> {
 
 		// Path been included.
-		if (!this.has(uri) && this.startPath) {
-			let filePath = URI.parse(uri).fsPath
-
-			if (filePath.startsWith(this.startPath)) {
-				this.trackMoreFile(filePath)
-			}
+		if (!this.has(uri) && this.isURIWithinStartPath(uri)) {
+			this.trackMoreFile(URI.parse(uri).fsPath)
 		}
 
 		// Already included.
@@ -133,13 +133,13 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		return PartConvertor.toCompletionItems(fromPart, [...labelSet.values()], fromDocument)
 	}
 
-	async findReferences(fromPart: Part): Promise<Location[]> {
+	async findReferences(matchDefPart: Part, fromPart: Part): Promise<Location[]> {
 		await this.beFresh()
 		
 		let locations: Location[] = []
 
 		for (let htmlService of this.serviceMap.values()) {
-			locations.push(...htmlService.findReferences(fromPart))
+			locations.push(...htmlService.findReferences(matchDefPart, fromPart))
 		}
 
 		return locations

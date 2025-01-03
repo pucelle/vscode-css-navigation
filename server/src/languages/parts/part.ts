@@ -78,6 +78,9 @@ export enum PartType {
 	/** It includes identifier `.`. */
 	CSSSelectorClass,
 
+	/** @keyframes xxx. */
+	CSSKeyFrames,
+
 	/** `--variable-name: ...;` */
 	CSSVariableDeclaration,
 
@@ -140,6 +143,7 @@ export class Part {
 			|| this.type === PartType.CSSSelectorTag
 			|| this.type === PartType.CSSSelectorId
 			|| this.type === PartType.CSSSelectorClass
+			|| this.type === PartType.CSSKeyFrames
 			|| this.type === PartType.CSSVariableDeclaration
 	}
 
@@ -167,6 +171,7 @@ export class Part {
 			|| this.type === PartType.CSSSelectorTag
 			|| this.type === PartType.CSSSelectorId
 			|| this.type === PartType.CSSSelectorClass
+			|| this.type === PartType.CSSKeyFrames
 			|| this.type === PartType.ReactDefaultImportedCSSModuleClass
 			|| this.type === PartType.ReactImportedCSSModuleProperty
 	}

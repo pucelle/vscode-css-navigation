@@ -121,8 +121,7 @@ export abstract class BaseService {
 				continue
 			}
 
-			if (!PartComparer.isTextMatch(mayPrimary, matchDefPart)
-			) {
+			if (!PartComparer.isMayFormattedListMatch(mayPrimary, matchDefPart)) {
 				continue
 			}
 
@@ -211,9 +210,9 @@ export abstract class BaseService {
 	 * Find the reference locations in the HTML document from a class or id selector.
 	 * `matchDefPart` must have been converted to definition type.
 	 */
-	findReferences(matchDefPart: Part): Location[] {
+	findReferences(matchDefPart: Part, fromPart: Part): Location[] {
 		let locations: Location[] = []
-		let texts = PartComparer.mayFormatted(matchDefPart)
+		let texts = PartComparer.mayFormatted(fromPart)
 
 		for (let part of this.parts) {
 			for (let detail of PartComparer.mayDetails(part)) {

@@ -1,6 +1,6 @@
 import {Location} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
+import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor, PartType} from './languages'
 import {getPathExtension} from './helpers'
 
 
@@ -25,7 +25,7 @@ export async function findReferences(
 			return null
 		}
 
-		locations = await findReferencesInHTML(fromPart, currentHTMLService)
+		locations = await findReferencesInHTML(fromPart, currentHTMLService, htmlServiceMap, cssServiceMap)
 	}
 	else if (isCSSFile) {
 		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
@@ -45,18 +45,19 @@ export async function findReferences(
 /** In HTML files, or files that can include HTML codes. */
 async function findReferencesInHTML(
 	fromPart: Part,
-	currentService: HTMLService
+	_currentService: HTMLService,
+	htmlServiceMap: HTMLServiceMap,
+	cssServiceMap: CSSServiceMap
 ): Promise<Location[] | null> {
-	if (!fromPart.isDefinitionType()) {
-		return null
-	}
-
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 	let locations: Location[] = []
 
 
-	// Find HTML or CSS Variable references within current document.
-	if (fromPart.isCSSType()) {
-		locations.push(...currentService.findReferences(fromPart))
+	// Find CSS Selector and CSS Variable references within current document.
+	// Tag name cause too many references, so exclude.
+	if (fromPart.isCSSType() && fromPart.type !== PartType.Tag) {
+		locations.push(...await cssServiceMap.findReferences(matchPart, fromPart))
+		locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
 	}
 
 
@@ -71,24 +72,14 @@ async function findReferencesInCSS(
 	htmlServiceMap: HTMLServiceMap,
 	cssServiceMap: CSSServiceMap
 ): Promise<Location[] | null> {
-	if (!fromPart.isDefinitionType() && !fromPart.isCSSVariableType()) {
-		return null
-	}
-
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 	let locations: Location[] = []
 
 
-	// Find HTML references across all html documents.
-	if (fromPart.isSelectorType()) {
-		locations.push(...await htmlServiceMap.findReferences(fromPart))
-	}
-
-	// Find CSS Variable references across all css documents.
-	// Note it doesn't search HTML embedded css codes.
-	// Otherwise css variable reference can also search reference.
-	else if (fromPart.isCSSVariableType()) {
-		let defPart = PartConvertor.toDefinitionMode(fromPart)
-		locations.push(...await cssServiceMap.findReferences(defPart))
+	// Find CSS Selector and CSS Variable references within current document.
+	if (fromPart.isCSSType()) {
+		locations.push(...await cssServiceMap.findReferences(matchPart, fromPart))
+		locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
 	}
 
 
