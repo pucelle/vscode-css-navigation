@@ -114,7 +114,9 @@ async function getSymbolNamesAtPosition(position: vscode.Position, document: vsc
 	let symbolNames = []
 
 	for (let location of locations) {
-		symbolNames.push(await getCodePieceFromLocation(location))
+		if (location && location.range) {
+			symbolNames.push(await getCodePieceFromLocation(location))
+		}
 	}
 
 	return symbolNames
@@ -152,7 +154,7 @@ export async function searchReferences(searchWord: string, document: vscode.Text
 	let namesOutOfEnd = await getReferenceNamesAtPosition(ranges.out.end, document)
 
 	assert.ok(namesOutOfStart.length === 0, `Can't find reference from out of left range`)
-	assert.ok(namesOutOfEnd.length === 0, `Can't find reference from out of left range`)
+	assert.ok(namesOutOfEnd.length === 0, `Can't find reference from out of right range`)
 
 	return namesOfStart
 }
@@ -194,9 +196,7 @@ async function getReferenceNamesAtPosition(position: vscode.Position, document: 
 	for (let location of locations) {
 		if (location.uri.toString().endsWith('.html')) {
 			let codePiece = await getCodePieceFromLocation(location)
-			if (codePiece.startsWith('<')) {
-				referenceNames.push(codePiece)
-			}
+			referenceNames.push(codePiece)
 		}
 	}
 

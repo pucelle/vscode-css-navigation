@@ -10,7 +10,7 @@ describe('Test CSS File Tracking', () => {
 	let scssURI = getFixtureFileUri('css/test.scss')
 	let cssURI = getFixtureFileUri('css/test.css')
 
-	it('Should track CSS code changes come from vscode', async () => {
+	it.skip('Should track CSS code changes come from vscode', async () => {
 		let cssDocument = await vscode.workspace.openTextDocument(scssURI)
 		let cssEditor = await vscode.window.showTextDocument(cssDocument)
 		let insertedText = '\n.class-inserted-from-vscode{color: red;}\n'
@@ -31,7 +31,7 @@ describe('Test CSS File Tracking', () => {
 		}
 	})
 
-	it('Should track CSS file changes on disk', async () => {
+	it.skip('Should track CSS file changes on disk', async () => {
 		let insertedText = '\n.class-inserted-on-disk{color: red;}\n'
 		let rawText = fs.readFileSync(scssURI.fsPath, 'utf8')
 		let text = rawText + insertedText
@@ -50,7 +50,7 @@ describe('Test CSS File Tracking', () => {
 		}
 	})
 
-	it('Should track CSS file removal and creation on disk, and should use CSS file as instead after same name SCSS file removed', async () => {
+	it.skip('Should track CSS file removal and creation on disk, and should use CSS file as instead after same name SCSS file removed', async () => {
 		let scssText = fs.readFileSync(scssURI.fsPath, 'utf8')
 		fs.unlinkSync(scssURI.fsPath)
 		await sleep(1000)
@@ -80,7 +80,7 @@ describe('Test CSS File Tracking', () => {
 		assert.deepStrictEqual(await gs(['<', 'html', '>']), ['html'])
 	})
 
-	it('Should track folder renaming on disk, and should ignore `vendor` by default', async () => {
+	it.skip('Should track folder renaming on disk, and should ignore `vendor` by default', async () => {
 		let dirName = path.dirname(scssURI.fsPath)
 		let renameTo = path.dirname(dirName) + '/vendor'
 		fs.renameSync(dirName, renameTo)

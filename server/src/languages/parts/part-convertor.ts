@@ -1,10 +1,11 @@
 import {CompletionItem, CompletionItemKind, Hover, Location, LocationLink, MarkupKind, Range, SymbolInformation, SymbolKind, TextEdit} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {escapeAsRegExpSource} from './utils'
+import {escapeAsRegExpSource} from '../trees/utils'
 import {Part, PartType} from './part'
 import {CSSSelectorPart} from './part-css-selector'
-import {CSSTokenTree} from './css-tree'
-import {CSSTokenNodeType} from './css-node'
+import {CSSTokenTree} from '../trees/css-tree'
+import {CSSTokenNodeType} from '../trees/css-node'
+import {PartComparer} from './part-comparer'
 
 
 /** Help to convert part type and text. */
@@ -140,6 +141,19 @@ export namespace PartConvertor {
 		return type
 	}
 
+		
+	/** 
+	 * Transform a part to definition type, normally use it for definition matching.
+	 * This is only one definition type mapped to several reference types,
+	 * so can transform to definition mode to make comparing faster.
+	 */
+	export function toDefinitionMode(part: Part): Part {
+		let type = PartConvertor.typeToDefinition(part.type)
+		let text = PartConvertor.textToType(part.text, part.type, type)
+
+		return new Part(type, text, -1, -1)
+	}
+
 
 
 	/** Get a range from its related document. */
@@ -160,16 +174,6 @@ export namespace PartConvertor {
 		return LocationLink.create(document.uri, definitionRange, selectionRange, fromRange)
 	}
 
-	/** To a location link for going to definition. */
-	export function mayPrimaryToLocationLink(part: Part, document: TextDocument, fromPart: Part, fromDocument: TextDocument) {
-		if (part.type === PartType.CSSSelector && (part as CSSSelectorPart).primary) {
-			return toLocationLink((part as CSSSelectorPart).primary!, document, fromPart, fromDocument)
-		}
-		else {
-			return toLocationLink(part, document, fromPart, fromDocument)
-		}
-	}
-
 	/** To a location for finding references. */
 	export function toLocation(part: Part, document: TextDocument) {
 		return Location.create(document.uri, toRange(part, document))
@@ -184,7 +188,9 @@ export namespace PartConvertor {
 				? SymbolKind.Class
 				: SymbolKind.Variable
 
-		return part.textList.map(text => SymbolInformation.create(
+		let textList = PartComparer.mayFormatted(part)
+
+		return textList.map(text => SymbolInformation.create(
 			text,
 			kind,
 			toRange(part, document),

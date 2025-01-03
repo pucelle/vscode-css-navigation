@@ -1,5 +1,5 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartType} from './languages'
+import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor, PartType} from './languages'
 import {CompletionItem} from 'vscode-languageserver'
 import {getPathExtension} from './helpers'
 
@@ -60,7 +60,7 @@ async function getCompletionItemsInHTML(
 
 
 	// `#i` -> `i` to do completion is not working.
-	let matchPart = fromPart.toDefinitionMode()
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 	let items: CompletionItem[] = []
 
 	// Complete html element class name.
@@ -91,7 +91,7 @@ async function getCompletionItemsInCSS(
 	htmlServiceMap: HTMLServiceMap,
 	cssServiceMap: CSSServiceMap
 ): Promise<CompletionItem[] | null> {
-	let matchPart = fromPart.toDefinitionMode()
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 	let items: CompletionItem[] = []
 
 

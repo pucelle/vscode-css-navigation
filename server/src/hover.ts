@@ -1,6 +1,6 @@
 import {Hover} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part} from './languages'
+import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
 import {getPathExtension} from './helpers'
 
 
@@ -49,7 +49,7 @@ async function findHoverInHTML(
 	document: TextDocument,
 	configuration: Configuration
 ): Promise<Hover | null> {
-	let matchPart = fromPart.toDefinitionMode()
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 
 
 	// Find within current document.
@@ -84,7 +84,7 @@ async function findHoverInCSS(
 		return null
 	}
 
-	let matchPart = fromPart.toDefinitionMode()
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 
 
 	// Find within current document.

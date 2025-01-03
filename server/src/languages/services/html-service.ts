@@ -1,5 +1,6 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {HTMLTokenTree, Part, PartConvertor} from '../trees'
+import {HTMLTokenTree} from '../trees'
+import {Part, PartComparer, PartConvertor} from '../parts'
 import {BaseService} from './base-service'
 import {CompletionItem} from 'vscode-languageserver'
 
@@ -25,19 +26,21 @@ export class HTMLService extends BaseService {
 	getReferencedCompletionLabels(fromPart: Part): string[] {
 		let labelSet: Set<string> = new Set()
 		let re = PartConvertor.makeMayIdentifierStartsMatchExp(fromPart.text, fromPart.type)
-		let definitionPart = fromPart.toDefinitionMode()
+		let definitionPart = PartConvertor.toDefinitionMode(fromPart)
 
 		for (let part of this.parts) {
-			if (!part.isTypeMatchAsReference(definitionPart)) {
-				continue
-			}
+			for (let detail of PartComparer.mayDetails(part)) {
+				if (!PartComparer.isReferenceTypeMatch(detail, definitionPart)) {
+					continue
+				}
 
-			if (!part.isTextExpMatch(re)) {
-				continue
-			}
+				if (!PartComparer.isMayFormattedListExpMatch(detail, re)) {
+					continue
+				}
 
-			for (let text of part.textList) {
-				labelSet.add(PartConvertor.textToType(text, part.type, fromPart.type))
+				for (let text of PartComparer.mayFormatted(part)) {
+					labelSet.add(PartConvertor.textToType(text, part.type, fromPart.type))
+				}
 			}
 		}
 

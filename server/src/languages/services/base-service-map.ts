@@ -1,7 +1,7 @@
 import {SymbolInformation, LocationLink, CompletionItem, Hover, Location} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {FileTracker} from '../../helpers'
-import {Part, PartConvertor} from '../trees'
+import {Part, PartConvertor} from '../parts'
 import {BaseService} from './base-service'
 import {URI} from 'vscode-uri'
 

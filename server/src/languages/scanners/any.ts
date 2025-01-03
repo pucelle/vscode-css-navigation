@@ -50,6 +50,22 @@ export class AnyTokenScanner<T extends number> {
 	}
 
 	/** 
+	 * Peek chars from current offset until expression.
+	 * Will not move offset.
+	 */
+	protected peekUntil(re: RegExp): string {
+		re.lastIndex = this.offset
+		let m = re.exec(this.string)
+
+		if (m) {
+			return this.string.slice(this.offset, m.index)
+		}
+		else {
+			return ''
+		}
+	}
+
+	/** 
 	 * It moves `offset` to before match.
 	 * Note the `re` must have `g` flag set.
 	 */

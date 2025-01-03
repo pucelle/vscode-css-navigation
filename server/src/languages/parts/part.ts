@@ -1,5 +1,5 @@
-import {PartConvertor} from './part-convertor'
-import {hasQuotes} from './utils'
+import {hasQuotes} from '../trees/utils'
+import {CSSSelectorDetailedPart, CSSSelectorPart} from './part-css-selector'
 
 
 /** Part types. */
@@ -120,19 +120,6 @@ export class Part {
 		return this.start + this.text.length
 	}
 
-	/** Returns text or content as list. */
-	get textList(): string[] {
-		return [this.text]
-	}
-
-	/** 
-	 * If is `CSSSelectorPart`, returns primary text list.
-	 * Otherwise returns current text list.
-	 */
-	get mayPrimaryTextList(): string[] {
-		return [this.text]
-	}
-
 	isHTMLType() {
 		return this.type < PartType.CSSSelector
 			&& this.type >= PartType.Tag
@@ -184,6 +171,17 @@ export class Part {
 			|| this.type === PartType.ReactImportedCSSModuleProperty
 	}
 
+	hasFormattedList(): this is CSSSelectorPart | CSSSelectorDetailedPart {
+		return this.type === PartType.CSSSelector
+			|| this.type === PartType.CSSSelectorTag
+			|| this.type === PartType.CSSSelectorId
+			|| this.type === PartType.CSSSelectorClass
+	}
+
+	hasDetailedList(): this is CSSSelectorPart {
+		return this.type === PartType.CSSSelector
+	}
+
 	/** `"ab"` => `ab`. */
 	removeQuotes(): Part {
 		let text = this.text
@@ -222,79 +220,6 @@ export class Part {
 		else {
 			return this
 		}
-	}
-
-	/** Transform to definition type, normally use it for matching. */
-	toDefinitionMode() {
-		let type = PartConvertor.typeToDefinition(this.type)
-		let text = PartConvertor.textToType(this.text, this.type, type)
-
-		return new Part(type, text, -1, -1)
-	}
-
-	/** 
-	 * Whether typeof current HTML reference part matches type of a CSS definition part.
-	 * Use it for finding references and do class name completions for a css document.
-	 */
-	isTypeMatchAsReference(definitionPart: Part): boolean {
-		return this.isReferenceType()
-			&& PartConvertor.typeToDefinition(this.type) === definitionPart.type
-	}
-
-	/** 
-	 * Whether current HTML reference part matches a CSS definition part.
-	 * Use it for finding references.
-	 */
-	isMatchAsReference(definitionPart: Part): boolean {
-		return this.isTypeMatchAsReference(definitionPart)
-			&& PartConvertor.textToType(this.text, this.type, definitionPart.type) === definitionPart.text
-	}
-
-	/** Whether part type matches another part. */
-	isTypeMatch(matchPart: Part): boolean {
-		return this.type === matchPart.type
-	}
-
-	/** 
-	 * Whether part is totally match another part,
-	 * means both type and text match.
-	 * Use it for finding definition and hover.
-	 */
-	isMatch(matchPart: Part): boolean {
-		return this.isTypeMatch(matchPart)
-			&& this.text === matchPart.text
-	}
-
-	/** 
-	 * Whether part text is wild match an regexp.
-	 * Use it for finding workspace symbol.
-	 */
-	isTextExpMatch(re: RegExp): boolean {
-		return re.test(this.text)
-	}
-
-	/** 
-	 * If is `CSSSelectorPart`, do primary type match.
-	 * Otherwise do normal type match.
-	 */
-	isMayPrimaryTypeMatch(matchPart: Part): boolean {
-		return this.isTypeMatch(matchPart)
-	}
-
-	/** 
-	 * If is `CSSSelectorPart`, do primary match.
-	 * Otherwise do normal match.
-	 */
-	isMayPrimaryMatch(matchPart: Part): boolean {
-		return this.isMatch(matchPart)
-	}
-
-	/** 
-	 * If is `CSSSelectorPart`, do primary text exp match.
-	 * Otherwise do normal text exp match.
-	 */
-	isMayPrimaryTextExpMatch(re: RegExp): boolean {
-		return this.isTextExpMatch(re)
 	}
 }
 

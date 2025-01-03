@@ -1,6 +1,6 @@
 import {Location, LocationLink} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, ModuleResolver, Part, PartType, PathResolver} from './languages'
+import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, ModuleResolver, Part, PartConvertor, PartType, PathResolver} from './languages'
 import {getPathExtension} from './helpers'
 import {getLongestCommonSubsequenceLength} from './utils'
 
@@ -69,7 +69,7 @@ async function findDefinitionsInHTML(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<LocationLink[] | null> {
-	let matchPart = fromPart.toDefinitionMode()
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 	let locations: LocationLink[] = []
 
 
@@ -201,7 +201,7 @@ async function findDefinitionsInCSS(
 	}
 
 
-	let matchPart = fromPart.toDefinitionMode()
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 	let locations: LocationLink[] = []
 
 

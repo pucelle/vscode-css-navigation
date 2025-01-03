@@ -1,9 +1,8 @@
 import {SymbolInformation, LocationLink, Location, CompletionItem, Hover} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PathResolver} from '../resolver'
-import {Part, PartConvertor, PartType} from '../trees'
+import {Part, PartConvertor, PartType, CSSSelectorPart, PartComparer} from '../parts'
 import {quickBinaryFind, quickBinaryFindIndex} from '../utils'
-import {CSSSelectorPart} from '../trees'
 
 
 /** Base of HTML or CSS service for one file. */
@@ -32,8 +31,8 @@ export abstract class BaseService {
 				continue
 			}
 
-			// Must be a relative path.
-			if (!part.text.startsWith('.')) {
+			// Must have no protocol.
+			if (/^\w+:/.test(part.text)) {
 				continue
 			}
 
@@ -65,36 +64,14 @@ export abstract class BaseService {
 
 	/** 
 	 * Find a part at specified offset.
-	 * Note it may return a selector primary part,
-	 * and returns css selector part if no primary or primary not match.
-	 */
-	findMayPrimaryPartAt(offset: number) {
-		let part = this.findPartAt(offset)
-
-		// Returns detail if in range.
-		if (part && part.type === PartType.CSSSelector) {
-			let detail = (part as CSSSelectorPart).primary
-			if (detail
-				&& detail.start <= offset
-				&& detail.end >= offset
-			) {
-				return detail
-			}
-		}
-
-		return part
-	}
-
-	/** 
-	 * Find a part at specified offset.
 	 * Note if match a css selector part, it may return a selector detail part.
 	 */
-	findDetailedPartAt(offset: number) {
+	findDetailedPartAt(offset: number): Part | undefined {
 		let part = this.findPartAt(offset)
 
 		// Returns detail if in range.
 		if (part && part.type === PartType.CSSSelector) {
-			let detailed = (part as CSSSelectorPart).detailed
+			let detailed = (part as CSSSelectorPart).details
 
 			for (let detail of detailed) {
 				if (detail
@@ -112,10 +89,10 @@ export abstract class BaseService {
 	}
 
 	/** 
-	 * Find part before.
+	 * Find previous sibling part before current.
 	 * Not it will not look up detailed parts.
 	 */
-	findPreviousPart(part: Part) {
+	findPreviousPart(part: Part): Part | null {
 		let partIndex = quickBinaryFindIndex(this.parts, p => {
 			return p.start - part.start
 		})
@@ -127,23 +104,36 @@ export abstract class BaseService {
 		return this.parts[partIndex - 1]
 	}
 
-	/** Find definitions match part. */
-	findDefinitions(matchPart: Part, fromPart: Part, fromDocument: TextDocument): LocationLink[] {
+	/** 
+	 * Find definitions match part.
+	 * `matchDefPart` must have been converted to definition type.
+	 */
+	findDefinitions(matchDefPart: Part, fromPart: Part, fromDocument: TextDocument): LocationLink[] {
 		let locations: LocationLink[] = []
 
 		for (let part of this.parts) {
-			if (!part.isMayPrimaryMatch(matchPart)) {
+			let mayPrimary = PartComparer.mayPrimary(part)
+			if (!mayPrimary) {
 				continue
 			}
 
-			// `.a{&:hover}`, `&` not match `.a` because it reference parent totally.
-			if (part.type === PartType.CSSSelector
-				&& (part as CSSSelectorPart).primary!.text === '&'
+			if (!PartComparer.isTypeMatch(mayPrimary, matchDefPart)) {
+				continue
+			}
+
+			if (!PartComparer.isTextMatch(mayPrimary, matchDefPart)
 			) {
 				continue
 			}
 
-			locations.push(PartConvertor.mayPrimaryToLocationLink(part, this.document, fromPart, fromDocument))
+			// `.a{&:hover}`, `&` not match `.a` because it reference parent totally.
+			if (mayPrimary.type === PartType.CSSSelector
+				&& (mayPrimary as CSSSelectorPart).primary!.text === '&'
+			) {
+				continue
+			}
+
+			locations.push(PartConvertor.toLocationLink(mayPrimary, this.document, fromPart, fromDocument))
 		}
 
 		return locations
@@ -163,7 +153,9 @@ export abstract class BaseService {
 		let re = PartConvertor.makeWordStartsMatchExp(query)
 
 		for (let part of this.parts) {
-			if (!part.isTextExpMatch(re)) {
+
+			// Match text list with regexp.
+			if (!PartComparer.isMayFormattedListExpMatch(part, re)) {
 				continue
 			}
 
@@ -173,22 +165,32 @@ export abstract class BaseService {
 		return symbols
 	}
 	
-	/** Get completion labels match part. */
+	/** 
+	 * Get completion labels match part.
+	 * `matchDefPart` must have been converted to definition type.
+	 */
 	getCompletionLabels(matchPart: Part, fromPart: Part): string[] {
 		let labelSet: Set<string> = new Set()
 		let re = PartConvertor.makeStartsMatchExp(matchPart.text)
 
 		for (let part of this.parts) {
-			if (!part.isMayPrimaryTypeMatch(matchPart)) {
+
+			// Completion use primary selector.
+			let mayPrimary = PartComparer.mayPrimary(part)
+			if (!mayPrimary) {
 				continue
 			}
 
-			if (!part.isMayPrimaryTextExpMatch(re)) {
+			if (!PartComparer.isTypeMatch(mayPrimary, matchPart)) {
+				continue
+			}
+
+			if (!PartComparer.isMayFormattedListExpMatch(mayPrimary, re)) {
 				continue
 			}
 
 			// Convert text from current type to original type.
-			for (let text of part.mayPrimaryTextList) {
+			for (let text of PartComparer.mayFormatted(mayPrimary)) {
 				labelSet.add(PartConvertor.textToType(text, matchPart.type, fromPart.type))
 			}
 		}
@@ -205,16 +207,26 @@ export abstract class BaseService {
 		return PartConvertor.toCompletionItems(fromPart, labels, fromDocument)
 	}
 
-	/** Find the reference locations in the HTML document from a class or id selector. */
-	findReferences(fromPart: Part): Location[] {
+	/** 
+	 * Find the reference locations in the HTML document from a class or id selector.
+	 * `matchDefPart` must have been converted to definition type.
+	 */
+	findReferences(matchDefPart: Part): Location[] {
 		let locations: Location[] = []
+		let texts = PartComparer.mayFormatted(matchDefPart)
 
 		for (let part of this.parts) {
-			if (!part.isMatchAsReference(fromPart)) {
-				continue
-			}
+			for (let detail of PartComparer.mayDetails(part)) {
+				if (!PartComparer.isReferenceTypeMatch(detail, matchDefPart)) {
+					continue
+				}
 
-			locations.push(PartConvertor.toLocation(part, this.document))
+				if (!PartComparer.isReferenceTextMatch(detail, matchDefPart.type, texts)) {
+					continue
+				}
+
+				locations.push(PartConvertor.toLocation(detail, this.document))
+			}
 		}
 
 		return locations

@@ -93,7 +93,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	/** Parse html string to tokens. */
 	*parseToTokens(start: number = 0): Iterable<HTMLToken> {
 		this.start = this.offset = start
-		let mustMatchTagName: string | null = null
+		let endTagNameMustMatch: string | null = null
 
 		while (this.state !== ScanState.EOF) {
 			if (this.state === ScanState.AnyContent) {
@@ -193,7 +193,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 				yield this.makeToken(HTMLTokenType.StartTagName)
 
 				if (lowerTagName === 'script' || lowerTagName === 'style') {
-					mustMatchTagName = lowerTagName
+					endTagNameMustMatch = lowerTagName
 				}
 
 				this.state = ScanState.AfterStartTag
@@ -210,11 +210,11 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 				let lowerTagName = tagName.toLowerCase()
 
 				// Must end when `</style>` or `</script>`
-				if (mustMatchTagName && lowerTagName !== mustMatchTagName) {
+				if (endTagNameMustMatch && lowerTagName !== endTagNameMustMatch) {
 					this.state = ScanState.AnyContent
 				}
 				else {
-					mustMatchTagName = null
+					endTagNameMustMatch = null
 
 					// This token may be empty.
 					yield this.makeToken(HTMLTokenType.EndTagName)
@@ -238,7 +238,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 
 				// If meet another tag start, use the late one.
 				// For js codes like `if (a<b){<div>}`.
-				if (char === '<' && this.isJSLikeSyntax && isAttrName(this.peekChar(1))) {
+				if (char === '<' && this.isJSLikeSyntax && isAttrName(this.peekChar(1)) && !endTagNameMustMatch) {
 					yield* this.makeTextToken()
 
 					// Move to `<|a`

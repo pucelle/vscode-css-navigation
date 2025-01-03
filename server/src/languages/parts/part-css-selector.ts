@@ -34,7 +34,7 @@ export class CSSSelectorPart extends Part {
 	readonly formatted: string[]
 
 	/** Detailed parts, use it for completion */
-	readonly detailed: CSSSelectorDetailedPart[]
+	readonly details: CSSSelectorDetailedPart[]
 
 	/** Primary parts can be used for definition searching. */
 	readonly primary: CSSSelectorDetailedPart | null
@@ -45,61 +45,19 @@ export class CSSSelectorPart extends Part {
 		defEnd: number,
 		comment: string | undefined,
 		formatted: string[],
-		detailed: CSSSelectorDetailedPart[],
+		details: CSSSelectorDetailedPart[],
 		primary: CSSSelectorDetailedPart | null
 	) {
 		super(PartType.CSSSelector, text, start, defEnd)
 
 		this.comment = comment
 		this.formatted = formatted
-		this.detailed = detailed
+		this.details = details
 		this.primary = primary
 	}
 
 	get textList(): string[] {
 		return this.formatted
-	}
-
-	get mayPrimaryTextList(): string[] {
-		if (this.primary) {
-			return this.primary.textList
-		}
-		else {
-			return this.textList
-		}
-	}
-
-	isMatch(matchPart: Part): boolean {
-		return this.isTypeMatch(matchPart)
-			&& this.formatted.some(text => text === matchPart.text)
-	}
-
-	isTextExpMatch(re: RegExp): boolean {
-		return this.formatted.some(text => re.test(text))
-	}
-
-	isMayPrimaryTypeMatch(matchPart: Part): boolean {
-		if (!this.primary) {
-			return false
-		}
-
-		return this.primary.isTypeMatch(matchPart)
-	}
-
-	isMayPrimaryMatch(matchPart: Part): boolean {
-		if (!this.primary) {
-			return false
-		}
-
-		return this.primary.isMatch(matchPart)
-	}
-
-	isMayPrimaryTextExpMatch(re: RegExp): boolean {
-		if (!this.primary) {
-			return false
-		}
-
-		return this.primary.isTextExpMatch(re)
 	}
 }
 
@@ -125,10 +83,6 @@ export class CSSSelectorDetailedPart extends Part {
 		super(type, text, start, definitionEnd)
 		this.independent = independent
 		this.formatted = formatted
-	}
-
-	get textList(): string[] {
-		return this.formatted
 	}
 
 	isMatch(matchPart: Part) {

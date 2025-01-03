@@ -145,17 +145,25 @@ div.class-match10{
 	}
 }
 
+.class-use-variable {
+	color: var(--css-variable-name);
+}
+
+.match-jquery-selector{
+	color: red;
+}
+
+.match-querySelector{
+	color: red;
+}
+
+.match-querySelectorAll{
+	color: red;
+}
+
 
 .test-vue-import-class{
 	color: red;
-}
-
-.c-footer-logo{
-	color: red;
-}
-
-.scss-class-use-variable {
-	color: var(--css-variable-name);
 }
 
 /* Here is Class Description. */

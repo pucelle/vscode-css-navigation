@@ -1,5 +1,5 @@
 import {AnyToken} from '../scanners'
-import {Part} from './part'
+import {Part} from '../parts/part'
 
 
 /** Build a simple tree by tokens. */

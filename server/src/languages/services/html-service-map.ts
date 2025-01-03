@@ -1,7 +1,7 @@
 import {HTMLService} from './html-service'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {BaseServiceMap} from './base-service-map'
-import {Part, PartConvertor} from '../trees'
+import {Part, PartConvertor} from '../parts'
 import {CompletionItem} from 'vscode-languageserver'
 
 

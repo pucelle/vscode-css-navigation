@@ -1,7 +1,7 @@
 import {CSSSelectorTokenScanner, CSSToken, CSSTokenScanner, CSSTokenType, SassIndentedTokenScanner} from '../scanners'
 import {CSSTokenNode, CSSTokenNodeType} from './css-node'
-import {Part, PartType} from './part'
-import {CSSSelectorPart} from './part-css-selector'
+import {Part, PartType} from '../parts'
+import {CSSSelectorPart} from '../parts'
 import {Picker} from './picker'
 import {joinTokens, ListMap} from './utils'
 

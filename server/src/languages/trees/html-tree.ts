@@ -1,5 +1,5 @@
 import {HTMLToken, HTMLTokenScanner, HTMLTokenType} from '../scanners/html'
-import {Part, PartType} from './part'
+import {Part, PartType} from '../parts'
 import {mayBeExpression} from './utils'
 import {Picker} from './picker'
 import {isCSSLikePath} from '../../helpers'

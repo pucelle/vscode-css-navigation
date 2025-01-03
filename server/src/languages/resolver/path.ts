@@ -4,7 +4,7 @@ import {URI} from 'vscode-uri'
 import * as path from 'path'
 import * as fs from 'fs-extra'
 import {getPathExtension} from '../../helpers'
-import {Part, PartConvertor} from '../trees'
+import {Part, PartConvertor} from '../parts'
 
 
 export namespace PathResolver {

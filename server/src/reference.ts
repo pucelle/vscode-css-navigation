@@ -1,6 +1,6 @@
 import {Location} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part} from './languages'
+import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
 import {getPathExtension} from './helpers'
 
 
@@ -87,7 +87,8 @@ async function findReferencesInCSS(
 	// Note it doesn't search HTML embedded css codes.
 	// Otherwise css variable reference can also search reference.
 	else if (fromPart.isCSSVariableType()) {
-		locations.push(...await cssServiceMap.findReferences(fromPart.toDefinitionMode()))
+		let defPart = PartConvertor.toDefinitionMode(fromPart)
+		locations.push(...await cssServiceMap.findReferences(defPart))
 	}
 
 
