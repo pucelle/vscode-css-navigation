@@ -13,14 +13,21 @@ export class CSSTokenTree extends CSSTokenNode {
 		let tree = new CSSTokenTree(string, languageId !== 'css')
 		let current: CSSTokenNode = tree
 		let latestComment: CSSToken | null = null
-		let latestTokens: CSSToken[] = []
+		let notDetermined: CSSToken[] = []
 
-		function makeCommandOrSelector() {
-			let joint = joinTokens(latestTokens, string)
+		function parseNotDetermined(mayBeSelector: boolean) {
+			let joint = joinTokens(notDetermined, string)
 
 			if (isCommandToken(joint)) {
 				current.children!.push(new CSSTokenNode(CSSTokenNodeType.Command, joint, current))
 			}
+
+			// Especially when inputting like `a{b|}`.
+			else if (mayBeSelector && !joint.text.includes(':')) {
+				current.children!.push(new CSSTokenNode(CSSTokenNodeType.Selector, joint, current))
+			}
+
+			// Otherwise parse as property.
 			else {
 				let o = splitPropertyTokens(joint)
 				if (o) {
@@ -33,42 +40,42 @@ export class CSSTokenTree extends CSSTokenNode {
 				}
 			}
 
-			latestTokens = []
+			notDetermined = []
 			latestComment = null
 		}
 
 
 		for (let token of tokens) {
 			if (token.type === CSSTokenType.NotDetermined) {
-				latestTokens.push(token)
+				notDetermined.push(token)
 			}
 			else if (token.type === CSSTokenType.SassInterpolation) {
-				latestTokens.push(token)
+				notDetermined.push(token)
 			}
 
 			else if (token.type === CSSTokenType.SemiColon) {
-				if (latestTokens.length > 0) {
-					makeCommandOrSelector()
+				if (notDetermined.length > 0) {
+					parseNotDetermined(false)
 				}
 			}
 
 			else if (token.type === CSSTokenType.ClosureStart) {
-				if (latestTokens.length > 0) {
-					let joint = joinTokens(latestTokens, string)
+				if (notDetermined.length > 0) {
+					let joint = joinTokens(notDetermined, string)
 					let type = getSelectorLikeNodeType(joint, current)
 					let node: CSSTokenNode = new CSSTokenNode(type, joint, current, latestComment)
 
 					current.children!.push(node)
 					current = node
 
-					latestTokens = []
+					notDetermined = []
 					latestComment = null
 				}
 			}
 
 			else if (token.type === CSSTokenType.ClosureEnd) {
-				if (latestTokens.length > 0) {
-					makeCommandOrSelector()
+				if (notDetermined.length > 0) {
+					parseNotDetermined(true)
 				}
 
 				current.defEnd = token.end
@@ -76,15 +83,15 @@ export class CSSTokenTree extends CSSTokenNode {
 			}
 
 			else if (token.type === CSSTokenType.CommentText) {
-				if (latestTokens.length === 0) {
+				if (notDetermined.length === 0) {
 					latestComment = token
 				}
 			}
 		}
 
 		// Although has no `{` followed, still parse it as selector.
-		if (latestTokens.length > 0) {
-			makeCommandOrSelector()
+		if (notDetermined.length > 0) {
+			parseNotDetermined(true)
 		}
 
 		return tree

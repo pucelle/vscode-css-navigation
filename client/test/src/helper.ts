@@ -208,10 +208,10 @@ async function getReferenceNamesAtPosition(position: vscode.Position, document: 
 
 
 
-export async function searchCompletion (searchWord: string): Promise<string[] | null> {
-	let ranges = searchWordInDocument(searchWord, htmlDocument)
+export async function searchCompletion(searchWord: string, document: vscode.TextDocument = htmlDocument): Promise<string[] | null> {
+	let ranges = searchWordInDocument(searchWord, document)
 	if (!ranges) {
-		assert.fail(`Can't find "${searchWord}" in ${path.basename(htmlDocument.uri.toString())}`)
+		assert.fail(`Can't find "${searchWord}" in ${path.basename(document.uri.toString())}`)
 	}
 
 	let namesOfEnd = await getCompletionNamesAtPosition(ranges.in.end)

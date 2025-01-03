@@ -43,27 +43,27 @@ export namespace PartConvertor {
 
 
 	/** `ab` -> /^\.?ab/i. */
-	export function makeMayIdentifierStartsMatchExp(text: string, type: PartType): RegExp {
+	export function makeIdentifiedStartsMatchExp(texts: string[], type: PartType): RegExp {
 		if (type === PartType.Id
 			|| type === PartType.CSSSelectorId
 			|| type === PartType.CSSSelectorQueryId
 		) {
 			// Removes `#`
-			text = textToType(text, type, PartType.Id)
+			texts = texts.map(text => textToType(text, type, PartType.Id))
 
-			return new RegExp('^\\#?' + escapeAsRegExpSource(text), 'i')
+			return new RegExp('^\\#?(?:' + texts.map(text => escapeAsRegExpSource(text)).join('|') + ')', 'i')
 		}
 		else if (type === PartType.Class
 			|| type === PartType.CSSSelectorClass
 			|| type === PartType.CSSSelectorQueryClass
 		) {
 			// Removes `.`
-			text = textToType(text, type, PartType.Class)
+			texts = texts.map(text => textToType(text, type, PartType.Class))
 
-			return new RegExp('^\\.?' + escapeAsRegExpSource(text), 'i')
+			return new RegExp('^\\.?(?:' + texts.map(text => escapeAsRegExpSource(text)).join('|') + ')', 'i')
 		}
 		else {
-			return new RegExp('^' + escapeAsRegExpSource(text), 'i')
+			return new RegExp('^(?:' + texts.map(text => escapeAsRegExpSource(text)).join('|') + ')', 'i')
 		}
 	}
 
@@ -229,7 +229,7 @@ export namespace PartConvertor {
 
 	/** Part to hover. */
 	export function toHover(part: CSSSelectorPart, matchPart: Part, document: TextDocument, fromDocument: TextDocument, maxStylePropertyCount: number): Hover {
-		let comment = part.comment
+		let comment = part.comment?.trim()
 		let content = '```css\n' + matchPart.text + '{'
 
 		if (maxStylePropertyCount > 0) {
@@ -242,7 +242,7 @@ export namespace PartConvertor {
 		content += '}\n```'
 
 		if (comment) {
-			content += '\n' + comment.trim()
+			content += '\n' + comment
 		}
 
 		return {

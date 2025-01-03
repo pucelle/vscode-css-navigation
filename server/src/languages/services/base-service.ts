@@ -126,8 +126,8 @@ export abstract class BaseService {
 			}
 
 			// `.a{&:hover}`, `&` not match `.a` because it reference parent totally.
-			if (mayPrimary.type === PartType.CSSSelector
-				&& (mayPrimary as CSSSelectorPart).primary!.text === '&'
+			if (part.type === PartType.CSSSelector
+				&& mayPrimary.text === '&'
 			) {
 				continue
 			}
@@ -203,6 +203,46 @@ export abstract class BaseService {
 	/** Get completion items match part. */
 	getCompletionItems(matchPart: Part, fromPart: Part, fromDocument: TextDocument): CompletionItem[] {
 		let labels = this.getCompletionLabels(matchPart, fromPart)
+		return PartConvertor.toCompletionItems(fromPart, labels, fromDocument)
+	}
+
+	/** 
+	 * Get completion labels match part.
+	 * The difference with `getCompletionLabels` is that
+	 * `fromPart` is a definition part like class name selector,
+	 * but current parts are reference types of parts.
+	 */
+	getReferencedCompletionLabels(fromPart: Part): string[] {
+		let labelSet: Set<string> = new Set()
+		let re = PartConvertor.makeIdentifiedStartsMatchExp(PartComparer.mayFormatted(fromPart), fromPart.type)
+		let definitionPart = PartConvertor.toDefinitionMode(fromPart)
+
+		for (let part of this.parts) {
+			for (let detail of PartComparer.mayDetails(part)) {
+				if (!PartComparer.isReferenceTypeMatch(detail, definitionPart)) {
+					continue
+				}
+
+				if (!PartComparer.isMayFormattedListExpMatch(detail, re)) {
+					continue
+				}
+
+				for (let text of PartComparer.mayFormatted(part)) {
+
+					// Replace back from `a-b` to `&-b`.
+					labelSet.add(PartConvertor.textToType(text, part.type, fromPart.type).replace(re, fromPart.text))
+				}
+			}
+		}
+
+		return [...labelSet.values()]
+	}
+
+	/** Get completion items match part.
+	 * For mode details see `getReferencedCompletionLabels`.
+	 */
+	getReferencedCompletionItems(fromPart: Part, fromDocument: TextDocument): CompletionItem[] {
+		let labels = this.getReferencedCompletionLabels(fromPart)
 		return PartConvertor.toCompletionItems(fromPart, labels, fromDocument)
 	}
 
