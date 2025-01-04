@@ -116,11 +116,13 @@ I loaded 100 MB (0.9 M declarations, 2.8 M lines) CSS files for stress test, it 
 My environment is Win10, MacBook Pro 2014 version, with power on.
 
 
+
 ## Plans & More
 
-This plugin has simple and clean codes after version 2.0, I hope it can serve more Frontend developers.
+This plugin has simple and clean codes after version 2.0, I hope it can grow and serve more frontend developers.
 
-So please give me your feedback. Thanks.
+So please give your feedback, thanks.
+
 
 
 ## FAQ
@@ -129,7 +131,13 @@ So please give me your feedback. Thanks.
 
 No, VSCode always sort the definition results, seems in name order. If you don't like duplicate css definitions, you can remove the `css` in `activeCSSFileExtensions` option, or compile css file to the same folder, and keep `ignoreSameNameCSSFile` as `true`.
 
-From version 1.3.0 there is a `ignoreFilesBy` option, you may specify to ignore css files listed in your `.gitignore`.
+There is a `ignoreFilesBy` option, you may specify to ignore css files listed in your `.gitignore`.
+
+
+### I got only partial of all definitions
+
+Firstly this plugin will search definitions within current document and all imported files, if found, will stop searching; if nothing found, will search across whole workspace folder.
+
 
 ### Can't get definitions across all workspace folders
 
@@ -137,33 +145,19 @@ By default, definition searching is **limited in the same workspace folder**, th
 
 If you have more than one folders in your workspace, and you definitely need to find definitions across them, set `searchAcrossWorkspaceFolders` to `true`.
 
+
 ### Missed some workspace symbols
 
-Workspace symbols are always come from multiple workspace folders, but for each workspace folder, you need to open one HTML or CSS file to **activate** it, then it will return results belong to it.
+Workspace symbols are always come from multiple workspace folders, but for each workspace folder, you need to open at least one HTML or CSS file to **activate** it, then will return results belong to it.
 
 Set `searchAcrossWorkspaceFolders` to `true` will also activate services for all workspace folders as soon as possible, then you will get full workspace symbols always.
 
-### How the extension filter selectors?
 
-This extension only compare the last part of the selector, the parts are defined by splitting selector by space or several other characters like `>`, `+`, '~'.
+### How the extension find selectors?
 
-So when you are trying to find definitions for `class="class1"`, these selectors will match: `p .class1`, `p.class1`, `.class1.class2`, `.class2.class1`, `.class1:hover`.
+This extension only compare the last **class / id / tag** part of the selector.
 
-Searching tag definition is a little different, it must be the unique part of the selector, which means `p` will not match `div p`, but matches `p:hover`. This can prevent you got so many results.
-
-Searching completion works in the same way.
-
-Searching workspace symbols have a more strict rule than other extensions, which requires the start word boundary must match.
-
-### Many duplicate definitions got. Can you limit the results to only in files specified by `<link>` tags, or check parent nodes to ensure the whole selector match?
-
-It sounds like a good idea. For a complete static project, It should be very easy to follow `<link>` tags, matching whole selector is much harder, but it can also be done.
-
-But the Web architecture is extremely complex today, all you got in your hand may be just a piece of html codes, an unique class name, which cause we can't get enough information about the context.
-
-My suggestion is using unique class name, avoid nesting, which would be also helpful for the code quality of you project.
-
-If you prefer scoped style, and write html and css codes in the same file, searching definitions should be less important for you. But checking option `alsoSearchDefinitionsInStyleTag` will help you to search css definitions in the `<style>` inside your current document.
+So when you are trying to find definitions for `class="class1"`, these selectors will match: `p .class1`, `p.class1`,  `.class2.class1`, `.class1:hover`.
 
 
 ## License

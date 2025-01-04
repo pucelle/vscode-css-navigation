@@ -1,6 +1,6 @@
 import {Location} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor, PartType} from './languages'
+import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
 import {getPathExtension} from './helpers'
 
 
@@ -51,12 +51,6 @@ async function findReferencesInHTML(
 ): Promise<Location[] | null> {
 	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 	let locations: Location[] = []
-
-
-	// Tag name cause too many references, so exclude.
-	if (fromPart.type === PartType.Tag) {
-		return null
-	}
 
 
 	// Find CSS Selector and CSS Variable across all HTML & CSS documents.

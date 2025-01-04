@@ -210,6 +210,7 @@ async function findDefinitionsInCSS(
 		
 		// Find embedded style definitions or definitions from all imported css files, if any found, stop.
 		locations.push(...await findEmbeddedOrImported(currentService, matchPart, fromPart, document, cssServiceMap))
+		
 		if (locations.length > 0) {
 			return locations
 		}

@@ -1,5 +1,17 @@
 # ChangeLog
 
+
+## [2.0.0]
+
+- Upgrade to a new parsing core, same efficient, more stable, codes cleaner.
+- Supports class name hover action, thanks to `sduzair@github` from [#92](https://github.com/pucelle/vscode-css-navigation/issues/92).
+- Supports CSS Variable finding definition, completion and reference features.
+- Supports language features for selector like codes like jquery selector `$('.class-name')`, document query selector...
+- Now finding references can be started from HTML or CSS files, and will always find from both HTML and CSS files.
+- Options `alwaysIncludeImportedFiles` and `alsoSearchDefinitionsInStyleTag` were removed, these two features are always enabled.
+- Codes have got a big change, if you meet any problem with new version, please notify me at [https://github.com/pucelle/vscode-css-navigation/issues].
+
+
 ## [1.15.1]
 
 - Fix #93, will not miss sass nesting selectors when selector name contains interpolation `#{...}`.
