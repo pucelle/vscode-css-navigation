@@ -17,7 +17,7 @@ interface Configuration {
 	alwaysIncludeGlobPatterns: string[]
 
 	ignoreSameNameCSSFile: boolean
-	ignoreCustomElement: boolean
+	ignoreCustomAndComponentTagDefinition: boolean
 	ignoreFilesBy: string[]
 
 	maxHoverStylePropertyCount: number

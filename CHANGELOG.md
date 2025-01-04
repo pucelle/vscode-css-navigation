@@ -3,7 +3,7 @@
 
 ## [2.0.1]
 
-- Will skip searching definitions and references for component tag like `<ReactComponent>`. 
+- Rename `ignoreCustomElement` to `ignoreCustomAndComponentTagDefinition`, and it affects Component Tag like React Component.
 
 
 ## [2.0.0]

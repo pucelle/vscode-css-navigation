@@ -131,12 +131,13 @@ async function findDefinitionsInHTML(
 	}
 
 
-	// Is custom tag, and not available because wanting other plugin to provide it.
-	if (fromPart.type === PartType.Tag
-		&& fromPart.text.includes('-')
-		&& configuration.ignoreCustomElement
-	) {
-		return null
+	// If custom tag or component tag, and should ignore.
+	if (fromPart.type === PartType.Tag) {
+		if (configuration.ignoreCustomAndComponentTagDefinition &&
+			(fromPart.text.includes('-') || /^[A-Z]/.test(fromPart.text))
+		) {
+			return null
+		}
 	}
 
 	

@@ -122,16 +122,6 @@
 					},
 					"description": "A glob pattern, which always use `/` as a path separator, files match will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`, or out of workspace directory. Stronly suggest you specifies the full start path, or absolute path for the pattern, but not start with `**/`."
 				},
-				"CSSNavigation.alwaysIncludeImportedFiles": {
-					"type": "boolean",
-					"default": true,
-					"description": "When `true` by default, will always include files specified by `@import ...`, `<link rel=stylesheet href=...>` or `<style src=...>`(only for Vue syntax), although they should be excluded aspect to `excludeGlobPatterns` option or `.gitignore` file."
-				},
-				"CSSNavigation.alsoSearchDefinitionsInStyleTag": {
-					"type": "boolean",
-					"default": true,
-					"description": "When `true` by default, will also search CSS definitions in <style> tag for current document."
-				},
 				"CSSNavigation.searchAcrossWorkspaceFolders": {
 					"type": "boolean",
 					"default": false,
@@ -142,10 +132,10 @@
 					"default": true,
 					"description": "When `true` by default, e.g.: If `the-name.scss and `the-name.css` exist in a same folder, the `the-name.css` will be skipped. If you prefer compiling Scss or Less file to the same name CSS file, this would be very helpful."
 				},
-				"CSSNavigation.ignoreCustomElement": {
+				"CSSNavigation.ignoreCustomAndComponentTagDefinition": {
 					"type": "boolean",
 					"default": true,
-					"description": "When `true` by default, custom element definitions in CSS will be ignored, such that it will go to it's defined place directly."
+					"description": "When `true` by default, Custom-Element or Component tag (like React Component) definition going from HTML to CSS will be ignored, such that it goes to it's custom-element or component definition place directly which has implemented by other plugins."
 				},
 				"CSSNavigation.ignoreFilesBy": {
 					"type": "array",

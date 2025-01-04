@@ -1,5 +1,5 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor, PartType} from './languages'
+import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
 import {CompletionItem} from 'vscode-languageserver'
 import {getPathExtension} from './helpers'
 
@@ -24,7 +24,7 @@ export async function getCompletionItems(
 			return null
 		}
 
-		return await getCompletionItemsInHTML(fromPart, currentHTMLService, document, htmlServiceMap, cssServiceMap, configuration)
+		return await getCompletionItemsInHTML(fromPart, currentHTMLService, document, htmlServiceMap, cssServiceMap)
 	}
 	else if (isCSSFile) {
 		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
@@ -47,16 +47,8 @@ async function getCompletionItemsInHTML(
 	currentService: HTMLService,
 	document: TextDocument,
 	htmlServiceMap: HTMLServiceMap,
-	cssServiceMap: CSSServiceMap,
-	configuration: Configuration,
+	cssServiceMap: CSSServiceMap
 ): Promise<CompletionItem[] | null> {
-
-	// If custom tag, and not ignore custom element, continue.
-	if (fromPart.type === PartType.Tag) {
-		if (configuration.ignoreCustomElement || !fromPart.text.includes('-')) {
-			return null
-		}
-	}
 
 
 	// `#i` -> `i` to do completion is not working.

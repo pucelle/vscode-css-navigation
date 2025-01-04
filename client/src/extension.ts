@@ -86,7 +86,7 @@ export class CSSNavigationExtension {
 			alwaysIncludeGlobPatterns: config.get('alwaysIncludeGlobPatterns', []),
 
 			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
-			ignoreCustomElement: config.get('ignoreCustomElement', false),
+			ignoreCustomAndComponentTagDefinition: config.get('ignoreCustomAndComponentTagDefinition', false),
 			ignoreFilesBy: config.get('ignoreFilesBy', []),
 
 			maxHoverStylePropertyCount: config.get('maxHoverStylePropertyCount', 0),
