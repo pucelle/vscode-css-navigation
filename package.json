@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Allows Go to Definition from HTML to CSS / Sass / Less; provides Completion and Workspace Symbols for class & id name.",
 	"icon": "images/logo.png",
-	"version": "1.15.1",
+	"version": "2.0.0",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -64,8 +64,8 @@
 				},
 				"CSSNavigation.maxHoverStylePropertyCount": {
 					"type": "number",
-					"default": 0,
-					"description": "When mouse hover at a class or id attribute, at most how many style properties should show."
+					"default": 4,
+					"description": "When mouse hover at a class or id attribute, how many style properties at most should show."
 				},
 				"CSSNavigation.activeHTMLFileExtensions": {
 					"type": "array",

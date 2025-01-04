@@ -3,19 +3,69 @@
     CSS Navigation - VSCode Extension
 </h1>
 
-Allows **Go to Definition** from HTML to CSS / Sass / Less, provides **Completion** and **Workspace Symbols** for class & id name, and supports **Find References** from CSS to HTML.
+Allows **Go to Definition** from HTML like document to CSS / Sass / Less, provides **Completion** and **Workspace Symbols** for Class & CSS Variables & Id, and supports **Find References** from CSS to HTML.
+
 
 ## Features
 
+
 ### Go to Definition and Peek Definition
 
-In a HTML document, choose `Go to definition` or `Peek definition`, the extension will search related CSS & Scss & Less selectors in current workspace folder. Can also search selectors within nesting reference `&...` for Sass & Less.
+Choose `Go to definition` or `Peek definition`, the extension will search related CSS & Scss & Less selectors in current workspace folder.
 
-The places you can find definitions:
+The places you can goto definitions:
 
-- HTML (or files whose extension specified by `activeHTMLFileExtensions` option): _<_`html-tag`_>_, _class=_"`class-name`_"_, _id="_`id-name`_"_.
-- JSX & TSX: _className="_`class-name`_"_, _className={"_`class-name`_"}_.
-- CSS-like Document: `custom-tag`, `.class-name`, `#id`.
+- HTML (or files whose extension included by `activeHTMLFileExtensions` option): _<_`html-tag`_>_, _class=_"`class-name`_"_, _id="_`id-name`_"_.
+- JSX & TSX: _className="_`class-name`_"_, _className={"_`class-name`_"}_ and others.
+- Jquery & DOM Selector: _$('_`class-name`_')_, x._querySelector('_`class-name`_')_, x._querySelectorAll('_`class-name`_')_.
+- CSS Variables: `var(--css-variable-name)`.
+- Welcome to give feedback about more you like.
+
+![definition](images/definition.gif)
+
+
+### Class Name and ID Hover Info - New in V2.0
+
+When mouse hover at a class name or a id, will show it's description (leading comment) and first several style properties.
+You may configure `maxHoverStylePropertyCount` to specify **How Many Style Properties** to show. If you don't want style properties, set `maxHoverStylePropertyCount` to `0`.
+
+![definition](images/hover.jpg)
+
+
+
+### Class Name, CSS Variable and ID Completion
+
+Provides class name and id completion for your HTML files.
+
+![completion](images/completion.gif)
+
+
+
+### Workspace symbols
+
+Allows to search workspace symbols in CSS & Scss & Less files across all activated workspace folders.
+
+![workspace-symbol](images/workspace-symbol.gif)
+
+
+
+### Find All References and Peek References
+
+Supports looking for CSS selector references across all HTML & CSS files within workspace folder.
+
+When your workspace folder having too much HTML like files, parsing them all may cause stuck, so it limits to read at most 500 files.
+
+![reference](images/reference.gif)
+
+
+
+### Features miscellaneous
+
+- Can goto referenced files after clicking url part of `<link href="...">` or `@import "..."`.
+
+
+
+### Note about JSX
 
 Note that the JSX template doesn't provide completion for attribute value by default, you may trigger it manually by clicking `Ctrl + Space`, or change settings:
 
@@ -27,34 +77,6 @@ editor.quickSuggestions": {
 },
 ```
 
-![nesting](images/nesting.gif)
-
-### Workspace symbols
-
-Allows to search workspace symbols in CSS & Scss & Less files across all activated workspace folders.
-
-![workspace-symbol](images/workspace-symbol.gif)
-
-### Class Name and ID Completion
-
-Provides class name and id completion for your HTML files.
-
-Note that the extension doesn't support remote sources, and doesn't follow the `<link>` tags in your HTML file to limit the completion results, it just lists all the defined class & id name in CSS & Scss & Less files in your workspace folders.
-
-![completion](images/completion.gif)
-
-### Find All References and Peek References
-
-Supports looking for CSS selector references in your HTML files.
-
-This functionality should not be very useful, and it needs to load and parse all the files configured in `activeHTMLFileExtensions` additionally. but if you love examining and refactoring CSS codes, at least it's much better than searching them in folders.
-
-![reference](images/reference.gif)
-
-### Features miscellaneous
-
-- Can goto referenced files after clicking `<link href="...">` or `@import "..."`.
-- Supports auto completion, goto definitions for inner style tags or css`...` template strings.
 
 ## Configuration
 
@@ -75,23 +97,17 @@ This functionality should not be very useful, and it needs to load and parse all
 | `enableIdAndClassNameCompletion`  | Whether enables id and class name completion service, default value is `true`.
 | `enableFindAllReferences`         | Whether enables finding references service, default value is `true`.
 | `enableHover`                     | Whether enables id and class name hover service, default value is `true`.
+| `maxHoverStylePropertyCount`      | When mouse hover at a class or id attribute, how many style properties at most should show. Default value is `4`.
 
 
 ## Why started this project
 
-At beginning, this project is a fork from [vscode-css-peek](https://github.com/pranaygp/vscode-css-peek/tree/master/client), which uses [vscode-css-languageservice](https://github.com/Microsoft/vscode-css-languageservice) as CSS parser, I just fixed some Scss nesting reference issues.
+I'm a heavy CSS developer, I have tried [vscode-css-peek](https://github.com/pranaygp/vscode-css-peek/tree/master/client) in 2019, but I found it eats so much CPU & memory. E.g., one of my project has 280 CSS files, includes 6 MB codes. On my MacBook Pro, it needs 7s to load (1.3s to search files and 6s to parse), and uses 700 MB memory. Otherwise it keeps parsing files every time you input a character, if CSS document is more than 100 KB, CPU usage will keep high when inputting.
 
-Then I found it eats so much CPU & memory. E.g., one of my project has 280 CSS files out of 5500 files, includes 6 MB codes. On my MacBook Pro, it needs 7s to load (1.3s to search files and 6s to parse), and uses 700 MB memory. Otherwise it keeps parsing files every time you input a character, if CSS document is more than 100 KB, CPU usage will keep high when inputting.
+Later on my vocation I decided to implement a new css parser, as a result I created a new extension. The CSS parser is very simple and cares about only the plugin should care, it's fast and very easy to extend. Now it costs about 0.8s to search files, and 0.5s to parse them. Memory usage in caching parsed results is only about 40 MB.
 
-Finally I decided to implement a new css parser, which also supports Scss & Less naturally, as a result I created a new extension. The CSS parser is very simple and not 100% strict, but it's fast and very easy to extend. Now it costs about 0.8s to search files, and 0.5s to parse them. Memory usage in caching parsed results is only about 40 MB.
+By the same parser, finding definitions, completions, references, hover are simply implemented.
 
-Otherwise, all the functionality will be started only when required by default, so CSS files are loaded only when you begin to search definitions or others.
-
-After files loaded, The extension will track file and directory changes, creations, removals automatically, and reload them if needed.
-
-Further more, I found the extension can support class name and id completion by the same core, so I do it with very few codes.
-
-Finding references uses another core, I implement it because my work have a heavy CSS part, and I love refactoring CSS codes. I believe few people would need it.
 
 ## Stress Test & Performance
 
@@ -99,13 +115,13 @@ I loaded 100 MB (0.9 M declarations, 2.8 M lines) CSS files for stress test, it 
 
 My environment is Win10, MacBook Pro 2014 version, with power on.
 
+
 ## Plans & More
 
-I just switched from Sublime Text to VSCode, and I love VSCode so much.
-
-I have plans to make this extension grow, I hope it can serve more frontend developers like me.
+This plugin has simple and clean codes after version 2.0, I hope it can serve more Frontend developers.
 
 So please give me your feedback. Thanks.
+
 
 ## FAQ
 

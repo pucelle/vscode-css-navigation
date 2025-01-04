@@ -123,11 +123,13 @@ export class Part {
 		return this.start + this.text.length
 	}
 
+	/** HTML class and id attribute. */
 	isHTMLType() {
 		return this.type < PartType.CSSSelector
 			&& this.type >= PartType.Tag
 	}
 
+	/** CSS selector and variables. */
 	isCSSType() {
 		return this.type >= PartType.CSSSelector
 	}
@@ -176,6 +178,7 @@ export class Part {
 			|| this.type === PartType.ReactImportedCSSModuleProperty
 	}
 
+	/** Only definition part has formatted list. */
 	hasFormattedList(): this is CSSSelectorPart | CSSSelectorDetailedPart {
 		return this.type === PartType.CSSSelector
 			|| this.type === PartType.CSSSelectorTag

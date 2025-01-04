@@ -53,9 +53,14 @@ async function findReferencesInHTML(
 	let locations: Location[] = []
 
 
-	// Find CSS Selector and CSS Variable references within current document.
 	// Tag name cause too many references, so exclude.
-	if (fromPart.isCSSType() && fromPart.type !== PartType.Tag) {
+	if (fromPart.type === PartType.Tag) {
+		return null
+	}
+
+
+	// Find CSS Selector and CSS Variable across all HTML & CSS documents.
+	if (fromPart.isDefinitionType() || fromPart.isReferenceType()) {
 		locations.push(...await cssServiceMap.findReferences(matchPart, fromPart))
 		locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
 	}
@@ -76,8 +81,8 @@ async function findReferencesInCSS(
 	let locations: Location[] = []
 
 
-	// Find CSS Selector and CSS Variable references within current document.
-	if (fromPart.isCSSType()) {
+	// Find CSS Selector and CSS Variable across all HTML & CSS documents.
+	if (fromPart.isDefinitionType() || fromPart.isReferenceType()) {
 		locations.push(...await cssServiceMap.findReferences(matchPart, fromPart))
 		locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
 	}

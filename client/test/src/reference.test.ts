@@ -2,7 +2,7 @@ import * as assert from 'assert'
 import {prepare, searchReferences, htmlDocument} from './helper'
 
 
-describe('Test Reference', () => {
+describe('Test Reference from CSS', () => {
 	before(prepare)
 
 	// Note here all references limited in index.html
@@ -33,3 +33,17 @@ describe('Test Reference', () => {
 	})
 })
 
+
+describe('Test Reference in HTML', () => {
+	before(prepare)
+
+	// Note here all references limited in index.html
+
+	it.only('Should find references for id selectors', async () => {
+		assert.deepStrictEqual(await searchReferences('id1', htmlDocument), ['id1'])
+	})
+
+	it.only('Should find references for class selectors', async () => {
+		assert.deepStrictEqual(await searchReferences('class1', htmlDocument), ['class1'])
+	})
+})

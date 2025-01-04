@@ -252,7 +252,9 @@ export abstract class BaseService {
 	 */
 	findReferences(matchDefPart: Part, fromPart: Part): Location[] {
 		let locations: Location[] = []
-		let texts = PartComparer.mayFormatted(fromPart)
+
+		// Important, use may formatted text, and also must use definition text.
+		let texts = fromPart.hasFormattedList() ? PartComparer.mayFormatted(fromPart) : [matchDefPart.text]
 
 		for (let part of this.parts) {
 			for (let detail of PartComparer.mayDetails(part)) {
