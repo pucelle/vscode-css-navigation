@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.0.1]
+
+- Will skip searching definitions and references for component tag like `<ReactComponent>`. 
+
+
 ## [2.0.0]
 
 - Upgrade to a new parsing core, same efficient, more stable, codes cleaner.

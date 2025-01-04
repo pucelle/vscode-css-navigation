@@ -7,12 +7,12 @@
 **/tsconfig.esm.json
 **/*.tsbuildinfo
 **/*.tsbuildInfo
+**/package-lock.json
 .travis.yml
 client/node_modules/!(vscode-*)/**
 client/node_modules/vscode-test
 client/test/**
-images/*.gif
-images/*.svg
+images/!(logo.png)
 
 # under node_modules
 **/.github/**
@@ -30,3 +30,4 @@ images/*.svg
 **/node_modules/**/readme
 **/node_modules/**/CHANGELOG
 **/node_modules/**/changelog
+
