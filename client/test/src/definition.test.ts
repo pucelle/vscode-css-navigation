@@ -104,6 +104,15 @@ describe('Test Embedded', () => {
 })
 
 
+describe('Test html & css Template', () => {
+	before(prepare)
+
+	it('Should find definition inside html and css template', async () => {
+		assert.deepStrictEqual(await gs(['class="', 'class-in-html-template', '"'], jsxDocument), ['.class-in-html-template'])
+	})
+})
+
+
 describe('Test Less', () => {
 	before(prepare)
 

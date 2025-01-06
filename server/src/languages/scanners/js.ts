@@ -52,6 +52,13 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 	}
 
 	protected *onAnyContent(): Iterable<JSToken> {
+
+		// Parse for at most 100KB.
+		if (this.offset > 100000) {
+			this.state = ScanState.EOF
+			return
+		}
+
 		if (!this.readUntil(/[`'"\/]/g)) {
 			return
 		}

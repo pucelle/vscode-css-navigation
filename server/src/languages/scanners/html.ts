@@ -383,21 +383,25 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 			// `"..."`
 			else if (char === '"' || char === '\'') {
 				this.readString()
+				continue
 			}
 
 			// '`...`'
 			else if (char === '`' && LanguageIds.isScriptSyntax(this.languageId)) {
 				this.readTemplateLiteral()
+				continue
 			}
 			
 			// `/*`
 			else if (char === '/' && this.peekChar(1) === '*') {
 				this.readOut(/\*\//g)
+				continue
 			}
 
 			// `//`
 			else if (char === '/' && this.peekChar(1) === '/') {
 				this.readLineAndEnd()
+				continue
 			}
 
 			// Eat the char.
