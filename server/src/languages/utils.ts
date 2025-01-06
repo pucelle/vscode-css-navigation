@@ -1,4 +1,3 @@
-
 /** 
  * Binary find index of an item from a list, which has been sorted.
  * Returns the found item index, or `-1` if nothing found.

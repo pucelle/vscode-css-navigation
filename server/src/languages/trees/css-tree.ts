@@ -3,7 +3,8 @@ import {CSSTokenNode, CSSTokenNodeType} from './css-node'
 import {Part, PartType} from '../parts'
 import {CSSSelectorPart} from '../parts'
 import {Picker} from './picker'
-import {joinTokens, ListMap} from './utils'
+import {joinTokens} from './utils'
+import {ListMap} from '../../utils'
 
 
 export class CSSTokenTree extends CSSTokenNode {

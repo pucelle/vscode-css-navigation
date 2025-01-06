@@ -1,5 +1,13 @@
 # ChangeLog
 
+## [2.1.0]
+
+- Fix the bug that can't get new definition/completion after document edited.
+- Clean repetitive completion items, now they will never repeat. (except repeat with that provided by other plugins)
+- Now completion items have different icons to match their types.
+- Provides service for `html` and `css` template literal, this is useful when you are using frameworks like `lit.html`.
+- Better React JSX Element detection.
+
 
 ## [2.0.3]
 
