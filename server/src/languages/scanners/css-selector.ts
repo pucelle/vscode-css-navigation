@@ -1,3 +1,4 @@
+import {LanguageIds} from '../language-ids'
 import {AnyTokenScanner} from './any'
 
 
@@ -85,14 +86,9 @@ function isName(char: string): boolean {
 /** For scanning css selector string. */
 export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenType> {
 
+	declare readonly languageId: CSSLanguageId
 	declare protected state: ScanState
-	readonly isScssLessSyntax: boolean
 	private needToSeparate: boolean = false
-
-	constructor(string: string, selectorStart: number, isScssLessSyntax: boolean = false) {
-		super(string, selectorStart)
-		this.isScssLessSyntax = isScssLessSyntax
-	}
 
 	/** `.a, .b` -> `[.a, .b]`. */
 	parseToSeparatedTokens(): CSSSelectorToken[][] {
@@ -238,7 +234,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 				}
 
 				// `|//`
-				else if (this.isScssLessSyntax && char === '/' && this.peekChar(1) === '/') {
+				else if (LanguageIds.isScssLessSyntax(this.languageId) && char === '/' && this.peekChar(1) === '/') {
 
 					// Move to `/*|`
 					this.offset += 2

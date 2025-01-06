@@ -8,6 +8,13 @@ import {CSSTokenNodeType} from '../trees/css-node'
 import {PartComparer} from './part-comparer'
 
 
+export enum CompletionLabelType {
+	CSSVariable,
+	Definition,
+	Reference,
+}
+
+
 /** Help to convert part type and text. */
 export namespace PartConvertor {
 
@@ -198,33 +205,50 @@ export namespace PartConvertor {
 		))
 	}
 
-	/** To completion item list. */
-	export function toCompletionItems(fromPart: Part, labels: string[], document: TextDocument): CompletionItem[] {
-		let kind = fromPart.type === PartType.CSSSelector
-			|| fromPart.type === PartType.CSSSelectorTag
-			|| fromPart.type === PartType.CSSSelectorClass
-			|| fromPart.type === PartType.CSSSelectorId
-			|| fromPart.type === PartType.CSSSelectorQueryTag
-			|| fromPart.type === PartType.CSSSelectorQueryClass
-			|| fromPart.type === PartType.CSSSelectorQueryId
-			|| fromPart.type === PartType.Tag
-			|| fromPart.type === PartType.Class
-			|| fromPart.type === PartType.Id
-				? CompletionItemKind.Class
-				: CompletionItemKind.Color
 
-		return labels.map(text => {
-			let item = CompletionItem.create(text)
-			item.kind = kind
-			item.sortText = '-1'
-	
-			item.textEdit = TextEdit.replace(
-				toRange(fromPart, document),
-				text,
-			)
+	/** Merge several groups of completion labels. */
+	export class CompletionLabels {
 
-			return item
-		})
+		private map: Map<string, CompletionLabelType> = new Map()
+
+		add(type: CompletionLabelType, labels: Iterable<string>) {
+			for (let label of labels) {
+				if (!this.map.has(label) || this.map.get(label)! < type) {
+					this.map.set(label, type)
+				}
+			}
+		}
+
+		output(fromPart: Part, document: TextDocument): CompletionItem[] {
+			let items: CompletionItem[] = []
+
+			for (let [label, type] of this.map.entries()) {
+				let kind: CompletionItemKind
+
+				if (type === CompletionLabelType.CSSVariable) {
+					kind = CompletionItemKind.Color
+				}
+				else if (type === CompletionLabelType.Definition) {
+					kind = CompletionItemKind.Class
+				}
+				else {
+					kind = CompletionItemKind.Value
+				}
+
+				let item = CompletionItem.create(label)
+				item.kind = kind
+				item.sortText = '-1'
+		
+				item.textEdit = TextEdit.replace(
+					toRange(fromPart, document),
+					label,
+				)
+
+				items.push(item)
+			}
+
+			return items
+		}
 	}
 
 	/** Part to hover. */

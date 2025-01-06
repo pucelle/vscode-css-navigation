@@ -1,4 +1,4 @@
-import {SymbolInformation, LocationLink, Location, CompletionItem, Hover} from 'vscode-languageserver'
+import {SymbolInformation, LocationLink, Location, Hover} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PathResolver} from '../resolver'
 import {Part, PartConvertor, PartType, CSSSelectorPart, PartComparer} from '../parts'
@@ -200,12 +200,6 @@ export abstract class BaseService {
 		return [...labelSet.values()]
 	}
 
-	/** Get completion items match part. */
-	getCompletionItems(matchPart: Part, fromPart: Part, fromDocument: TextDocument): CompletionItem[] {
-		let labels = this.getCompletionLabels(matchPart, fromPart)
-		return PartConvertor.toCompletionItems(fromPart, labels, fromDocument)
-	}
-
 	/** 
 	 * Get completion labels match part.
 	 * The difference with `getCompletionLabels` is that
@@ -235,15 +229,10 @@ export abstract class BaseService {
 			}
 		}
 
-		return [...labelSet.values()]
-	}
+		// Removes match part itself.
+		labelSet.delete(fromPart.text)
 
-	/** Get completion items match part.
-	 * For mode details see `getReferencedCompletionLabels`.
-	 */
-	getReferencedCompletionItems(fromPart: Part, fromDocument: TextDocument): CompletionItem[] {
-		let labels = this.getReferencedCompletionLabels(fromPart)
-		return PartConvertor.toCompletionItems(fromPart, labels, fromDocument)
+		return [...labelSet.values()]
 	}
 
 	/** 

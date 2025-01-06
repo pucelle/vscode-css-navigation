@@ -8,9 +8,23 @@ import {joinTokens, ListMap} from './utils'
 
 export class CSSTokenTree extends CSSTokenNode {
 
+	/** Make a CSS token tree by string. */
+	static fromString(string: string, scannerStart: number, languageId: CSSLanguageId): CSSTokenTree {
+		let tokens: Iterable<CSSToken>
+
+		if (languageId === 'sass') {
+			tokens = new SassIndentedTokenScanner(string, scannerStart, languageId).parseToTokens()
+		}
+		else {
+			tokens = new CSSTokenScanner(string, scannerStart, languageId).parseToTokens()
+		}
+
+		return CSSTokenTree.fromTokens(tokens, string, languageId)
+	}
+	
 	/** Make a CSS token tree by tokens. */
 	static fromTokens(tokens: Iterable<CSSToken>, string: string, languageId: CSSLanguageId): CSSTokenTree {
-		let tree = new CSSTokenTree(string, languageId !== 'css')
+		let tree = new CSSTokenTree(string, languageId)
 		let current: CSSTokenNode = tree
 		let latestComment: CSSToken | null = null
 		let notDetermined: CSSToken[] = []
@@ -97,20 +111,6 @@ export class CSSTokenTree extends CSSTokenNode {
 		return tree
 	}
 
-	/** Make a CSS token tree by string. */
-	static fromString(string: string, scannerStart: number, languageId: CSSLanguageId): CSSTokenTree {
-		let tokens: Iterable<CSSToken>
-
-		if (languageId === 'sass') {
-			tokens = new SassIndentedTokenScanner(string, scannerStart).parseToTokens()
-		}
-		else {
-			tokens = new CSSTokenScanner(string, scannerStart, languageId !== 'css').parseToTokens()
-		}
-
-		return CSSTokenTree.fromTokens(tokens, string, languageId)
-	}
-
 	/** For property name part. */
 	static *parsePropertyNamePart(text: string, start: number): Iterable<Part> {
 		if (text.startsWith('-')) {
@@ -132,11 +132,11 @@ export class CSSTokenTree extends CSSTokenNode {
 
 
 	readonly string: string
-	readonly isSassSyntax: boolean
+	readonly languageId: CSSLanguageId
 	private nodePartMap: ListMap<CSSTokenNode, CSSSelectorPart> = new ListMap()
 	private commandWrappedMap: Map<CSSTokenNode, boolean> = new Map()
 
-	constructor(string: string, isSassSyntax: boolean) {
+	constructor(string: string, languageId: CSSLanguageId) {
 		super(CSSTokenNodeType.Root, {
 			type: CSSTokenType.NotDetermined,
 			text: '',
@@ -145,7 +145,7 @@ export class CSSTokenTree extends CSSTokenNode {
 		}, null)
 
 		this.string = string
-		this.isSassSyntax = isSassSyntax
+		this.languageId = languageId
 	}
 
 	/** 
@@ -184,7 +184,7 @@ export class CSSTokenTree extends CSSTokenNode {
 
 	/** Parse a selector content to parts. */
 	private *parseSelectorString(text: string, start: number, node: CSSTokenNode, breaksSeparatorNesting: boolean): Iterable<Part> {
-		let groups = new CSSSelectorTokenScanner(text, start, this.isSassSyntax).parseToSeparatedTokens()
+		let groups = new CSSSelectorTokenScanner(text, start, this.languageId).parseToSeparatedTokens()
 		let parentParts = this.nodePartMap.get(node.parent!)
 		let commandWrapped = node.parent ? !!this.commandWrappedMap.get(node.parent) : false
 

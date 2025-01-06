@@ -15,11 +15,8 @@ export enum ScanState {
 /** For Sass indented language. */
 export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 
+	declare readonly languageId: CSSLanguageId
 	declare protected state: ScanState
-
-	constructor(string: string, scannerStart: number = 0) {
-		super(string, scannerStart)
-	}
 
 	/** 
 	 * Parse html string to tokens.
@@ -90,7 +87,7 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 
 				// |' or |", eat string but not change state.
 				else if (this.peekChar() === '"' || this.peekChar() === '\'') {
-					this.readString(this.peekChar())
+					this.readString()
 				}
 
 				else {
@@ -185,7 +182,7 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 			else if (this.state === ScanState.WithinScssLessComment) {
 
 				// `|\n`
-				this.readUntil(/[\r\n]/)
+				this.readLine()
 
 				if (this.isEnded()) {
 					break

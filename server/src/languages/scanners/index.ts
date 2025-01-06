@@ -1,5 +1,6 @@
 export * from './any'
 export * from './html'
+export * from './js'
 export * from './css'
 export * from './css-selector'
 export * from './css-sass-indented'

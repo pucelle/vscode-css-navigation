@@ -39,11 +39,11 @@ describe('Test Reference in HTML', () => {
 
 	// Note here all references limited in index.html
 
-	it.only('Should find references for id selectors', async () => {
+	it('Should find references for id selectors', async () => {
 		assert.deepStrictEqual(await searchReferences('id1', htmlDocument), ['id1'])
 	})
 
-	it.only('Should find references for class selectors', async () => {
+	it('Should find references for class selectors', async () => {
 		assert.deepStrictEqual(await searchReferences('class1', htmlDocument), ['class1'])
 	})
 })

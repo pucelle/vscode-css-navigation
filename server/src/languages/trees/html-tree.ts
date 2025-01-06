@@ -2,10 +2,9 @@ import {HTMLToken, HTMLTokenScanner, HTMLTokenType} from '../scanners/html'
 import {Part, PartType} from '../parts'
 import {mayBeExpression} from './utils'
 import {Picker} from './picker'
-import {isCSSLikePath} from '../../helpers'
 import {CSSTokenTree} from './css-tree'
 import {HTMLTokenNode} from './html-node'
-import {CSSSelectorTokenScanner, CSSSelectorTokenType} from '../scanners'
+import {JSTokenTree} from './js-tree'
 
 
 /** 
@@ -32,9 +31,15 @@ const SelfClosingTags = [
 
 export class HTMLTokenTree extends HTMLTokenNode {
 
+	/** Make a HTML token tree by string. */
+	static fromString(string: string, scannerStart: number = 0, languageId: HTMLLanguageId = 'html'): HTMLTokenTree {
+		let tokens = new HTMLTokenScanner(string, scannerStart, languageId).parseToTokens()
+		return HTMLTokenTree.fromTokens(tokens, languageId)
+	}
+
 	/** Make a token tree by tokens. */
-	static fromTokens(tokens: Iterable<HTMLToken>, isJSLikeSyntax: boolean = false): HTMLTokenTree {
-		let tree = new HTMLTokenTree(isJSLikeSyntax)
+	static fromTokens(tokens: Iterable<HTMLToken>, languageId: HTMLLanguageId = 'html'): HTMLTokenTree {
+		let tree = new HTMLTokenTree(languageId)
 		let current: HTMLTokenNode = tree
 		let currentAttr: {name: HTMLToken, value: HTMLToken | null} | null = null
 
@@ -61,7 +66,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 					}
 
 					current = current.parent ?? tree
-				} while (current)
+				} while (current !== tree)
 			}
 
 			else if (token.type === HTMLTokenType.TagEnd) {
@@ -105,16 +110,10 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		return tree
 	}
 
-	/** Make a HTML token tree by string. */
-	static fromString(string: string, scannerStart: number = 0, isJSLikeSyntax: boolean = false): HTMLTokenTree {
-		let tokens = new HTMLTokenScanner(string, scannerStart, isJSLikeSyntax).parseToTokens()
-		return HTMLTokenTree.fromTokens(tokens, isJSLikeSyntax)
-	}
 
+	readonly languageId: HTMLLanguageId
 
-	readonly isJSLikeSyntax: boolean
-
-	constructor(isJSLikeSyntax: boolean) {
+	constructor(languageId: HTMLLanguageId) {
 		super({
 			type: HTMLTokenType.StartTagName,
 			text: 'root',
@@ -122,15 +121,15 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			end: -1,
 		}, null)
 
-		this.isJSLikeSyntax = isJSLikeSyntax
+		this.languageId = languageId
+	}
+
+	isScriptSyntax(): boolean {
+		return this.languageId !== 'html'
 	}
 
 	*walkParts(): Iterable<Part> {
 		for (let node of this.walk()) {
-			if (node.token.start === -1) {
-				return
-			}
-
 			yield* this.parseNodeParts(node)
 		}
 	}
@@ -149,15 +148,6 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			else if (node.tagName === 'style') {
 				yield* this.parseStylePart(node)
 			}
-		}
-		
-		// Parsing text parts as script may be expensive,
-		// so only for those not contained by other tags.
-		if (this.isJSLikeSyntax
-			&& node.token.type === HTMLTokenType.Text
-			&& node.parent?.isRoot
-		) {
-			yield* this.sortParts(this.parseScriptTextParts(node))
 		}
 	}
 
@@ -187,7 +177,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		}
 
 		// For `Lupos.js`, completion `:class.|name|`
-		else if (this.isJSLikeSyntax && name.startsWith(':class.')) {
+		else if (this.isScriptSyntax() && name.startsWith(':class.')) {
 			yield new Part(PartType.Class, attrName.text.slice(7), attrName.start + 7)
 		}
 
@@ -197,7 +187,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 				let value = attrValue.text
 
 				// Probably expression.
-				if (this.isJSLikeSyntax && mayBeExpression(value)) {
+				if (this.isScriptSyntax() && mayBeExpression(value)) {
 					for (let word of Picker.pickWordsFromExpression(value)) {
 						yield new Part(PartType.Class, word.text, attrValue.start + word.start)
 					}
@@ -215,7 +205,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		// https://github.com/gajus/babel-plugin-react-css-modules and issue #60.
 		// import 'xx.css'
 		// `styleName="class-name"`
-		else if (this.isJSLikeSyntax && name === 'styleName') {
+		else if (this.isScriptSyntax() && name === 'styleName') {
 			if (attrValue) {
 				yield new Part(PartType.ReactDefaultImportedCSSModuleClass, attrValue.text, attrValue.start).removeQuotes()
 			}
@@ -250,79 +240,25 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		// `class={style['class-name']}`.
 		let match = Picker.locateMatchGroups(
 			attrValue.text,
-			/^\s*\{\s*(?<moduleName>\w+)(?:\.(?<propertyName>\w+)|\[\s*['"`](?<propertyName>\w+)['"`]\s*\])\s*\}\s*$/
+			/^\s*\{\s*(?<moduleName>\w+)(?:\.(?<propertyName1>\w+)|\[\s*['"`](?<propertyName2>\w+)['"`]\s*\])\s*\}\s*$/
 		)
 
 		if (match) {
 			yield new Part(PartType.ReactImportedCSSModuleName, match.moduleName.text, match.moduleName.start + start)
-			yield new Part(PartType.ReactImportedCSSModuleProperty, match.propertyName.text, match.propertyName.start + start)
+
+			let propertyName = match.propertyName1 ?? match.propertyName2
+			yield new Part(PartType.ReactImportedCSSModuleProperty, propertyName.text, propertyName.start + start)
 		}
 	}
 
 	/** Parse script tag for parts. */
 	protected *parseScriptPart(node: HTMLTokenNode): Iterable<Part> {
 		let textNode = node.firstTextNode
-		if (textNode && textNode.token.text) {
-			yield* this.sortParts(this.parseScriptTextParts(textNode))
-		}
-	}
 
-	/** Parse script content for parts. */
-	protected *parseScriptTextParts(node: HTMLTokenNode): Iterable<Part> {
-		let text = node.token.text
-		let start = node.token.start
-
-		// `querySelect('.class-name')`
-	 	// `$('.class-name')`
-		let matches = Picker.locateAllMatches(
-			text,
-			/(?:\$|\.querySelector|\.querySelectorAll)\s*\(\s*['"`](.*?)['"`]/g
-		)
-
-		for (let match of matches) {
-			let selector = match[1].text
-			let selectorStart = match[1].start + start
-			let tokens = new CSSSelectorTokenScanner(selector, selectorStart).parseToTokens()
-
-			for (let token of tokens) {
-				if (token.type === CSSSelectorTokenType.Tag) {
-					yield new Part(PartType.CSSSelectorQueryTag, token.text, token.start)
-				}
-				else if (token.type === CSSSelectorTokenType.Id) {
-					yield new Part(PartType.CSSSelectorQueryId, token.text, token.start)
-				}
-				else if (token.type === CSSSelectorTokenType.Class) {
-					yield new Part(PartType.CSSSelectorQueryClass, token.text, token.start)
-				}
-			}
-		}
-
-
-		// setProperty('--variable-name')
-		matches = Picker.locateAllMatches(
-			text,
-			/\.setProperty\s*\(\s*\(\s*['"`](--.*?)['"`]/g
-		)
-
-		for (let match of matches) {
-			yield new Part(PartType.CSSVariableAssignment, match[1].text, match[1].start + start).trim()
-		}
-
-
-		// `import * from '...'`
-		// `import abc from '...'`
-		// `import '...'`
-		matches = Picker.locateAllMatches(
-			text,
-			/import\s+(?:\w+\s+from\s+)?['"`](.+?)['"`]/g
-		)
-
-		for (let match of matches) {
-			let path = match[1].text
-
-			if (isCSSLikePath(path)) {
-				yield new Part(PartType.CSSImportPath, match[1].text, match[1].start + start).trim()
-			}
+		// Not process embedded js within embedded html.
+		if (textNode && textNode.token.text && this.languageId === 'html') {
+			let jsTree = JSTokenTree.fromString(textNode.token.text, textNode.token.start, 'js')
+			yield* jsTree.walkParts()
 		}
 	}
 
@@ -352,6 +288,5 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			yield* CSSTokenTree.parsePropertyNamePart(name.text, name.start + start)
 			yield* CSSTokenTree.parsePropertyValuePart(value.text, value.start + start)
 		}
-
 	}
 }

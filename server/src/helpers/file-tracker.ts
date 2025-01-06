@@ -111,23 +111,16 @@ export class FileTracker {
 
 	/** When document opened or content changed from vscode editor. */
 	onDocumentOpenOrContentChanged(document: TextDocument) {
-		if (!this.startDataLoaded) {
-			return
-		}
 
 		// No need to handle file opening because we have preloaded all the files.
 		// Open and changed event will be distinguished by document version later.
-		if (this.shouldTrackFile(URI.parse(document.uri).fsPath)) {
-			this.trackOpenedDocument(document)
+		if (this.has(document.uri) || this.shouldTrackFile(URI.parse(document.uri).fsPath)) {
+			this.reTrackOpenedDocument(document)
 		}
 	}
 
 	/** After document saved. */
 	onDocumentSaved(document: TextDocument) {
-		if (!this.startDataLoaded) {
-			return
-		}
-
 		let item = this.map.get(document.uri)
 
 		// Since `onDidChangeWatchedFiles` event was triggered so frequently, we only do updating after saved.
@@ -138,33 +131,28 @@ export class FileTracker {
 
 	/** After document closed. */
 	onDocumentClosed(document: TextDocument) {
-		if (!this.startDataLoaded) {
-			return
-		}
-
-		let item = this.map.get(document.uri)
-
-		if (item) {
+		if (this.has(document.uri)) {
 			this.reTrackClosedFile(document.uri)
 		}
 	}
 
 	/** After changes of files or folders. */
 	async onWatchedFileOrFolderChanged(params: DidChangeWatchedFilesParams) {
-
-		// An issue for `@import ...` resources:
-		// It's common that we import resources inside `node_modules`,
-		// but we can't get notifications when those files changed.
-		if (!this.startDataLoaded) {
-			return
-		}
-		
 		for (let change of params.changes) {
 			let uri = change.uri
 			let fsPath = URI.parse(uri).fsPath
 
 			// New file or folder.
 			if (change.type === FileChangeType.Created) {
+
+				// If haven't loaded whole workspace, no need to load newly created.
+				// An issue for `@import ...` resources:
+				// It's common that we import resources inside `node_modules`,
+				// but we can't get notifications when those files changed.
+				if (!this.startDataLoaded) {
+					return
+				}
+
 				this.tryTrackFileOrFolder(fsPath)
 			}
 
@@ -199,7 +187,7 @@ export class FileTracker {
 
 		for (let document of this.documents.all()) {
 			if (this.shouldTrackFile(URI.parse(document.uri).fsPath)) {
-				this.trackOpenedDocument(document)
+				this.reTrackOpenedDocument(document)
 			}
 		}
 
@@ -328,7 +316,7 @@ export class FileTracker {
 	}
 
 	/** Track opened file from document, or update tracking, no matter files inside or outside workspace. */
-	trackOpenedDocument(document: TextDocument) {
+	reTrackOpenedDocument(document: TextDocument) {
 		let uri = document.uri
 		let item = this.map.get(uri)
 

@@ -1,5 +1,5 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
+import {CompletionLabelType, CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
 import {CompletionItem} from 'vscode-languageserver'
 import {getPathExtension} from './helpers'
 
@@ -24,7 +24,7 @@ export async function getCompletionItems(
 			return null
 		}
 
-		return await getCompletionItemsInHTML(fromPart, currentHTMLService, document, htmlServiceMap, cssServiceMap)
+		return await getCompletionItemsInHTML(fromPart, currentHTMLService, document, cssServiceMap)
 	}
 	else if (isCSSFile) {
 		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
@@ -46,32 +46,34 @@ async function getCompletionItemsInHTML(
 	fromPart: Part,
 	currentService: HTMLService,
 	document: TextDocument,
-	htmlServiceMap: HTMLServiceMap,
 	cssServiceMap: CSSServiceMap
 ): Promise<CompletionItem[] | null> {
 
 
 	// `#i` -> `i` to do completion is not working.
 	let matchPart = PartConvertor.toDefinitionMode(fromPart)
-	let items: CompletionItem[] = []
+	let labels = new PartConvertor.CompletionLabels()
 
 	// Complete html element class name.
 	if (fromPart.isHTMLType()) {
-		items.push(...currentService.getCompletionItems(matchPart, fromPart, document))
-		items.push(...await cssServiceMap.getCompletionItems(matchPart, fromPart, document))
+		labels.add(CompletionLabelType.Definition, currentService.getCompletionLabels(matchPart, fromPart))
+		labels.add(CompletionLabelType.Definition, await cssServiceMap.getCompletionLabels(matchPart, fromPart))
 	}
 
 	// Complete class name for css selector of a css document.
+	// It's a little different with css document, don't want it visits all html files.
 	else if (fromPart.isCSSType()) {
-		items.push(...await htmlServiceMap.getReferencedCompletionItems(fromPart, document))
 
-		// Declare or reference a CSS Variable.
+		// Find selector or css variable references from current document.
+		labels.add(CompletionLabelType.Reference, currentService.getReferencedCompletionLabels(fromPart))
+
+		// Find all css variable declarations across all css documents.
 		if (fromPart.isCSSVariableType()) {
-			items.push(...await cssServiceMap.getCompletionItems(matchPart, fromPart, document))
+			labels.add(CompletionLabelType.CSSVariable, await cssServiceMap.getCompletionLabels(matchPart, fromPart))
 		}
 	}
 
-	return items
+	return labels.output(fromPart, document)
 }
 
 
@@ -84,19 +86,20 @@ async function getCompletionItemsInCSS(
 	cssServiceMap: CSSServiceMap
 ): Promise<CompletionItem[] | null> {
 	let matchPart = PartConvertor.toDefinitionMode(fromPart)
-	let items: CompletionItem[] = []
+	let labels = new PartConvertor.CompletionLabels()
 
 
-	// Find selector referenced completions across all html documents.
+	// Find selector referenced completions from current document, and across all html documents.
+	// It ignores css selectors declaration completions, which will be filled by vscode.
 	if (fromPart.isSelectorType()) {
-		items.push(...await htmlServiceMap.getReferencedCompletionItems(fromPart, document))
+		labels.add(CompletionLabelType.Reference, await htmlServiceMap.getReferencedCompletionLabels(fromPart))
 	}
 
-	// Find CSS Variables across all css documents.
+	// Find all css variable declarations across all css documents.
 	else if (fromPart.isCSSVariableType()) {
-		items.push(...await cssServiceMap.getCompletionItems(matchPart, fromPart, document))
+		labels.add(CompletionLabelType.CSSVariable, await cssServiceMap.getCompletionLabels(matchPart, fromPart))
 	}
 
 
-	return items
+	return labels.output(fromPart, document)
 }

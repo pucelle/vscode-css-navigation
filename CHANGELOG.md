@@ -1,6 +1,16 @@
 # ChangeLog
 
 
+## [2.0.3]
+
+- Fix #94 - error "Duplicate capture group name" and cause plugin crash, thanks to `onetrev@github` .
+
+
+## [2.0.2]
+
+- Fix a token parser issue which will cause wrongly paring typescript documents and cause plugin stuck.
+
+
 ## [2.0.1]
 
 - Rename `ignoreCustomElement` to `ignoreCustomAndComponentTagDefinition`, and it affects Component Tag like React Component.

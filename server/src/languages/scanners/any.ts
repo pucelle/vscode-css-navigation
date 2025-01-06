@@ -1,3 +1,5 @@
+import {LanguageIds} from '../language-ids'
+
 /** Parsed Any token. */
 export interface AnyToken<T extends number> {
 	type: T
@@ -22,14 +24,16 @@ export class AnyTokenScanner<T extends number> {
 
 	readonly string: string
 	readonly scannerStart: number
+	readonly languageId: HTMLLanguageId | CSSLanguageId
 
 	protected start = 0
 	protected offset = 0
 	protected state: number = ScanState.AnyContent
 
-	constructor(string: string, scannerStart: number = 0) {
+	constructor(string: string, scannerStart: number = 0, languageId: AllLanguageId) {
 		this.string = string
 		this.scannerStart = scannerStart
+		this.languageId = languageId
 	}
 
 	protected isEnded(): boolean {
@@ -103,16 +107,20 @@ export class AnyTokenScanner<T extends number> {
 		return m
 	}
 
-	/** Return after position of end quote: `"..."|` */
-	protected readString(quote: string): boolean {
+	/** 
+	 * Return after position of end quote: `"..."|`.
+	 * Cursor must before first quote: `|""`.
+	 */
+	protected readString(): boolean {
+		let quote = this.peekChar()
 
 		// Avoid read start quote.
 		this.offset += 1
 
-		do {
+		while (true) {
 			// "..."|
-			if (!this.readOut(/['"`\\]/g)) {
-				return false
+			if (!this.readOut(/['"\\]/g)) {
+				break
 			}
 
 			let char = this.peekChar(-1)
@@ -126,9 +134,8 @@ export class AnyTokenScanner<T extends number> {
 				this.offset += 1
 			}
 		}
-		while (true)
 
-		return true
+		return this.state !== ScanState.EOF
 	}
 
 	/** Read all whitespaces. */
@@ -136,19 +143,45 @@ export class AnyTokenScanner<T extends number> {
 		return !!this.readUntil(/\S/g)
 	}
 
+	/** Read chars until before `\r\n`. */
+	protected readLine(): boolean {
+		if (!this.readUntil(/[\r\n]/g)) {
+			return false
+		}
+
+		if (this.peekChar() === '\r' && this.peekChar(1) === '\n') {
+			this.offset += 1
+		}
+
+		return true
+	}
+
+	/** Read chars until after `\r\n`. */
+	protected readLineAndEnd(): boolean {
+		if (!this.readLine()) {
+			return false
+		}
+
+		this.offset += 1
+
+		return true
+	}
+
 	/** 
-	 * Try read an bracketed expression like `[...]`, `(...)`,
+	 * Try read an bracketed expression like `[...]`, `(...)`, `{...}`,
+	 * Must ensure the current char is one of `[{(`.
 	 * brackets or quotes must appear in pairs.
 	 * It stops after found all matching end brackets.
+	 * Supported language js, css, sass, less.
 	 */
 	protected readBracketed(): boolean {
 		let stack: string[] = []
 		let expect: string | null = null
 		let re = /[()\[\]{}"'`\/\s]/g
 
-		do {
+		while (this.state !== ScanState.EOF) {
 			if (!this.readUntil(re)) {
-				return false
+				break
 			}
 			
 			let char = this.peekChar()
@@ -157,25 +190,33 @@ export class AnyTokenScanner<T extends number> {
 				break
 			}
 
-			if (char === '"' || char === '\'' || char === '`') {
-				if (!this.readString(char)) {
-					break
-				}
-				continue
+			// `"..."`
+			else if (char === '"' || char === '\'') {
+				this.readString()
+			}
+			
+			// '`...`'
+			else if (char === '`' && LanguageIds.isScriptSyntax(this.languageId)) {
+				this.readTemplateLiteral()
 			}
 
-			if (char === '/' && this.peekChar(1) === '*') {
-				if (!this.readOut(/\*\//g)) {
-					break
-				}
-				continue
+			// `/*`
+			else if (char === '/' && this.peekChar(1) === '*') {
+				this.readOut(/\*\//g)
 			}
 
-			if (char === '/' && this.peekChar(1) === '/') {
-				if (!this.readOut(/[\r\n]/g)) {
+			// `//`
+			else if (char === '/' && this.peekChar(1) === '/' && this.languageId !== 'css') {
+				if (!this.readLineAndEnd()) {
 					break
 				}
-				continue
+			}
+
+				// `|/`
+			else if (char === '/' && LanguageIds.isScriptSyntax(this.languageId)) {
+
+				// Move to `/|`, and read out whole expression.
+				this.readRegExp()
 			}
 
 			// Eat the char.
@@ -197,34 +238,96 @@ export class AnyTokenScanner<T extends number> {
 				expect = BRACKETS_MAP[char]
 			}
 		}
-		while (true)
 
-		return true
+		return this.state !== ScanState.EOF
 	}
 
-	/** Search from `offset` to front. */
-	protected search(offset: number, match: string[], maxCount: number = Infinity): number {
-		let until = Math.min(offset + maxCount, this.string.length)
-		let i = offset
+	/** Read `...`, must ensure the current char is `\``. */
+	protected readTemplateLiteral(): boolean {
+		let re = /[`\\$]/g
 
-		for (; i <= until; i++) {
-			let char = this.string[i]
-			if (match.includes(char)) {
-				return i
+		// Avoid read start quote.
+		this.offset += 1
+
+		while (true) {
+			if (!this.readOut(re)) {
+				break
+			}
+
+			let char = this.peekChar(-1)
+			
+			if (char === '`') {
+				break
+			}
+
+			else if (char === '$' && this.peekChar() === '{') {
+				if (!this.readBracketed()) {
+					break
+				}
+			}
+
+			// Skip next character.
+			else if (char === '\\') {
+				this.offset += 1
 			}
 		}
 
-		return -1
+		return this.state !== ScanState.EOF
 	}
 
-	/** Back search from `offset` to front. */
-	protected backSearch(offset: number, match: string[], maxCount: number = Infinity, ): number {
-		let until = Math.max(offset - maxCount, 0)
-		let i = offset
+	/** 
+	 * Read a regexp expression like `/.../`.
+	 * Cursor must locate at `|/`
+	 */
+	protected readRegExp(): boolean {
+		let withinCharList = false
 
-		for (; i >= until; i--) {
+		// Move cursor to `/|`
+		this.offset += 1
+
+		while (true) {
+			if (!this.readOut(/[\\\[\]\/]/g)) {
+				return false
+			}
+
+			let char = this.peekChar(-1)
+			
+			// `\|.`, skip next char, even within character list.
+			if (char === '\\') {
+
+				// Move to `\.|`
+				this.offset += 1
+			}
+
+			// `[|`, start character list.
+			else if (char === '[' && !withinCharList) {
+				withinCharList = true
+			}
+
+			// `]|`, end character list.
+			else if (char === ']' && withinCharList) {
+				withinCharList = false
+			}
+
+			// `/|`, end regexp.
+			else if (char === '/' && !withinCharList) {
+				break
+			}
+		}
+
+		return !!this.readUntil(/[^a-z]/g)
+	}
+
+	/** 
+	 * Back search from `offset` to preceding.
+	 * Can only search one character each time.
+	 */
+	protected backSearchChar(from: number, match: RegExp, maxCount: number = Infinity): number {
+		let until = Math.max(from - maxCount, 0)
+
+		for (let i = from; i >= until; i--) {
 			let char = this.string[i]
-			if (match.includes(char)) {
+			if (match.test(char)) {
 				return i
 			}
 		}

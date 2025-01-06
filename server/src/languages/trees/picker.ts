@@ -93,6 +93,10 @@ export namespace Picker {
 
 		for (let i = 0; i < match.length; i++) {
 			let m = match[i]
+			if (!m) {
+				continue
+			}
+			
 			let start = i === 0 ? 0 : match[0].indexOf(m, lastIndex)
 
 			o.push({
@@ -124,6 +128,10 @@ export namespace Picker {
 		let lastIndex = 0
 
 		for (let [k, m] of Object.entries(groups)) {
+			if (!m) {
+				continue
+			}
+			
 			let start = match[0].indexOf(m, lastIndex)
 
 			o[k] = {

@@ -1,7 +1,7 @@
-import {SymbolInformation, LocationLink, CompletionItem, Hover, Location} from 'vscode-languageserver'
+import {SymbolInformation, LocationLink, Hover, Location} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {FileTracker} from '../../helpers'
-import {Part, PartConvertor} from '../parts'
+import {Part} from '../parts'
 import {BaseService} from './base-service'
 import {URI} from 'vscode-uri'
 
@@ -50,7 +50,7 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		let uri = document.uri
 
 		if (!this.has(uri) && this.isURIWithinStartPath(uri)) {
-			this.trackOpenedDocument(document)
+			this.reTrackOpenedDocument(document)
 		}
 
 		// Already included.
@@ -119,7 +119,7 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		return symbols
 	}
 
-	async getCompletionItems(matchPart: Part, fromPart: Part, fromDocument: TextDocument): Promise<CompletionItem[]> {
+	async getCompletionLabels(matchPart: Part, fromPart: Part): Promise<Iterable<string>> {
 		await this.beFresh()
 
 		let labelSet: Set<string> = new Set()
@@ -130,7 +130,27 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 			}
 		}
 
-		return PartConvertor.toCompletionItems(fromPart, [...labelSet.values()], fromDocument)
+		return labelSet
+	}
+
+	/** 
+	 * Find completion labels match part.
+	 * The difference with `getCompletionItems` is that
+	 * `matchPart` is a definition part,
+	 * but current parts are a reference type of parts.
+	 */
+	async getReferencedCompletionLabels(fromPart: Part): Promise<Iterable<string>> {
+		await this.beFresh()
+
+		let labelSet: Set<string> = new Set()
+
+		for (let service of this.walkAvailableServices()) {
+			for (let label of service.getReferencedCompletionLabels(fromPart)) {
+				labelSet.add(label)
+			}
+		}
+
+		return labelSet
 	}
 
 	async findReferences(matchDefPart: Part, fromPart: Part): Promise<Location[]> {

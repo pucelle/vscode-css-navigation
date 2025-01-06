@@ -30,6 +30,7 @@ export enum CSSTokenType {
 enum ScanState {
 	EOF = 0,
 	AnyContent = 1,
+
 	WithinSassInterpolation,
 	WithinCSSComment,
 	WithinScssLessComment,
@@ -39,21 +40,14 @@ enum ScanState {
 /** For CSS Like languages. */
 export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 
+	declare readonly languageId: CSSLanguageId
 	declare protected state: ScanState
-	private isScssLessSyntax: boolean
-
-	constructor(string: string, scannerStart: number = 0, isScssLessSyntax: boolean = false) {
-		super(string, scannerStart)
-		this.isScssLessSyntax = isScssLessSyntax
-	}
 
 	/** 
 	 * Parse css string to tokens.
 	 * This is rough tokens, more details wait to be determined.
 	 */
-	*parseToTokens(start: number = 0): Iterable<CSSToken> {
-		this.start = this.offset = start
-
+	*parseToTokens(): Iterable<CSSToken> {
 		while (this.state !== ScanState.EOF) {
 			if (this.state === ScanState.AnyContent) {
 				if (!this.readUntil(/[\/#{};"']/g)) {
@@ -61,7 +55,7 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 				}
 
 				// `|#{`
-				else if (this.isScssLessSyntax && this.peekChars(0, 2) === '#{') {
+				else if (this.languageId !== 'css' && this.peekChars(0, 2) === '#{') {
 					yield* this.makeNotDeterminedToken()
 
 					// Move to `#{|`
@@ -103,7 +97,7 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 				
 				// |' or |", eat string but not change state.
 				else if (this.peekChar() === '"' || this.peekChar() === '\'') {
-					this.readString(this.peekChar())
+					this.readString()
 				}
 
 				// `|/*`
@@ -117,7 +111,7 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 				}
 
 				// `|//`
-				else if (this.isScssLessSyntax && this.peekChars(0, 2) === '//') {
+				else if (this.languageId !== 'css' && this.peekChars(0, 2) === '//') {
 					yield* this.makeNotDeterminedToken()
 
 					// Move to `//|`
@@ -164,7 +158,7 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 			else if (this.state === ScanState.WithinScssLessComment) {
 
 				// `|\n`
-				if (!this.readUntil(/[\r\n]/g)) {
+				if (!this.readLine()) {
 					break
 				}
 
@@ -172,10 +166,18 @@ export class CSSTokenScanner extends AnyTokenScanner<CSSTokenType> {
 
 				// Move to `\n|`
 				this.offset += 1
+				
+				// Move to `\r\n|`
+				if (this.peekChar() === '\r' || this.peekChar() === '\n') {
+					this.offset += 1
+				}
+
 				this.sync()
 				this.state = ScanState.AnyContent
 			}
 		}
+
+		yield* this.makeNotDeterminedToken()
 	}
 
 	private *makeNotDeterminedToken(): Iterable<CSSToken> {

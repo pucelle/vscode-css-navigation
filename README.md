@@ -24,6 +24,7 @@ The places you can goto definitions:
 ![definition](images/definition.gif)
 
 
+
 ### Class Name and ID Hover Info - New in V2.0
 
 When mouse hover at a class name or a id, will show it's description (leading comment) and first several style properties.
@@ -35,7 +36,7 @@ You may configure `maxHoverStylePropertyCount` to specify **How Many Style Prope
 
 ### Class Name, CSS Variable and ID Completion
 
-Provides class name and id completion for your HTML files.
+Provides class name and id completion for your HTML files, and if you have specified some class name or id in HTML files, can also complete them in CSS files.
 
 ![completion](images/completion.gif)
 
