@@ -63,8 +63,10 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 			return
 		}
 
+		let char = this.peekChar()
+
 		// `|//`
-		if (this.peekChars(0, 2) === '//') {
+		if (char === '/' && this.peekChar(1) === '/') {
 			yield* this.makeScriptToken()
 
 			// Move to `//|`
@@ -74,7 +76,7 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 		}
 
 		// `|/*`
-		else if (this.peekChars(0, 2) === '/*') {
+		else if (char === '/' && this.peekChar(1) === '*') {
 			yield* this.makeScriptToken()
 
 			// Move to `/*|`
@@ -84,17 +86,17 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 		}
 
 		// `|/`
-		else if (this.peekChar() === '/') {
+		else if (char === '/') {
 			this.readRegExp()
 		}
 
 		// `|'`
-		else if (this.peekChar() === '\'' || this.peekChar() === '"') {
+		else if (char === '\'' || char === '"') {
 			this.readString()
 		}
 
 		// '|`'
-		else if (this.peekChar() === '`') {
+		else if (char === '`') {
 			yield* this.mayMakeTemplateLiteralToken()
 		}
 

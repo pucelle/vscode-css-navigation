@@ -176,7 +176,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	protected *onWithinComment(): Iterable<HTMLToken> {
 
 		// `-->|`
-		if (this.readUntil(/-->/g)) {
+		if (!this.readUntil(/-->/g)) {
 			return
 		}
 
@@ -380,26 +380,28 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 				break
 			}
 
-			// `"..."`
+			// `|"..."`
 			else if (char === '"' || char === '\'') {
 				this.readString()
 				continue
 			}
 
-			// '`...`'
+			// '|`...`'
 			else if (char === '`' && LanguageIds.isScriptSyntax(this.languageId)) {
 				this.readTemplateLiteral()
 				continue
 			}
 			
-			// `/*`
+			// `|/*`
 			else if (char === '/' && this.peekChar(1) === '*') {
+				this.offset += 2
 				this.readOut(/\*\//g)
 				continue
 			}
 
-			// `//`
+			// `|//`
 			else if (char === '/' && this.peekChar(1) === '/') {
+				this.offset += 2
 				this.readLineAndEnd()
 				continue
 			}

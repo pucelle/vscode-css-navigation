@@ -1,5 +1,5 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CompletionLabelType, CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor, PartType} from './languages'
+import {CompletionLabelType, CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
 import {CompletionItem} from 'vscode-languageserver'
 import {getPathExtension} from './helpers'
 
@@ -20,9 +20,6 @@ export async function getCompletionItems(
 		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 
 		let fromPart = currentHTMLService.findDetailedPartAt(offset)
-		if (!fromPart && currentHTMLService.document.getText()[offset - 2] === '.') {
-			fromPart = new Part(PartType.Class, currentHTMLService.document.getText()[offset - 1], offset - 1)
-		}
 		if (!fromPart) {
 			return null
 		}

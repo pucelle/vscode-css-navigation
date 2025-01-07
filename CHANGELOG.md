@@ -1,5 +1,13 @@
 # ChangeLog
 
+
+## [2.1.1]
+
+- Completion items get numeric sorting, e.g.:
+	- before: `.class1`, `.class10`, `.class2`
+	- after: `.class1`, `.class2`, `.class10`
+
+
 ## [2.1.0]
 
 - Fix the bug that can't get new definition/completion after document edited.

@@ -118,6 +118,7 @@ export class AnyTokenScanner<T extends number> {
 		this.offset += 1
 
 		while (true) {
+
 			// "..."|
 			if (!this.readOut(/['"\\]/g)) {
 				break
@@ -143,12 +144,13 @@ export class AnyTokenScanner<T extends number> {
 		return !!this.readUntil(/\S/g)
 	}
 
-	/** Read chars until before `\r\n`. */
+	/** Read chars until before `|\r\n`. */
 	protected readLine(): boolean {
 		if (!this.readUntil(/[\r\n]/g)) {
 			return false
 		}
 
+		// Move cursor to `\r|\n`.
 		if (this.peekChar() === '\r' && this.peekChar(1) === '\n') {
 			this.offset += 1
 		}
@@ -190,23 +192,31 @@ export class AnyTokenScanner<T extends number> {
 				break
 			}
 
-			// `"..."`
+			// `|"..."`
 			else if (char === '"' || char === '\'') {
 				this.readString()
 			}
 			
-			// '`...`'
+			// '|`...`'
 			else if (char === '`' && LanguageIds.isScriptSyntax(this.languageId)) {
 				this.readTemplateLiteral()
 			}
 
-			// `/*`
+			// `|/*`
 			else if (char === '/' && this.peekChar(1) === '*') {
+
+				// Move cursor to `/*|`.
+				this.offset += 2
+
 				this.readOut(/\*\//g)
 			}
 
-			// `//`
+			// `|//`
 			else if (char === '/' && this.peekChar(1) === '/' && this.languageId !== 'css') {
+
+				// Move cursor to `//|`.
+				this.offset += 2
+
 				if (!this.readLineAndEnd()) {
 					break
 				}
@@ -215,7 +225,7 @@ export class AnyTokenScanner<T extends number> {
 				// `|/`
 			else if (char === '/' && LanguageIds.isScriptSyntax(this.languageId)) {
 
-				// Move to `/|`, and read out whole expression.
+				// read out whole expression.
 				this.readRegExp()
 			}
 

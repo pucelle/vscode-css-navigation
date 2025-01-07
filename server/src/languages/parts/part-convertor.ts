@@ -222,8 +222,13 @@ export namespace PartConvertor {
 		output(fromPart: Part, document: TextDocument): CompletionItem[] {
 			let items: CompletionItem[] = []
 
-			for (let [label, type] of this.map.entries()) {
+			let collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base', ignorePunctuation: true})
+			let sortedLabels = [...this.map.keys()].sort(collator.compare)
+
+			for (let i = 0; i < sortedLabels.length; i++) {
 				let kind: CompletionItemKind
+				let label = sortedLabels[i]
+				let type = this.map.get(label)
 
 				if (type === CompletionLabelType.CSSVariable) {
 					kind = CompletionItemKind.Color
@@ -237,7 +242,9 @@ export namespace PartConvertor {
 
 				let item = CompletionItem.create(label)
 				item.kind = kind
-				item.sortText = '-1'
+
+				// Use space because it's char code is 32, lower than any other visible characters.
+				item.sortText = ' ' + String(i).padStart(3, '0')
 		
 				item.textEdit = TextEdit.replace(
 					toRange(fromPart, document),
