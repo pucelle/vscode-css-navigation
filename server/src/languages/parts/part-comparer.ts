@@ -1,6 +1,5 @@
 import {Part, PartType} from './part'
 import {PartConvertor} from './part-convertor'
-import {CSSSelectorPart} from './part-css-selector'
 
 
 /** 
@@ -8,19 +7,6 @@ import {CSSSelectorPart} from './part-css-selector'
  * especially to find definitions or references.
  */
 export namespace PartComparer {
-
-	/** 
-	 * Try get primary of css selector to do comparing.
-	 * If no css selector, returns self.
-	 */
-	export function mayPrimary(part: Part): Part | null {
-		if (part.type === PartType.CSSSelector) {
-			return (part as CSSSelectorPart).primary
-		}
-		else {
-			return part
-		}
-	}
 
 	/** Get formatted list for css selector, or text. */
 	export function mayFormatted(part: Part): string[] {
@@ -34,7 +20,7 @@ export namespace PartComparer {
 
 	/** Get details list for css selector, or self as list. */
 	export function mayDetails(part: Part): Part[] {
-		if (part.hasDetailedList()) {
+		if (part.isSelectorWrapperType()) {
 			return part.details
 		}
 		else {
@@ -42,11 +28,6 @@ export namespace PartComparer {
 		}
 	}
 
-
-	/** Whether type of a part is totally match another part. */
-	export function isTypeMatch(part1: Part, part2: Part): boolean {
-		return part1.type === part2.type
-	}
 
 	/** Whether text of a part is totally match another part. */
 	export function isTextMatch(part1: Part, part2: Part): boolean {
@@ -86,8 +67,8 @@ export namespace PartComparer {
 	 * Use it for finding references and do class name completions for a css document.
 	 * Note this will match type of it's own.
 	 */
-	export function isReferenceTypeMatch(testPart: Part, matchDefPart: Part): boolean {
-		return PartConvertor.typeToDefinition(testPart.type) === matchDefPart.type
+	export function isReferenceTypeMatch(testType: PartType, matchDefType: PartType): boolean {
+		return PartConvertor.typeToDefinition(testType) === matchDefType
 	}
 
 	/** 

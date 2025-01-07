@@ -15,6 +15,8 @@ import {
 	TextDocumentChangeEvent,
 	HoverParams,
 	Hover,
+	DocumentColorParams,
+	ColorInformation,
 } from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {HTMLServiceMap, CSSServiceMap} from './languages'
@@ -24,6 +26,7 @@ import {getCompletionItems} from './completion'
 import {findReferences} from './reference'
 import {findHover} from './hover'
 import '../../client/out/types'
+import {getCSSVariableColors} from './css-variable-color'
 
 
 let connection: Connection = createConnection(ProposedFeatures.all)
@@ -70,6 +73,7 @@ connection.onInitialize((params: InitializeParams) => {
 			referencesProvider: configuration.enableFindAllReferences,
 			workspaceSymbolProvider: configuration.enableWorkspaceSymbols,
 			hoverProvider: configuration.enableHover,
+			colorProvider: configuration.enableCSSVariableColor,
 		}
 	}
 })
@@ -94,6 +98,13 @@ connection.onInitialized(() => {
 
 	if (configuration.enableHover) {
 		connection.onHover(Logger.logQuerierExecutedTime(server.findHover.bind(server), 'hover'))
+	}
+
+	if (configuration.enableCSSVariableColor) {
+		connection.onDocumentColor(Logger.logQuerierExecutedTime(server.getDocumentCSSVariableColors.bind(server), 'hover'))
+
+		// Just ensure no error happens.
+		connection.onColorPresentation(() => null)
 	}
 })
 
@@ -234,6 +245,18 @@ class CSSNavigationServer {
 		let offset = document.offsetAt(position)
 		
 		return findHover(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration)
+	}
+
+	/** Provide document css variable color service. */
+	async getDocumentCSSVariableColors(params: DocumentColorParams): Promise<ColorInformation[] | null> {
+		let documentIdentifier = params.textDocument
+		let document = documents.get(documentIdentifier.uri)
+
+		if (!document) {
+			return null
+		}
+	
+		return getCSSVariableColors(document, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
 }
 

@@ -78,6 +78,7 @@ export class CSSNavigationExtension {
 			enableWorkspaceSymbols: config.get('enableWorkspaceSymbols', true),
 			enableFindAllReferences: config.get('enableFindAllReferences', true),
 			enableHover: config.get('enableHover', true),
+			enableCSSVariableColor: config.get('enableHover', true),
 			enableLogLevelMessage: config.get('enableLogLevelMessage', false),
 
 			activeHTMLFileExtensions: config.get('activeHTMLFileExtensions', []),

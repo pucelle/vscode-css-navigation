@@ -9,6 +9,7 @@ interface Configuration {
 	enableIdAndClassNameCompletion: boolean
 	enableFindAllReferences: boolean
 	enableHover: boolean
+	enableCSSVariableColor: boolean
 	enableLogLevelMessage: boolean
 
 	activeHTMLFileExtensions: string[]

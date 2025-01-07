@@ -1,4 +1,5 @@
 import {Connection, RemoteConsole} from 'vscode-languageserver'
+import {toDecimal} from './number'
 
 
 export namespace Logger {
@@ -108,7 +109,7 @@ export namespace Logger {
 				return null
 			}
 
-			let time = Math.round(getMillisecond() - startTime!)
+			let time = toDecimal(getMillisecond() - startTime!, 1)
 			
 			if (Array.isArray(result)) {
 				if (result.length === 0) {

@@ -1,4 +1,27 @@
 /** 
+ * Create a group map in `K => V[]` format, just like SQL `group by` statement.
+ * @param pairFn get key and value pair by it.
+ */
+export function groupBy<T, K, V>(list: Iterable<T>, pairFn: (value: T) => [K, V]): Map<K, V[]> {
+	let map: Map<K, V[]> = new Map()
+
+	for (let item of list) {
+		let [key, value] = pairFn(item)
+
+		let group = map.get(key)
+		if (!group) {
+			group = []
+			map.set(key, group)
+		}
+
+		group.push(value)
+	}
+
+	return map
+}
+
+
+/** 
  * Binary find index of an item from a list, which has been sorted.
  * Returns the found item index, or `-1` if nothing found.
  * 

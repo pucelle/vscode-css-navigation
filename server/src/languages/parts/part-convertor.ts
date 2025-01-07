@@ -1,18 +1,13 @@
-import {CompletionItem, CompletionItemKind, Hover, Location, LocationLink, MarkupKind, Range, SymbolInformation, SymbolKind, TextEdit} from 'vscode-languageserver'
+import {Color as VSColor, ColorInformation, Hover, Location, LocationLink, MarkupKind, Range, SymbolInformation, SymbolKind} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {escapeAsRegExpSource} from '../trees/utils'
 import {Part, PartType} from './part'
-import {CSSSelectorPart} from './part-css-selector'
+import {CSSSelectorWrapperPart} from './part-css-selector-wrapper'
 import {CSSTokenTree} from '../trees/css-tree'
 import {CSSTokenNodeType} from '../trees/css-node'
 import {PartComparer} from './part-comparer'
-
-
-export enum CompletionLabelType {
-	CSSVariable,
-	Definition,
-	Reference,
-}
+import {Color} from '../../helpers'
+import {CSSVariableDefinitionPart} from './part-css-variable-definition'
 
 
 /** Help to convert part type and text. */
@@ -137,7 +132,7 @@ export namespace PartConvertor {
 			return PartType.CSSSelectorClass
 		}
 		else if (type === PartType.CSSVariableAssignment || type === PartType.CSSVariableReference) {
-			return PartType.CSSVariableDeclaration
+			return PartType.CSSVariableDefinition
 		}
 		else if (type === PartType.ReactDefaultImportedCSSModuleClass
 			|| type === PartType.ReactImportedCSSModuleProperty
@@ -188,7 +183,7 @@ export namespace PartConvertor {
 
 	/** To several symbol information for workspace symbol searching. */
 	export function toSymbolInformationList(part: Part, document: TextDocument): SymbolInformation[] {
-		let kind = part.type === PartType.CSSSelector
+		let kind = part.type === PartType.CSSSelectorWrapper
 			|| part.type === PartType.CSSSelectorTag
 			|| part.type === PartType.CSSSelectorClass
 			|| part.type === PartType.CSSSelectorId
@@ -205,63 +200,10 @@ export namespace PartConvertor {
 		))
 	}
 
-
-	/** Merge several groups of completion labels. */
-	export class CompletionLabels {
-
-		private map: Map<string, CompletionLabelType> = new Map()
-
-		add(type: CompletionLabelType, labels: Iterable<string>) {
-			for (let label of labels) {
-				if (!this.map.has(label) || this.map.get(label)! < type) {
-					this.map.set(label, type)
-				}
-			}
-		}
-
-		output(fromPart: Part, document: TextDocument): CompletionItem[] {
-			let items: CompletionItem[] = []
-
-			let collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base', ignorePunctuation: true})
-			let sortedLabels = [...this.map.keys()].sort(collator.compare)
-
-			for (let i = 0; i < sortedLabels.length; i++) {
-				let kind: CompletionItemKind
-				let label = sortedLabels[i]
-				let type = this.map.get(label)
-
-				if (type === CompletionLabelType.CSSVariable) {
-					kind = CompletionItemKind.Color
-				}
-				else if (type === CompletionLabelType.Definition) {
-					kind = CompletionItemKind.Class
-				}
-				else {
-					kind = CompletionItemKind.Value
-				}
-
-				let item = CompletionItem.create(label)
-				item.kind = kind
-
-				// Use space because it's char code is 32, lower than any other visible characters.
-				item.sortText = ' ' + String(i).padStart(3, '0')
-		
-				item.textEdit = TextEdit.replace(
-					toRange(fromPart, document),
-					label,
-				)
-
-				items.push(item)
-			}
-
-			return items
-		}
-	}
-
-	/** Part to hover. */
-	export function toHover(part: CSSSelectorPart, matchPart: Part, document: TextDocument, fromDocument: TextDocument, maxStylePropertyCount: number): Hover {
+	/** Selector part to hover. */
+	export function toHoverOfSelectorWrapper(part: CSSSelectorWrapperPart, fromPart: Part, document: TextDocument, fromDocument: TextDocument, maxStylePropertyCount: number): Hover {
 		let comment = part.comment?.trim()
-		let content = '```css\n' + matchPart.text + '{'
+		let content = '```css\n' + PartComparer.mayFormatted(part)[0] + '{'
 
 		if (maxStylePropertyCount > 0) {
 			content += parseStyleProperties(part, document.getText(), maxStylePropertyCount)
@@ -281,11 +223,11 @@ export namespace PartConvertor {
 				kind: MarkupKind.Markdown,
 				value: content,
 			},
-			range: toRange(part, fromDocument),
+			range: toRange(fromPart, fromDocument),
 		}
 	}
 
-	function parseStyleProperties(part: CSSSelectorPart, string: string, maxStylePropertyCount: number): string {
+	function parseStyleProperties(part: CSSSelectorWrapperPart, string: string, maxStylePropertyCount: number): string {
 		let text = string.slice(part.start, part.defEnd)
 		let tree = CSSTokenTree.fromString(text, 0, 'css')
 		let content = ''
@@ -331,5 +273,42 @@ export namespace PartConvertor {
 		}
 
 		return content
+	}
+
+	/** Selector part to hover. */
+	export function toHoverOfCSSVariableDefinition(part: CSSVariableDefinitionPart, fromPart: Part, fromDocument: TextDocument): Hover {
+		let comment = part.comment?.trim()
+		let value = part.value?.trim()
+		let content = ''
+
+		if (value) {
+			content += value
+		}
+
+		if (comment) {
+			content += '\n' + comment
+		}
+
+		return {
+			contents: {
+				kind: MarkupKind.Markdown,
+				value: content,
+			},
+			range: toRange(fromPart, fromDocument),
+		}
+	}
+
+
+	/** CSS Variable part to color information. */
+	export function toColorInformation(part: Part, value: string, fromDocument: TextDocument): ColorInformation | null {
+		let color = Color.fromString(value)
+		if (!color) {
+			return null
+		}
+
+		return {
+			color: VSColor.create(color.r, color.g, color.b, color.a),
+			range: toRange(part, fromDocument),
+		}
 	}
 }

@@ -119,18 +119,18 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		return symbols
 	}
 
-	async getCompletionLabels(matchPart: Part, fromPart: Part): Promise<Iterable<string>> {
+	async getCompletionLabels(matchPart: Part, fromPart: Part): Promise<Map<string, string | undefined>> {
 		await this.beFresh()
 
-		let labelSet: Set<string> = new Set()
+		let labelMap: Map<string, string | undefined> = new Map()
 
 		for (let service of this.walkAvailableServices()) {
-			for (let label of service.getCompletionLabels(matchPart, fromPart)) {
-				labelSet.add(label)
+			for (let [label, detail] of service.getCompletionLabels(matchPart, fromPart)) {
+				labelMap.set(label, detail)
 			}
 		}
 
-		return labelSet
+		return labelMap
 	}
 
 	/** 
@@ -139,18 +139,18 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	 * `matchPart` is a definition part,
 	 * but current parts are a reference type of parts.
 	 */
-	async getReferencedCompletionLabels(fromPart: Part): Promise<Iterable<string>> {
+	async getReferencedCompletionLabels(fromPart: Part): Promise<Map<string, string | undefined>> {
 		await this.beFresh()
 
-		let labelSet: Set<string> = new Set()
+		let labelMap: Map<string, string | undefined> = new Map()
 
 		for (let service of this.walkAvailableServices()) {
-			for (let label of service.getReferencedCompletionLabels(fromPart)) {
-				labelSet.add(label)
+			for (let [label, detail] of service.getReferencedCompletionLabels(fromPart)) {
+				labelMap.set(label, detail)
 			}
 		}
 
-		return labelSet
+		return labelMap
 	}
 
 	async findReferences(matchDefPart: Part, fromPart: Part): Promise<Location[]> {
@@ -165,16 +165,31 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		return locations
 	}
 
-	async findHover(matchPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Promise<Hover | null> {
+	async findHover(matchPart: Part, fromPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Promise<Hover | null> {
 		await this.beFresh()
 
 		for (let service of this.walkAvailableServices()) {
-			let hover = service.findHover(matchPart, fromDocument, maxStylePropertyCount)
+			let hover = service.findHover(matchPart, fromPart, fromDocument, maxStylePropertyCount)
 			if (hover) {
 				return hover
 			}
 		}
 
 		return null
+	}
+
+	/** Find all css variable values. */
+	async getCSSVariables(names: Set<string>): Promise<Map<string, string>> {
+		await this.beFresh()
+		
+		let map: Map<string, string> = new Map()
+
+		for (let service of this.walkAvailableServices()) {
+			for (let [name, value] of service.getCSSVariables(names)) {
+				map.set(name, value)
+			}
+		}
+
+		return map
 	}
 }

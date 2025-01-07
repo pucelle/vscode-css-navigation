@@ -1,7 +1,7 @@
 import {CSSSelectorTokenScanner, CSSToken, CSSTokenScanner, CSSTokenType, SassIndentedTokenScanner} from '../scanners'
 import {CSSTokenNode, CSSTokenNodeType} from './css-node'
-import {Part, PartType} from '../parts'
-import {CSSSelectorPart} from '../parts'
+import {CSSVariableDefinitionPart, Part, PartType} from '../parts'
+import {CSSSelectorWrapperPart} from '../parts'
 import {Picker} from './picker'
 import {joinTokens} from './utils'
 import {ListMap} from '../../utils'
@@ -112,17 +112,24 @@ export class CSSTokenTree extends CSSTokenNode {
 		return tree
 	}
 
-	/** For property name part. */
-	static *parsePropertyNamePart(text: string, start: number): Iterable<Part> {
+	/** 
+	 * For property name part.
+	 * Be static for also parsing inline style.
+	 */
+	static *parsePropertyNamePart(text: string, start: number, commentText: string | undefined, valueText: string | undefined): Iterable<Part> {
+
 		if (text.startsWith('-')) {
 
 			// Will not set defEnd to value end, because default vscode plugin will
 			// also generate a definition, but end with property name end.
-			yield new Part(PartType.CSSVariableDeclaration, text, start)
+			yield new CSSVariableDefinitionPart(text, start, commentText, valueText)
 		}
 	}
 
-	/** For property value part. */
+	/** 
+	 * For property value part.
+	 * Be static for also parsing inline style.
+	 */
 	static *parsePropertyValuePart(text: string, start: number): Iterable<Part> {
 		let matches = Picker.locateAllMatches(text, /var\(\s*([\w-]*)\s*\)/g)
 
@@ -134,7 +141,7 @@ export class CSSTokenTree extends CSSTokenNode {
 
 	readonly string: string
 	readonly languageId: CSSLanguageId
-	private nodePartMap: ListMap<CSSTokenNode, CSSSelectorPart> = new ListMap()
+	private nodePartMap: ListMap<CSSTokenNode, CSSSelectorWrapperPart> = new ListMap()
 	private commandWrappedMap: Map<CSSTokenNode, boolean> = new Map()
 
 	constructor(string: string, languageId: CSSLanguageId) {
@@ -160,7 +167,7 @@ export class CSSTokenTree extends CSSTokenNode {
 	}
 
 	private *parseNodePart(node: CSSTokenNode): Iterable<Part> {
-		if (node.isRoot) {
+		if (node.isRoot()) {
 			return
 		}
 
@@ -168,10 +175,10 @@ export class CSSTokenTree extends CSSTokenNode {
 			yield* this.parseSelectorPart(node)
 		}
 		else if (node.type === CSSTokenNodeType.PropertyName) {
-			yield* CSSTokenTree.parsePropertyNamePart(node.token.text, node.token.start)
+			yield* this.parsePropertyNamePart(node)
 		}
 		else if (node.type === CSSTokenNodeType.PropertyValue) {
-			yield* CSSTokenTree.parsePropertyValuePart(node.token.text, node.token.start)
+			yield* this.parsePropertyValuePart(node)
 		}
 		else if (node.type === CSSTokenNodeType.Command) {
 			yield* this.parseCommandPart(node)
@@ -183,6 +190,32 @@ export class CSSTokenTree extends CSSTokenNode {
 		yield* this.parseSelectorString(node.token.text, node.token.start, node, false)
 	}
 
+	/** For property name part. */
+	private *parsePropertyNamePart(node: CSSTokenNode): Iterable<Part> {
+		let text = node.token.text
+		if (!text.startsWith('-')) {
+			return
+		}
+
+		let commentText = node.commentToken?.text
+
+		let nextNode = node.getNextSibling()
+
+		// CSS Variable value.
+		let cssVariableValue = nextNode && nextNode.type === CSSTokenNodeType.PropertyValue
+			? nextNode.token.text
+			: undefined
+
+		// Will not set defEnd to value end, because default vscode plugin will
+		// also generate a definition, but end with property name end.
+		yield* CSSTokenTree.parsePropertyNamePart(text, node.token.start, commentText, cssVariableValue)
+	}
+
+	/** For property value part. */
+	private *parsePropertyValuePart(node: CSSTokenNode): Iterable<Part> {
+		yield* CSSTokenTree.parsePropertyValuePart(node.token.text, node.token.start)
+	}
+
 	/** Parse a selector content to parts. */
 	private *parseSelectorString(text: string, start: number, node: CSSTokenNode, breaksSeparatorNesting: boolean): Iterable<Part> {
 		let groups = new CSSSelectorTokenScanner(text, start, this.languageId).parseToSeparatedTokens()
@@ -192,7 +225,7 @@ export class CSSTokenTree extends CSSTokenNode {
 		for (let group of groups) {
 			let joint = joinTokens(group, this.string)
 
-			let part = CSSSelectorPart.parseFrom(
+			let part = CSSSelectorWrapperPart.parseFrom(
 				joint,
 				group,
 				parentParts,

@@ -1,5 +1,5 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CompletionLabelType, CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
+import {CompletionLabels, CompletionLabelType, CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
 import {CompletionItem} from 'vscode-languageserver'
 import {getPathExtension} from './helpers'
 
@@ -52,7 +52,7 @@ async function getCompletionItemsInHTML(
 
 	// `#i` -> `i` to do completion is not working.
 	let matchPart = PartConvertor.toDefinitionMode(fromPart)
-	let labels = new PartConvertor.CompletionLabels()
+	let labels = new CompletionLabels()
 
 	// Complete html element class name.
 	if (fromPart.isHTMLType()) {
@@ -86,7 +86,7 @@ async function getCompletionItemsInCSS(
 	cssServiceMap: CSSServiceMap
 ): Promise<CompletionItem[] | null> {
 	let matchPart = PartConvertor.toDefinitionMode(fromPart)
-	let labels = new PartConvertor.CompletionLabels()
+	let labels = new CompletionLabels()
 
 
 	// Find selector referenced completions from current document, and across all html documents.

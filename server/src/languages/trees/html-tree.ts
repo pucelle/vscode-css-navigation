@@ -285,7 +285,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			let name = match[1]
 			let value = match[2]
 		
-			yield* CSSTokenTree.parsePropertyNamePart(name.text, name.start + start)
+			yield* CSSTokenTree.parsePropertyNamePart(name.text, name.start + start, undefined, value.text)
 			yield* CSSTokenTree.parsePropertyValuePart(value.text, value.start + start)
 		}
 	}

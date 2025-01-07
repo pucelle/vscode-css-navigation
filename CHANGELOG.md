@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.1.2]
+
+- Fix an issue which will cause parsing core stuck when have HTML comments.
+
+
 ## [2.1.1]
 
 - Completion items get numeric sorting, e.g.:

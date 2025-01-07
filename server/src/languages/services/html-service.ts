@@ -1,4 +1,3 @@
-import {TextDocument} from 'vscode-languageserver-textdocument'
 import {HTMLTokenTree, JSTokenTree} from '../trees'
 import {BaseService} from './base-service'
 
@@ -14,17 +13,13 @@ const HTMLLanguageIdMap: Record<string, HTMLLanguageId> = {
 /** Scan html code pieces in files that can include HTML codes, like html, js, jsx, ts, tsx. */
 export class HTMLService extends BaseService {
 
-	constructor(document: TextDocument) {
-		super(document)
-
-		let languageId = HTMLLanguageIdMap[document.languageId] ?? 'html'
+	protected makeTree() {
+		let languageId = HTMLLanguageIdMap[this.document.languageId] ?? 'html'
 		if (languageId === 'html') {
-			let tree = HTMLTokenTree.fromString(document.getText(), 0, languageId)
-			this.parts = [...tree.walkParts()]
+			return HTMLTokenTree.fromString(this.document.getText(), 0, languageId)
 		}
 		else {
-			let tree = JSTokenTree.fromString(document.getText(), 0, languageId)
-			this.parts = [...tree.walkParts()]
+			return JSTokenTree.fromString(this.document.getText(), 0, languageId)
 		}
 	}
 }

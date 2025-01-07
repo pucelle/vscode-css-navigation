@@ -1,4 +1,6 @@
 export * from './part'
-export * from './part-css-selector'
+export * from './part-css-selector-wrapper'
 export * from './part-convertor'
 export * from './part-comparer'
+export * from './part-css-variable-definition'
+export * from './completion-labels'

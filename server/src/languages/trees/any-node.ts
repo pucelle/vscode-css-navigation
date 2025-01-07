@@ -17,8 +17,23 @@ export class AnyTokenNode<T extends AnyToken<number>> {
 		this.parent = parent
 	}
 
-	get isRoot(): boolean {
+	/** Whether be root node. */
+	isRoot(): boolean {
 		return this.token.start === -1
+	}
+
+	/** Get next sibling. */
+	getNextSibling(): this | null {
+		if (!this.parent) {
+			return null
+		}
+
+		let index = this.parent.children!.indexOf(this)
+		if (index < this.parent.children!.length - 1) {
+			return this.parent.children![index + 1] as this
+		}
+
+		return null
 	}
 
 	/** Sort walking of parts. */
@@ -30,7 +45,7 @@ export class AnyTokenNode<T extends AnyToken<number>> {
 
 	/** Walk all nodes, exclude root node. */
 	*walk(): Iterable<this> {
-		if (!this.isRoot) {
+		if (!this.isRoot()) {
 			yield this
 		}
 

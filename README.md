@@ -98,6 +98,7 @@ editor.quickSuggestions": {
 | `enableIdAndClassNameCompletion`  | Whether enables id and class name completion service, default value is `true`.
 | `enableFindAllReferences`         | Whether enables finding references service, default value is `true`.
 | `enableHover`                     | Whether enables id and class name hover service, default value is `true`.
+| `enableCSSVariableColor`          | Whether enables css variable color preview, if enabled, will show a color preview box besides color type css variables. default value is `true`.
 | `maxHoverStylePropertyCount`      | When mouse hover at a class or id attribute, how many style properties at most should show. Default value is `4`.
 
 

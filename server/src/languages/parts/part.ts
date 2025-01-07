@@ -1,5 +1,7 @@
 import {hasQuotes} from '../trees/utils'
-import {CSSSelectorDetailedPart, CSSSelectorPart} from './part-css-selector'
+import {CSSSelectorWrapperPart} from './part-css-selector-wrapper'
+import {CSSSelectorDetailedPart} from './part-css-selector-detailed'
+import {CSSVariableDefinitionPart} from './part-css-variable-definition'
 
 
 /** Part types. */
@@ -66,8 +68,8 @@ export enum PartType {
 
 	//// From CSS.
 
-	/** Any selector string like `#id`, `.class-name`. */
-	CSSSelector,
+	/** Wrapper all other selector parts. */
+	CSSSelectorWrapper,
 
 	/** div{...} */
 	CSSSelectorTag,
@@ -78,11 +80,8 @@ export enum PartType {
 	/** It includes identifier `.`. */
 	CSSSelectorClass,
 
-	/** @keyframes xxx. */
-	CSSKeyFrames,
-
 	/** `--variable-name: ...;` */
-	CSSVariableDeclaration,
+	CSSVariableDefinition,
 
 	/** `property: var(--variable-name);` */
 	CSSVariableReference,
@@ -125,28 +124,30 @@ export class Part {
 
 	/** HTML class and id attribute. */
 	isHTMLType() {
-		return this.type < PartType.CSSSelector
+		return this.type < PartType.CSSSelectorWrapper
 			&& this.type >= PartType.Tag
 	}
 
 	/** CSS selector and variables. */
 	isCSSType() {
-		return this.type >= PartType.CSSSelector
+		return this.type >= PartType.CSSSelectorWrapper
 	}
 
 	isCSSVariableType() {
 		return this.type === PartType.CSSVariableAssignment
-			|| this.type === PartType.CSSVariableDeclaration
+			|| this.type === PartType.CSSVariableDefinition
 			|| this.type === PartType.CSSVariableReference
 	}
 
+	isCSSVariableDefinitionType(): this is CSSVariableDefinitionPart {
+		return this.type === PartType.CSSVariableDefinition
+	}
+
 	isDefinitionType() {
-		return this.type === PartType.CSSSelector
-			|| this.type === PartType.CSSSelectorTag
+		return this.type === PartType.CSSSelectorTag
 			|| this.type === PartType.CSSSelectorId
 			|| this.type === PartType.CSSSelectorClass
-			|| this.type === PartType.CSSKeyFrames
-			|| this.type === PartType.CSSVariableDeclaration
+			|| this.type === PartType.CSSVariableDefinition
 	}
 
 	isReferenceType() {
@@ -162,6 +163,10 @@ export class Part {
 			|| this.type === PartType.ReactImportedCSSModuleProperty
 	}
 
+	isSelectorWrapperType(): this is CSSSelectorWrapperPart {
+		return this.type === PartType.CSSSelectorWrapper
+	}
+
 	isSelectorType() {
 		return this.type === PartType.Tag
 			|| this.type === PartType.Id
@@ -169,25 +174,26 @@ export class Part {
 			|| this.type === PartType.CSSSelectorQueryTag
 			|| this.type === PartType.CSSSelectorQueryId
 			|| this.type === PartType.CSSSelectorQueryClass
-			|| this.type === PartType.CSSSelector
+			|| this.type === PartType.CSSSelectorWrapper
 			|| this.type === PartType.CSSSelectorTag
 			|| this.type === PartType.CSSSelectorId
 			|| this.type === PartType.CSSSelectorClass
-			|| this.type === PartType.CSSKeyFrames
 			|| this.type === PartType.ReactDefaultImportedCSSModuleClass
 			|| this.type === PartType.ReactImportedCSSModuleProperty
 	}
 
-	/** Only definition part has formatted list. */
-	hasFormattedList(): this is CSSSelectorPart | CSSSelectorDetailedPart {
-		return this.type === PartType.CSSSelector
-			|| this.type === PartType.CSSSelectorTag
+	isSelectorDetailedType(): this is CSSSelectorDetailedPart {
+		return this.type === PartType.CSSSelectorTag
 			|| this.type === PartType.CSSSelectorId
 			|| this.type === PartType.CSSSelectorClass
 	}
 
-	hasDetailedList(): this is CSSSelectorPart {
-		return this.type === PartType.CSSSelector
+	/** Only definition part has formatted list. */
+	hasFormattedList(): this is CSSSelectorWrapperPart | CSSSelectorDetailedPart {
+		return this.type === PartType.CSSSelectorWrapper
+			|| this.type === PartType.CSSSelectorTag
+			|| this.type === PartType.CSSSelectorId
+			|| this.type === PartType.CSSSelectorClass
 	}
 
 	/** `"ab"` => `ab`. */
