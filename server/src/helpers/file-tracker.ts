@@ -15,6 +15,7 @@ import {walkDirectoryToMatchFiles} from './file-walker'
 import {glob} from 'glob'
 import {promisify} from 'util'
 
+
 interface FileTrackerItem {
 
 	/** Related document. */
@@ -25,6 +26,12 @@ interface FileTrackerItem {
 	 * If is 0, means needs to be updated.
 	 */
 	version: number
+
+	/** Union of byte mask of `TrackReason`. */
+	reason: TrackReasonMask
+
+	/** Latest used time, use it only for imported reason. */
+	latestUseTime: number
 
 	/** if file opened, it can capture it's change event. */
 	opened: boolean
@@ -38,6 +45,19 @@ interface FileTrackerItem {
 	 */
 	updatePromise: Promise<void> | null
 }
+
+export enum TrackReasonMask {
+
+	/** Included in workspace and not been ignored. */
+	Included = 1,
+
+	/** As opened document. */
+	Opened = 2,
+
+	/** As imported document. */
+	Imported = 4,
+}
+
 
 /** Specifies whether ignoring files by things specified in these files. */
 export type Ignore = '.gitignore' | '.npmignore'
@@ -66,6 +86,10 @@ export interface FileTrackerOptions {
 	releaseTimeoutMs?: number
 }
 
+/** Clean long-unused imported only sources every 5mins. */
+const CheckImportedTimeInterval =  5 * 60 * 1000
+
+
 /** Class to track one type of files in a directory. */
 export class FileTracker {
 
@@ -86,6 +110,8 @@ export class FileTracker {
 	protected startDataLoaded: boolean = true
 	protected updating: Promise<void> | null = null
 	protected releaseTimeout: NodeJS.Timeout | null = null
+	protected releaseImportedTimeout: NodeJS.Timeout | null = null
+	protected timestamp: number = 0
 
 	/** May push more promises when updating, so there is a property. */
 	protected updatePromises: Promise<void>[] = []
@@ -106,8 +132,31 @@ export class FileTracker {
 			this.allFresh = false
 			this.startDataLoaded = false
 		}
+
+		// Clean long-unused imported only sources every 5mins.
+		setInterval(this.cleanImportedSources, CheckImportedTimeInterval)
 	}
 
+	/** Whether tracked file by it's uri. */
+	has(uri: string): boolean {
+		return this.map.has(uri)
+	}
+
+	/** Walk all included or opened uris. */
+	*walkIncludedOrOpenedURIs(): Iterable<string> {
+		for (let [uri, item] of this.map) {
+			if ((item.reason & (TrackReasonMask.Included | TrackReasonMask.Opened)) === 0) {
+				continue
+			}
+
+			yield uri
+		}
+	}
+
+	/** Update timestamp. */
+	updateTimestamp(time: number) {
+		this.timestamp = time
+	}
 
 	/** When document opened or content changed from vscode editor. */
 	onDocumentOpenOrContentChanged(document: TextDocument) {
@@ -115,7 +164,7 @@ export class FileTracker {
 		// No need to handle file opening because we have preloaded all the files.
 		// Open and changed event will be distinguished by document version later.
 		if (this.has(document.uri) || this.shouldTrackFile(URI.parse(document.uri).fsPath)) {
-			this.reTrackOpenedDocument(document)
+			this.trackOpenedDocument(document)
 		}
 	}
 
@@ -153,7 +202,7 @@ export class FileTracker {
 					return
 				}
 
-				this.tryTrackFileOrFolder(fsPath)
+				this.tryTrackFileOrFolder(fsPath, TrackReasonMask.Included)
 			}
 
 			// Content changed file or folder.
@@ -162,7 +211,7 @@ export class FileTracker {
 					let stat = await fs.stat(fsPath)
 					if (stat && stat.isFile()) {
 						if (this.shouldTrackFile(fsPath)) {
-							this.reTrackChangedFile(uri)
+							this.reTrackChangedFile(uri, TrackReasonMask.Included)
 						}
 					}
 				}
@@ -170,15 +219,9 @@ export class FileTracker {
 
 			// Deleted file or folder.
 			else if (change.type === FileChangeType.Deleted) {
-				this.untrackDeletedFile(uri)
+				this.untrackDeletedFileOrFolder(uri)
 			}
 		}
-	}
-
-
-	/** Whether tracked file by it's uri. */
-	has(uri: string): boolean {
-		return this.map.has(uri)
 	}
 
 	/** Load all files inside `startPath`, and also all opened documents. */
@@ -187,7 +230,7 @@ export class FileTracker {
 
 		for (let document of this.documents.all()) {
 			if (this.shouldTrackFile(URI.parse(document.uri).fsPath)) {
-				this.reTrackOpenedDocument(document)
+				this.trackOpenedDocument(document)
 			}
 		}
 
@@ -201,12 +244,12 @@ export class FileTracker {
 				filePath = URI.file(filePath).fsPath
 
 				if (this.shouldTrackFile(filePath)) {
-					this.trackFile(filePath)
+					this.trackFile(filePath, TrackReasonMask.Included)
 				}
 			}
 		}
 
-		await this.tryTrackFileOrFolder(this.startPath!)
+		await this.tryTrackFileOrFolder(this.startPath!, TrackReasonMask.Included)
 
 		Logger.timeEnd('track', `${this.map.size} files tracked`)
 		this.startDataLoaded = true
@@ -242,7 +285,7 @@ export class FileTracker {
 	}
 
 	/** Track file or folder. */
-	private async tryTrackFileOrFolder(fsPath: string) {
+	private async tryTrackFileOrFolder(fsPath: string, reason: TrackReasonMask) {
 		if (this.shouldExcludeFileOrFolder(fsPath)) {
 			return
 		}
@@ -253,23 +296,23 @@ export class FileTracker {
 
 		let stat = await fs.stat(fsPath)
 		if (stat.isDirectory()) {
-			await this.tryTrackFolder(fsPath)
+			await this.tryTrackFolder(fsPath, reason)
 		}
 		else if (stat.isFile()) {
 			let filePath = fsPath
 			if (this.shouldTrackFile(filePath)) {
-				this.trackFile(filePath)
+				this.trackFile(filePath, reason)
 			}
 		}
 	}
 	
 	/** Track folder. */
-	private async tryTrackFolder(folderPath: string) {
+	private async tryTrackFolder(folderPath: string, reason: TrackReasonMask) {
 		let filePathsGenerator = walkDirectoryToMatchFiles(folderPath, this.ignoreFilesBy, this.mostFileCount)
 
 		for await (let absPath of filePathsGenerator) {
 			if (this.shouldTrackFile(absPath)) {
-				this.trackFile(absPath)
+				this.trackFile(absPath, reason)
 			}
 		}
 	}
@@ -285,26 +328,31 @@ export class FileTracker {
 	}
 
 	/** 
-	 * Track more file like directly imported file.
+	 * Track more file, normally imported file.
 	 * or should be excluded by exclude glob path.
 	 */
-	trackMoreFile(filePath: string) {
+	trackMoreFile(filePath: string, reason: TrackReasonMask = TrackReasonMask.Imported) {
 
-		// Not validate `alwaysIncludeMatcher` and `excludeMatcher` here.
+		// Here not validate `alwaysIncludeMatcher` and `excludeMatcher` here.
 		if (this.includeFileMatcher.match(filePath)) {
-			this.trackFile(filePath)
+			this.trackFile(filePath, reason)
 		}
 	}
 
 	/** Track file, not validate should track here. */
-	private trackFile(filePath: string) {
+	private trackFile(filePath: string, reason: TrackReasonMask) {
 		let uri = URI.file(filePath).toString()
 		let item = this.map.get(uri)
 
-		if (!item) {
+		if (item) {
+			item.reason |= reason
+		}
+		else {
 			item = {
 				document: null,
 				version: 0,
+				reason,
+				latestUseTime: 0,
 				opened: false,
 				fresh: false,
 				updatePromise: null
@@ -316,7 +364,7 @@ export class FileTracker {
 	}
 
 	/** Track opened file from document, or update tracking, no matter files inside or outside workspace. */
-	reTrackOpenedDocument(document: TextDocument) {
+	trackOpenedDocument(document: TextDocument) {
 		let uri = document.uri
 		let item = this.map.get(uri)
 
@@ -324,6 +372,7 @@ export class FileTracker {
 			let fileChanged = document.version > item.version
 			item.document = document
 			item.version = document.version
+			item.reason |= TrackReasonMask.Opened
 			item.opened = true
 
 			if (fileChanged) {
@@ -334,6 +383,8 @@ export class FileTracker {
 			item = {
 				document,
 				version: document.version,
+				reason: TrackReasonMask.Opened,
+				latestUseTime: 0,
 				opened: true,
 				fresh: false,
 				updatePromise: null
@@ -344,7 +395,7 @@ export class FileTracker {
 		}
 	}
 
-	/** After knows that file expired. */
+	/** After knows that file get expired. */
 	private makeFileExpire(uri: string, item: FileTrackerItem) {
 		if (this.updating) {
 			this.updateFile(uri, item)
@@ -395,7 +446,7 @@ export class FileTracker {
 	}
 
 	/** After file content changed, re track it. */
-	private reTrackChangedFile(uri: string) {
+	private reTrackChangedFile(uri: string, reason: TrackReasonMask) {
 		let item = this.map.get(uri)
 		if (item) {
 			// Already been handled by document change event.
@@ -405,24 +456,28 @@ export class FileTracker {
 			}
 		}
 		else {
-			this.trackFile(URI.parse(uri).fsPath)
+			this.trackFile(URI.parse(uri).fsPath, reason)
 		}
 	}
 
-	/** re track closed file. */
+	/** After file get closed, decide whether untrack it. */
 	private reTrackClosedFile(uri: string) {
 		let item = this.map.get(uri)
-		if (item) {
-			// Becomes same as not opened, still fresh.
-			item.document = null
-			item.version = 0
-			item.opened = false
-			Logger.log(`${decodeURIComponent(uri)} closed`)
+		if (!item) {
+			return
+		}
+
+		item.reason &= ~TrackReasonMask.Opened
+
+		// Still have reason to track it.
+		let shouldKeep = item.reason > 0
+		if (!shouldKeep) {
+			this.untrackFile(uri)
 		}
 	}
 
 	/** After file or folder deleted from disk. */
-	private untrackDeletedFile(deletedURI: string) {
+	private untrackDeletedFileOrFolder(deletedURI: string) {
 		for (let uri of this.map.keys()) {
 			if (uri.startsWith(deletedURI)) {
 				let item = this.map.get(uri)
@@ -487,7 +542,28 @@ export class FileTracker {
 
 	protected onReleaseResources() {}
 
-	/** Ensure specified content be fresh, if it has been included. */
+
+	protected cleanImportedSources() {
+		let toClear: string[] = []
+		let timestamp = Logger.getTimestamp()
+
+		for (let [uri, item] of this.map) {
+			if (item.reason === TrackReasonMask.Imported
+				&& item.latestUseTime + CheckImportedTimeInterval < timestamp
+			) {
+				toClear.push(uri)
+			}
+		}
+
+		for (let uri of toClear) {
+			this.untrackFile(uri)
+		}
+	}
+
+	/** 
+	 * Ensure specified content be fresh, if it has been included.
+	 * Normally use this only for imported sources.
+	 */
 	async uriBeFresh(uri: string): Promise<boolean> {
 		let item = this.map.get(uri)
 		if (!item) {
@@ -497,6 +573,8 @@ export class FileTracker {
 		if (!item.fresh) {
 			await this.updateFile(uri, item)
 		}
+
+		item.latestUseTime = this.timestamp
 
 		return true
 	}
@@ -515,6 +593,8 @@ export class FileTracker {
 			if (!item.fresh) {
 				this.updateFile(uri, item)
 			}
+
+			item.latestUseTime = this.timestamp
 		}
 
 		// May push more promises when updating.

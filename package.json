@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Allows Go to Definition from HTML to CSS / Sass / Less; provides Completion and Workspace Symbols for class & id name.",
 	"icon": "images/logo.png",
-	"version": "2.2.1",
+	"version": "2.2.2",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -159,7 +159,7 @@
 					"default": [
 						".gitignore"
 					],
-					"description": "Specifies it to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions."
+					"description": "Specifies it to ignore files and directories list in `.gitignore` or `.npmignore` when looking for html or css files."
 				},
 				"CSSNavigation.enableLogLevelMessage": {
 					"type": "boolean",

@@ -126,6 +126,7 @@ class CSSNavigationServer {
 			includeFileGlobPattern: generateGlobPatternByExtensions(configuration.activeHTMLFileExtensions)!,
 			excludeGlobPattern: generateGlobPatternByPatterns(configuration.excludeGlobPatterns) || undefined,
 			startPath: options.workspaceFolderPath,
+			ignoreFilesBy: configuration.ignoreFilesBy as Ignore[],
 
 			// Track at most 500 html like files.
 			mostFileCount: 500,
@@ -174,8 +175,15 @@ class CSSNavigationServer {
 		Logger.log(`CSS Navigation Service for workspace "${path.basename(this.options.workspaceFolderPath)}" started.`)
 	}
 
+	private updateTimestamp(time: number) {
+		this.htmlServiceMap.updateTimestamp(time)
+		this.cssServiceMap.updateTimestamp(time)
+	}
+
 	/** Provide finding definitions service. */
-	async findDefinitions(params: TextDocumentPositionParams): Promise<Location[] | null> {
+	async findDefinitions(params: TextDocumentPositionParams, time: number): Promise<Location[] | null> {
+		this.updateTimestamp(time)
+
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
 
@@ -190,7 +198,9 @@ class CSSNavigationServer {
 	}
 
 	/** Provide finding symbol service. */
-	async findSymbols(symbol: WorkspaceSymbolParams): Promise<SymbolInformation[] | null> {
+	async findSymbols(symbol: WorkspaceSymbolParams, time: number): Promise<SymbolInformation[] | null> {
+		this.updateTimestamp(time)
+
 		let query = symbol.query
 
 		// Returns nothing if haven't inputted.
@@ -202,7 +212,9 @@ class CSSNavigationServer {
 	}
 
 	/** Provide auto completion service for HTML or CSS document. */
-	async getCompletionItems(params: TextDocumentPositionParams): Promise<CompletionItem[] | null> {
+	async getCompletionItems(params: TextDocumentPositionParams, time: number): Promise<CompletionItem[] | null> {
+		this.updateTimestamp(time)
+
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
 
@@ -218,7 +230,9 @@ class CSSNavigationServer {
 	}
 
 	/** Provide finding reference service. */
-	async findReferences(params: ReferenceParams): Promise<Location[] | null> {
+	async findReferences(params: ReferenceParams, time: number): Promise<Location[] | null> {
+		this.updateTimestamp(time)
+
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
 
@@ -233,7 +247,9 @@ class CSSNavigationServer {
 	}
 
 	/** Provide finding hover service. */
-	async findHover(params: HoverParams): Promise<Hover | null> {
+	async findHover(params: HoverParams, time: number): Promise<Hover | null> {
+		this.updateTimestamp(time)
+
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
 
@@ -248,7 +264,9 @@ class CSSNavigationServer {
 	}
 
 	/** Provide document css variable color service. */
-	async getDocumentCSSVariableColors(params: DocumentColorParams): Promise<ColorInformation[] | null> {
+	async getDocumentCSSVariableColors(params: DocumentColorParams, time: number): Promise<ColorInformation[] | null> {
+		this.updateTimestamp(time)
+		
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
 

@@ -65,14 +65,14 @@ export namespace Logger {
 
 	let startTimeMap: Map<string, number> = new Map()
 
-	function getMillisecond(): number {
-		let time = process.hrtime()
-		return time[0] * 1000 + time[1] / 1000000
+	export function getTimestamp(): number {
+		let time = performance.now()
+		return time
 	}
 
 	/** Start a new time counter with specified name. */
 	export function timeStart(name: string) {
-		startTimeMap.set(name, getMillisecond())
+		startTimeMap.set(name, getTimestamp())
 	}
 
 	/** End a time counter with specified name. */
@@ -84,7 +84,7 @@ export namespace Logger {
 		}
 
 		startTimeMap.delete(name)
-		let timeCost = Math.round(getMillisecond() - startTime!)
+		let timeCost = Math.round(getTimestamp() - startTime!)
 
 		if (message !== null) {
 			log(message + ` in ${timeCost} ms`)
@@ -96,20 +96,20 @@ export namespace Logger {
 	type ResultsHandler<A extends any[], T> = (...args: A) => Promise<T | null>
 
 	/** Log executed time of a function, which will return a list, or a single item. */
-	export function logQuerierExecutedTime<A extends any[], T>(fn: ResultsHandler<A, T>, type: string): ResultsHandler<A, T> {
+	export function logQuerierExecutedTime<A extends any[], T>(fn: ResultsHandler<[...A, number], T>, type: string): ResultsHandler<A, T> {
 		return async (...args: A) => {
-			let startTime = getMillisecond()
+			let startTime = getTimestamp()
 			let result: Awaited<T> | null = null
 
 			try {
-				result = await fn(...args)
+				result = await fn(...args, startTime)
 			}
 			catch (err) {
 				log(String(err))
 				return null
 			}
 
-			let time = toDecimal(getMillisecond() - startTime!, 1)
+			let time = toDecimal(getTimestamp() - startTime!, 1)
 			
 			if (Array.isArray(result)) {
 				if (result.length === 0) {

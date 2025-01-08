@@ -109,7 +109,7 @@ class FileWalker {
 			matchBase: true,
 			dot: true,
 			flipNegate: true,
-			nocase: true
+			nocase: true,
 		}
 
 		let ruleLines = text.split(/\r?\n/)

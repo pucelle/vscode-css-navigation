@@ -1,12 +1,18 @@
 # ChangeLog
 
 
-## [v2.2.1]
+## [2.2.2]
+
+- `ignoreFilesBy` not affect HTML files when looking for references.
+- Will release opened and imported documents after they are not in use.
+
+
+## [2.2.1]
 
 - Fix an issue which will cause css variable service crash when reference tag selector.
 
 
-## [v2.2.0]
+## [2.2.0]
 
 - Provides full **CSS Variable** service include **Definition / Completion / Reference / Hover**
 - Shows color and value preview in css variable completion list.

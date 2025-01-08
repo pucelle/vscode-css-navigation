@@ -24,16 +24,16 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		this.serviceMap.clear()
 	}
 
-	protected *walkAvailableServices(): IterableIterator<S> {
-		for (let [uri, service] of this.serviceMap.entries()) {
-			if (!this.hasIgnored(uri)) {
-				yield service
-			}
-		}
-	}
-
 	protected async parseDocument(uri: string, document: TextDocument) {
 		this.serviceMap.set(uri, this.createService(document))
+	}
+
+	protected *walkAvailableServices(): IterableIterator<S> {
+		for (let uri of this.walkIncludedOrOpenedURIs()) {
+			if (!this.hasIgnored(uri)) {
+				yield this.serviceMap.get(uri)!
+			}
+		}
 	}
 
 	/** 
@@ -50,7 +50,7 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		let uri = document.uri
 
 		if (!this.has(uri) && this.isURIWithinStartPath(uri)) {
-			this.reTrackOpenedDocument(document)
+			this.trackOpenedDocument(document)
 		}
 
 		// Already included.
@@ -181,7 +181,7 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	/** Find all css variable values. */
 	async getCSSVariables(names: Set<string>): Promise<Map<string, string>> {
 		await this.beFresh()
-		
+
 		let map: Map<string, string> = new Map()
 
 		for (let service of this.walkAvailableServices()) {
