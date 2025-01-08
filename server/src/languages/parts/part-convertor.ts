@@ -14,7 +14,7 @@ import {CSSVariableDefinitionPart} from './part-css-variable-definition'
 export namespace PartConvertor {
 
 	/** Get css part type from text which includes identifiers like `.`, `#`. */
-	export function getCSSSelectorTypeByText(text: string): PartType {
+	export function getCSSSelectorDetailedTypeByText(text: string): PartType {
 		if (text[0] === '#') {
 			return PartType.CSSSelectorId
 		}
@@ -22,7 +22,7 @@ export namespace PartConvertor {
 			return PartType.CSSSelectorClass
 		}
 		else {
-			return PartType.Tag
+			return PartType.CSSSelectorTag
 		}
 	}
 

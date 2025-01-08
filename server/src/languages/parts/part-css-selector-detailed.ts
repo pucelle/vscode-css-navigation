@@ -147,6 +147,6 @@ function getDetailedPartType(type: CSSSelectorTokenType, formatted: string[]): P
 		return PartType.CSSSelectorClass
 	}
 	else {
-		return PartConvertor.getCSSSelectorTypeByText(formatted[0])
+		return PartConvertor.getCSSSelectorDetailedTypeByText(formatted[0])
 	}
 }
