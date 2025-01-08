@@ -40,32 +40,37 @@
 				"CSSNavigation.enableGoToDefinition": {
 					"type": "boolean",
 					"default": true,
-					"description": "Enable `go to definition` by clicking `F12` in HTML files."
+					"description": "Whether to enable `go to definition` by clicking `F12` in HTML files."
 				},
 				"CSSNavigation.enableWorkspaceSymbols": {
 					"type": "boolean",
 					"default": true,
-					"description": "Enable searching class and id name across workspace by clicking `Ctrl + T`."
+					"description": "Whether to enable searching class and id name across workspace by clicking `Ctrl + T`."
 				},
 				"CSSNavigation.enableIdAndClassNameCompletion": {
 					"type": "boolean",
 					"default": true,
-					"description": "Enable auto complete for id and class name in HTML files."
+					"description": "Whether to enable auto complete for id and class name in HTML files."
 				},
 				"CSSNavigation.enableFindAllReferences": {
 					"type": "boolean",
 					"default": true,
-					"description": "Enable searching CSS selector references in HTML files."
+					"description": "Whether to enable searching CSS selector references in HTML files."
 				},
 				"CSSNavigation.enableHover": {
 					"type": "boolean",
 					"default": true,
-					"description": "Enable CSS selector hover comment message in HTML files."
+					"description": "Whether to enable CSS selector hover comment message in HTML files."
 				},
 				"CSSNavigation.enableCSSVariableColor": {
 					"type": "boolean",
 					"default": true,
-					"description": "Enable CSS variable color preview. if enabled, will show a color preview box besides color type css variables."
+					"description": "Whether to enable CSS variable color preview. if enabled, will show a color preview box besides color type css variables."
+				},
+				"CSSNavigation.disableOwnCSSVariableCompletion": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. default value is `false`."
 				},
 				"CSSNavigation.maxHoverStylePropertyCount": {
 					"type": "number",

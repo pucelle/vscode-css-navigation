@@ -131,7 +131,10 @@ export namespace PartConvertor {
 		else if (type === PartType.CSSSelectorQueryClass) {
 			return PartType.CSSSelectorClass
 		}
-		else if (type === PartType.CSSVariableAssignment || type === PartType.CSSVariableReference) {
+		else if (type === PartType.CSSVariableAssignment
+			|| type === PartType.CSSVariableReference
+			|| type === PartType.CSSVariableReferenceNoVar
+		) {
 			return PartType.CSSVariableDefinition
 		}
 		else if (type === PartType.ReactDefaultImportedCSSModuleClass
@@ -275,8 +278,8 @@ export namespace PartConvertor {
 		return content
 	}
 
-	/** Selector part to hover. */
-	export function toHoverOfCSSVariableDefinition(part: CSSVariableDefinitionPart, fromPart: Part, fromDocument: TextDocument): Hover {
+	/** CSS Variable definition part to hover. */
+	export function toHoverOfCSSVariableDefinition(part: CSSVariableDefinitionPart, fromPart: Part, fromDocument: TextDocument): Hover | null {
 		let comment = part.comment?.trim()
 		let value = part.value?.trim()
 		let content = ''
@@ -286,7 +289,7 @@ export namespace PartConvertor {
 		}
 
 		if (comment) {
-			content += '\n' + comment
+			content += '\n\n' + comment
 		}
 
 		return {

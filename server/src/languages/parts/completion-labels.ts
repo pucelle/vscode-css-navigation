@@ -1,5 +1,5 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {Part} from './part'
+import {Part, PartType} from './part'
 import {CompletionItem, CompletionItemKind, TextEdit} from 'vscode-languageserver'
 import {PartConvertor} from './part-convertor'
 import {Color} from '../../helpers'
@@ -62,12 +62,18 @@ export class CompletionLabels {
 
 			// Use space because it's char code is 32, lower than any other visible characters.
 			let sortText = ' ' + String(i).padStart(3, '0')
+			let insertText = label
+
+			// `--name` -> `var(--name)`
+			if (fromPart.type === PartType.CSSVariableReferenceNoVar) {
+				insertText = `var(${label})`
+			}
 
 			let textEdit = TextEdit.replace(
 				PartConvertor.toRange(fromPart, document),
-				label,
+				insertText,
 			)
-
+	
 			let item: CompletionItem = {
 				kind,
 				label,

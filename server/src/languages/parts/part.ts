@@ -85,6 +85,9 @@ export enum PartType {
 
 	/** `property: var(--variable-name);` */
 	CSSVariableReference,
+
+	/** `property: --variable-name`, only for completion. */
+	CSSVariableReferenceNoVar,
 }
 
 
@@ -137,6 +140,7 @@ export class Part {
 		return this.type === PartType.CSSVariableAssignment
 			|| this.type === PartType.CSSVariableDefinition
 			|| this.type === PartType.CSSVariableReference
+			|| this.type === PartType.CSSVariableReferenceNoVar
 	}
 
 	isCSSVariableDefinitionType(): this is CSSVariableDefinitionPart {

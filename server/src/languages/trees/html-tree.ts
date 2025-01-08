@@ -279,7 +279,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 	/** Parse style property content for parts. */
 	protected *parseStylePropertyParts(text: string, start: number): Iterable<Part> {
-		let matches = Picker.locateAllMatches(text, /([\w-]+)\s*:\s*(.+?)\s*(?:;|$)/g)
+		let matches = Picker.locateAllMatches(text, /([\w-]+)\s*:\s*(.+?)\s*(?:[;'"]|$)/g)
 
 		for (let match of matches) {
 			let name = match[1]

@@ -3,6 +3,8 @@
 
 html{
 	height: 100%;
+
+	/* This is the primary document color. */
 	--css-variable-name: #ff0000;
 }
 
@@ -27,7 +29,7 @@ custom-element{
 .class1{
 	&-sub{
 		&-tail{
-			color: red
+			color: red;
 		}
 	}
 }

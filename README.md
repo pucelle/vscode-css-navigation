@@ -3,15 +3,22 @@
     CSS Navigation - VSCode Extension
 </h1>
 
-Allows **Go to Definition** from HTML like document to CSS / Sass / Less, provides **Completion** and **Workspace Symbols** for Class & CSS Variables & Id, and supports **Find References** from CSS to HTML.
+Provides complete CSS **Completion**, **Finding Definition**, **Finding References**, **Hover**, **Workspace Symbols** services across whole workspace. 
 
 
 ## Features
 
 
+### New Feature in v2.2.0: CSS Variable Services
+
+Since v2.2.0, this plugin provides full **CSS Variable** service include **Definition / Completion / Reference / Hover**
+![reference](images/reference.gif)
+
+
+
 ### Go to Definition and Peek Definition
 
-Choose `Go to definition` or `Peek definition`, the extension will search related CSS & Scss & Less selectors in current workspace folder.
+Choose **Go to definition** or **Peek definition**, the extension will search related CSS & Scss & Less selectors in current workspace folder.
 
 The places you can goto definitions:
 
@@ -19,7 +26,7 @@ The places you can goto definitions:
 - JSX & TSX: _className="_`class-name`_"_, _className={"_`class-name`_"}_ and others.
 - Jquery & DOM Selector: _$('_`class-name`_')_, x._querySelector('_`class-name`_')_, x._querySelectorAll('_`class-name`_')_.
 - CSS Variables: `var(--css-variable-name)`.
-- Welcome to give feedback about more you like.
+- If want more, give me a feedback.
 
 ![definition](images/definition.gif)
 
@@ -27,7 +34,7 @@ The places you can goto definitions:
 
 ### Class Name and ID Hover Info - New in V2.0
 
-When mouse hover at a class name or a id, will show it's description (leading comment) and first several style properties.
+When mouse hover at a Class Name / Id / CSS Variable, will show it's description (leading comment) and first several style properties.
 You may configure `maxHoverStylePropertyCount` to specify **How Many Style Properties** to show. If you don't want style properties, set `maxHoverStylePropertyCount` to `0`.
 
 ![definition](images/hover.jpg)
@@ -36,23 +43,15 @@ You may configure `maxHoverStylePropertyCount` to specify **How Many Style Prope
 
 ### Class Name, CSS Variable and ID Completion
 
-Provides class name and id completion for your HTML files, and if you have specified some class name or id in HTML files, can also complete them in CSS files.
+Provides Class Name/ Id / CSS Variable completion for your HTML files, and if you have specified some class name or id in HTML files, can also complete them in CSS files.
 
 ![completion](images/completion.gif)
 
 
 
-### Workspace symbols
-
-Allows to search workspace symbols in CSS & Scss & Less files across all activated workspace folders.
-
-![workspace-symbol](images/workspace-symbol.gif)
-
-
-
 ### Find All References and Peek References
 
-Supports looking for CSS selector references across all HTML & CSS files within workspace folder.
+Supports looking for CSS selector references across all HTML & CSS files of workspace folder.
 
 When your workspace folder having too much HTML like files, parsing them all may cause stuck, so it limits to read at most 500 files.
 
@@ -60,9 +59,17 @@ When your workspace folder having too much HTML like files, parsing them all may
 
 
 
-### Features miscellaneous
+### Workspace symbols
 
-- Can goto referenced files after clicking url part of `<link href="...">` or `@import "..."`.
+Allows to search workspace symbols from CSS & Scss & Less files across all activated workspace folders.
+
+![workspace-symbol](images/workspace-symbol.gif)
+
+
+
+### Miscellaneous Features
+
+- Can goto referenced files after clicking url part of `<link href="...">` or `@import "..."`, and several more.
 
 
 
@@ -79,6 +86,7 @@ editor.quickSuggestions": {
 ```
 
 
+
 ## Configuration
 
 <!-- prettier-ignore -->
@@ -92,13 +100,14 @@ editor.quickSuggestions": {
 | `ignoreSameNameCSSFile`           | When `true` by default, e.g.: If 'the-name.scss and 'the-name.css', which share the same basename, are exist in the same directory, the 'the-name.css' will be skipped. If you prefer compiling Scss or Less file to the same name CSS file, this would be helpful.
 | `ignoreCustomAndComponentTagDefinition` | When `true` by default, Custom-Element or Component tag (like React Component) definition going from HTML to CSS will be ignored, such that it goes to it's custom-element or component definition place directly which has implemented by other plugins.
 | `ignoreFilesBy`                   | Specifies this to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions. Default value is `[".gitignore"]`.
-| `enableLogLevelMessage`           | Whether enables log level message, set it to `true` for debugging.
-| `enableGoToDefinition`            | Whether enables goto definition service, default value is `true`.
-| `enableWorkspaceSymbols`          | Whether enables workspace symbol service, default value is `true`.
-| `enableIdAndClassNameCompletion`  | Whether enables id and class name completion service, default value is `true`.
-| `enableFindAllReferences`         | Whether enables finding references service, default value is `true`.
-| `enableHover`                     | Whether enables id and class name hover service, default value is `true`.
-| `enableCSSVariableColor`          | Whether enables css variable color preview, if enabled, will show a color preview box besides color type css variables. default value is `true`.
+| `enableLogLevelMessage`           | Whether to enable log level message, set it to `true` for debugging.
+| `enableGoToDefinition`            | Whether to enable goto definition service, default value is `true`.
+| `enableWorkspaceSymbols`          | Whether to enable workspace symbol service, default value is `true`.
+| `enableIdAndClassNameCompletion`  | Whether to enable id and class name completion service, default value is `true`.
+| `enableFindAllReferences`         | Whether to enable finding references service, default value is `true`.
+| `enableHover`                     | Whether to enable id and class name hover service, default value is `true`.
+| `enableCSSVariableColor`          | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. default value is `true`.
+| `disableOwnCSSVariableCompletion` | Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. default value is `false`.
 | `maxHoverStylePropertyCount`      | When mouse hover at a class or id attribute, how many style properties at most should show. Default value is `4`.
 
 
@@ -129,6 +138,15 @@ So please give your feedback, thanks.
 
 ## FAQ
 
+
+### I get repetitive completion items
+
+This plugin itself will never generate repetitive completion items, but it would be normal that completions items generated by other plugins repeat with this plugin.
+
+A frequently happened problem is css variable completion repetition -- vscode has provided css variable completion within each single css files, so you will found they get repetitive with current plugin provided.
+But this can be avoid by simply set `disableOwnCSSVariableCompletion` to `false`.
+
+
 ### Can I change definition order to make sass files always before the css files?
 
 No, VSCode always sort the definition results, seems in name order. If you don't like duplicate css definitions, you can remove the `css` in `activeCSSFileExtensions` option, or compile css file to the same folder, and keep `ignoreSameNameCSSFile` as `true`.
@@ -136,9 +154,10 @@ No, VSCode always sort the definition results, seems in name order. If you don't
 There is a `ignoreFilesBy` option, you may specify to ignore css files listed in your `.gitignore`.
 
 
-### I got only partial of all definitions
+### I get only partial of all definitions
 
-Firstly this plugin will search definitions within current document and all imported files, if found, will stop searching; if nothing found, will search across whole workspace folder.
+Firstly this plugin will search definitions within current document and all imported files, if found, will stop searching;
+if nothing found, will search across whole workspace folder.
 
 
 ### Can't get definitions across all workspace folders

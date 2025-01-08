@@ -148,6 +148,7 @@ export namespace Picker {
 	/** 
 	 * Match string, add start offset to each match.
 	 * Note it may not 100% get correct result.
+	 * Note it will skip not captured matches, means `/(1)|(2)/` will always fill match[1].
 	 * `re` must not be global.
 	 */
 	export function locateMatches(text: string, re: RegExp): Picked[] | null {
@@ -176,6 +177,7 @@ export namespace Picker {
 	/** 
 	 * Match string, add start offset to each match.
 	 * Note it may not 100% get correct result.
+	 * Note it will skip not captured matches, means `/(1)|(2)/` will always fill match[1].
 	 * `re` must be global.
 	 */
 	export function* locateAllMatches(text: string, re: RegExp): Iterable<Picked[]> {
