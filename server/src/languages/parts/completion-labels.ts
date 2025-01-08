@@ -27,6 +27,14 @@ export class CompletionLabels {
 		}
 	}
 
+	remove(labels: Iterable<string>) {
+		for (let label of labels) {
+			this.typeMap.delete(label)
+
+			// No need to delete details, wait them to be GC.
+		}
+	}
+
 	output(fromPart: Part, document: TextDocument): CompletionItem[] {
 		let items: CompletionItem[] = []
 

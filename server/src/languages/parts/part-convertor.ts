@@ -285,7 +285,7 @@ export namespace PartConvertor {
 		let content = ''
 
 		if (value) {
-			content += value
+			content += 'Value: ' + value
 		}
 
 		if (comment) {

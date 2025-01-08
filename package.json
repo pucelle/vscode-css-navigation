@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Allows Go to Definition from HTML to CSS / Sass / Less; provides Completion and Workspace Symbols for class & id name.",
 	"icon": "images/logo.png",
-	"version": "2.1.2",
+	"version": "2.2.0",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -70,7 +70,7 @@
 				"CSSNavigation.disableOwnCSSVariableCompletion": {
 					"type": "boolean",
 					"default": false,
-					"description": "Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. default value is `false`."
+					"description": "Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. Note set it to `true` will also disable css variable completion within functions like `color-mix()`, and css variable value preview in completion list. default value is `false`."
 				},
 				"CSSNavigation.maxHoverStylePropertyCount": {
 					"type": "number",

@@ -131,10 +131,16 @@ export class CSSTokenTree extends CSSTokenNode {
 	 * Be static for also parsing inline style.
 	 */
 	static *parsePropertyValuePart(text: string, start: number): Iterable<Part> {
-		let varMatches = Picker.locateAllMatches(text, /var\(\s*([\w-]*)\s*\)|^(--[\w-]*)/g)
+		let varMatches = Picker.locateAllMatches(text, /var\(\s*([\w-]*)\s*\)|^\s*(-[\w-]*)|(--[\w-]*)/g)
 
 		for (let match of varMatches) {
-			if (match[0].text.startsWith('var')) {
+
+			// `var()`, can't find captured match.
+			if (!match[1]) {
+				yield new Part(PartType.CSSVariableReference, '', match[0].start + 4 + start)
+			}
+			
+			else if (match[0].text.startsWith('var')) {
 				yield new Part(PartType.CSSVariableReference, match[1].text, match[1].start + start)
 			}
 

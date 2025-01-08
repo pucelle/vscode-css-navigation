@@ -79,6 +79,7 @@ export class CSSNavigationExtension {
 			enableFindAllReferences: config.get('enableFindAllReferences', true),
 			enableHover: config.get('enableHover', true),
 			enableCSSVariableColor: config.get('enableHover', true),
+			disableOwnCSSVariableCompletion: config.get('disableOwnCSSVariableCompletion', false),
 			enableLogLevelMessage: config.get('enableLogLevelMessage', false),
 
 			activeHTMLFileExtensions: config.get('activeHTMLFileExtensions', []),

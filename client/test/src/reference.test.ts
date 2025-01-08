@@ -29,7 +29,7 @@ describe('Test Reference from CSS', () => {
 	})
 
 	it('Should find references of css variable', async () => {
-		assert.deepStrictEqual(await searchReferences('--css-variable-name'), ['--css-variable-name'])
+		assert.deepStrictEqual(await searchReferences('--css-variable-color'), ['--css-variable-color'])
 	})
 })
 

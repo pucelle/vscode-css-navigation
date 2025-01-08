@@ -89,7 +89,7 @@ describe('Test Finding Definition from HTML', () => {
 	})
 
 	it('Should find right css variable definition', async () => {
-		assert.deepStrictEqual(await gs(['var(', '--css-variable-name', ')']), ['--css-variable-name'])
+		assert.deepStrictEqual(await gs(['var(', '--css-variable-color', ')']), ['--css-variable-color'])
 	})
 })
 
@@ -127,7 +127,7 @@ describe('Test Less', () => {
 	})
 
 	it('Should find right css variable definition', async () => {
-		assert.deepStrictEqual(await gs(['var(', '--css-variable-name', ')']), ['--css-variable-name'])
+		assert.deepStrictEqual(await gs(['var(', '--css-variable-color', ')']), ['--css-variable-color'])
 	})
 })
 

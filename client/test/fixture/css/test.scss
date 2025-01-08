@@ -4,8 +4,11 @@
 html{
 	height: 100%;
 
-	/* This is the primary document color. */
-	--css-variable-name: #ff0000;
+	/* This is the description of this css variable. */
+	--css-variable-color: #ff0000;
+
+	/* This is the description of this css variable. */
+	--css-variable-length: 1px;
 }
 
 body{
@@ -148,7 +151,8 @@ div.class-match10{
 }
 
 .class-use-variable {
-	color: var(--css-variable-name);
+	color: var(--css-variable-color);
+	width: var(--css-variable-length);
 }
 
 .match-jquery-selector{

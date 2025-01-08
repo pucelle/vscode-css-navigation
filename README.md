@@ -11,8 +11,11 @@ Provides complete CSS **Completion**, **Finding Definition**, **Finding Referenc
 
 ### New Feature in v2.2.0: CSS Variable Services
 
-Since v2.2.0, this plugin provides full **CSS Variable** service include **Definition / Completion / Reference / Hover**
-![reference](images/reference.gif)
+Since v2.2.0, this plugin provides full **CSS Variable** service include **Definition / Completion / Reference / Hover**.
+
+And it provides color preview besides color type css variables, recently supported color formats: hex, rgb, rgba, hsl, hsla.
+
+![reference](images/css-variable.gif)
 
 
 
@@ -107,7 +110,7 @@ editor.quickSuggestions": {
 | `enableFindAllReferences`         | Whether to enable finding references service, default value is `true`.
 | `enableHover`                     | Whether to enable id and class name hover service, default value is `true`.
 | `enableCSSVariableColor`          | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. default value is `true`.
-| `disableOwnCSSVariableCompletion` | Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. default value is `false`.
+| `disableOwnCSSVariableCompletion` | Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. Note set it to `true` will also disable css variable completion within functions like `color-mix()`, and css variable value preview in completion list. default value is `false`.
 | `maxHoverStylePropertyCount`      | When mouse hover at a class or id attribute, how many style properties at most should show. Default value is `4`.
 
 

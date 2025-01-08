@@ -34,7 +34,7 @@ export async function getCompletionItems(
 			return null
 		}
 
-		return await getCompletionItemsInCSS(fromPart, currentCSSService, document, htmlServiceMap, cssServiceMap)
+		return await getCompletionItemsInCSS(fromPart, currentCSSService, document, htmlServiceMap, cssServiceMap, configuration)
 	}
 
 	return null
@@ -63,9 +63,7 @@ async function getCompletionItemsInHTML(
 	// Complete class name for css selector of a css document.
 	// It's a little different with css document, don't want it visits all html files.
 	else if (fromPart.isCSSType()) {
-
-		// Find selector or css variable references from current document.
-		labels.add(CompletionLabelType.Reference, currentService.getReferencedCompletionLabels(fromPart))
+		labels.add(CompletionLabelType.CSSVariable, currentService.getReferencedCompletionLabels(fromPart))
 
 		// Find all css variable declarations across all css documents.
 		if (fromPart.isCSSVariableType()) {
@@ -80,10 +78,11 @@ async function getCompletionItemsInHTML(
 /** Provide completion for CSS document. */
 async function getCompletionItemsInCSS(
 	fromPart: Part,
-	_currentService: HTMLService | CSSService,
+	currentService: HTMLService | CSSService,
 	document: TextDocument,
 	htmlServiceMap: HTMLServiceMap,
-	cssServiceMap: CSSServiceMap
+	cssServiceMap: CSSServiceMap,
+	configuration: Configuration
 ): Promise<CompletionItem[] | null> {
 	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 	let labels = new CompletionLabels()
@@ -98,6 +97,12 @@ async function getCompletionItemsInCSS(
 	// Find all css variable declarations across all css documents.
 	else if (fromPart.isCSSVariableType()) {
 		labels.add(CompletionLabelType.CSSVariable, await cssServiceMap.getCompletionLabels(matchPart, fromPart))
+
+		// Remove repetitive items with current document.
+		if (configuration.disableOwnCSSVariableCompletion) {
+			let currentLabels = currentService.getReferencedCompletionLabels(fromPart)
+			labels.remove(currentLabels.keys())
+		}
 	}
 
 

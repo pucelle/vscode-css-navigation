@@ -1,6 +1,15 @@
 # ChangeLog
 
 
+## [v2.2.0]
+
+- Provides full **CSS Variable** service include **Definition / Completion / Reference / Hover**
+- Shows color and value preview in css variable completion list.
+- Will start css variable completion after input `--`, no need to input `var()`.
+- Fix a crash issue when doing css variable completion.
+- Improves searching performance.
+
+
 ## [2.1.2]
 
 - Fix an issue which will cause parsing core stuck when have HTML comments.

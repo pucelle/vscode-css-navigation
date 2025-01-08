@@ -10,6 +10,7 @@ interface Configuration {
 	enableFindAllReferences: boolean
 	enableHover: boolean
 	enableCSSVariableColor: boolean
+	disableOwnCSSVariableCompletion: boolean
 	enableLogLevelMessage: boolean
 
 	activeHTMLFileExtensions: string[]

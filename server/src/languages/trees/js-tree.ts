@@ -233,7 +233,7 @@ export class JSTokenTree extends JSTokenNode{
 		// setProperty('--variable-name')
 		matches = Picker.locateAllMatches(
 			text,
-			/\.setProperty\s*\(\s*\(\s*['"`](--.*?)['"`]/g
+			/\.setProperty\s*\(\s*\(\s*['"`](-[\w-]*)['"`]/g
 		)
 
 		for (let match of matches) {
