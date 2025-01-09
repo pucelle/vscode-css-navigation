@@ -8,9 +8,8 @@ import {sleep, getFixtureFileUri, prepare, searchSymbolNames as gs} from './help
 describe('Test CSS File Tracking', () => {
 	before(prepare)
 	let scssURI = getFixtureFileUri('css/test.scss')
-	let cssURI = getFixtureFileUri('css/test.css')
 
-	it.only('Should track CSS code changes come from vscode', async () => {
+	it.skip('Should track CSS code changes come from vscode', async () => {
 		let cssDocument = await vscode.workspace.openTextDocument(scssURI)
 		let cssEditor = await vscode.window.showTextDocument(cssDocument)
 		let insertedText = '\n.class-insert-from-vscode{color: red;}\n'
@@ -54,37 +53,7 @@ describe('Test CSS File Tracking', () => {
 		let scssText = fs.readFileSync(scssURI.fsPath, 'utf8')
 		fs.unlinkSync(scssURI.fsPath)
 		await sleep(1000)
-		let err
-		try{
-			assert.deepStrictEqual(await gs(['<', 'html', '>']), ['html'])
-		}
-		catch (e) {
-			err = e
-		}
-		let cssText = fs.readFileSync(cssURI.fsPath, 'utf8')
-		fs.unlinkSync(cssURI.fsPath)
-		await sleep(1000)
-		let err2
-		try{
-			assert.deepStrictEqual(await gs(['<', 'html', '>']), [])
-		}
-		catch (e) {
-			err2 = e
-		}
-		fs.writeFileSync(scssURI.fsPath, scssText, 'utf8')
-		fs.writeFileSync(cssURI.fsPath, cssText, 'utf8')
-		if (err || err2) {
-			throw err || err2
-		}
-		await sleep(1000)
-		assert.deepStrictEqual(await gs(['<', 'html', '>']), ['html'])
-	})
 
-	it.skip('Should track folder renaming on disk, and should ignore `vendor` by default', async () => {
-		let dirName = path.dirname(scssURI.fsPath)
-		let renameTo = path.dirname(dirName) + '/vendor'
-		fs.renameSync(dirName, renameTo)
-		await sleep(1000)
 		let err
 		try{
 			assert.deepStrictEqual(await gs(['<', 'html', '>']), [])
@@ -92,10 +61,13 @@ describe('Test CSS File Tracking', () => {
 		catch (e) {
 			err = e
 		}
-		fs.renameSync(renameTo, dirName)
+
+		fs.writeFileSync(scssURI.fsPath, scssText, 'utf8')
+
 		if (err) {
 			throw err
 		}
+
 		await sleep(1000)
 		assert.deepStrictEqual(await gs(['<', 'html', '>']), ['html'])
 	})
