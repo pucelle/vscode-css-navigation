@@ -155,12 +155,9 @@ export class TrackingMap {
 		this.updateImportedReason(imported)
 	}
 
-	/** 
-	 * `uri` should be an import uri.
-	 * It would be ok if it is an uri that want to update all imported uris.
-	 */
-	updateImportedReason(uri: string, depth = 5) {
-		let item = this.trackingMap.get(uri)
+	/** `uri` must be an import uri. */
+	private updateImportedReason(imported: string, depth = 5) {
+		let item = this.trackingMap.get(imported)
 		if (!item) {
 			return
 		}
@@ -172,13 +169,13 @@ export class TrackingMap {
 			&& (reason & TrackingReasonMask.Included) === 0
 		) {
 			if ((reason & TrackingReasonMask.AncestralIncluded) === 0) {
-				if (this.isURIIncluded(uri)) {
+				if (this.isURIIncluded(imported)) {
 					item.reason |= TrackingReasonMask.AncestralIncluded
 					changed = true
 				}
 			}
 			else {
-				if (!this.isURIIncluded(uri)) {
+				if (!this.isURIIncluded(imported)) {
 					item.reason &= ~TrackingReasonMask.AncestralIncluded
 					changed = true
 				}
@@ -187,7 +184,7 @@ export class TrackingMap {
 
 		// Update all imported reason.
 		if (changed && depth > 0) {
-			let importedURIs = this.importMap.getByLeft(uri)
+			let importedURIs = this.importMap.getByLeft(imported)
 			if (importedURIs) {
 				for (let imported of importedURIs) {
 					this.updateImportedReason(imported, depth - 1)
@@ -196,32 +193,11 @@ export class TrackingMap {
 		}
 	}
 
-	delete(uri: string) {
-		this.importMap.deleteLeft(uri)
-
-		// Itself may also be an import uri.
-		this.importMap.deleteRight(uri)
-
-		// Tracking map must not be cleared recently.
-		this.updateImportedReason(uri)
-
-		// Must not clear tracking map before update import reason.
-		this.trackingMap.delete(uri)
-	}
-
-	clear() {
-		this.trackingMap.clear()
-		this.importMap.clear()
-		this.allFresh = false
-	}
-	
-	/** Walk all included and opened uris. */
-	*walkIncludedOrOpenedURIs(): Iterable<string> {
-		let includedOrOpened = TrackingReasonMask.Included | TrackingReasonMask.AncestralIncluded | TrackingReasonMask.Opened
-
-		for (let [uri, item] of this.trackingMap) {
-			if (item.reason & includedOrOpened) {
-				yield uri
+	/** Update a group of import uris. */
+	private updateImportedReasonOfMayURIs(importedURIs: string[] | undefined) {
+		if (importedURIs) {
+			for (let importedURI of importedURIs) {
+				this.updateImportedReason(importedURI)
 			}
 		}
 	}
@@ -253,6 +229,32 @@ export class TrackingMap {
 		}
 
 		return false
+	}
+
+	delete(uri: string) {
+		this.trackingMap.delete(uri)
+
+		let importedURIs = this.importMap.getByLeft(uri)
+		this.importMap.deleteLeft(uri)
+		this.importMap.deleteRight(uri)
+		this.updateImportedReasonOfMayURIs(importedURIs)
+	}
+
+	clear() {
+		this.trackingMap.clear()
+		this.importMap.clear()
+		this.allFresh = false
+	}
+	
+	/** Walk all included and opened uris. */
+	*walkIncludedOrOpenedURIs(): Iterable<string> {
+		let includedOrOpened = TrackingReasonMask.Included | TrackingReasonMask.AncestralIncluded | TrackingReasonMask.Opened
+
+		for (let [uri, item] of this.trackingMap) {
+			if (item.reason & includedOrOpened) {
+				yield uri
+			}
+		}
 	}
 
 	/** 
@@ -340,7 +342,7 @@ export class TrackingMap {
 	}
 
 	/** After knows that file get expired. */
-	makeExpire(uri: string) {
+	private makeExpire(uri: string) {
 		let item = this.trackingMap.get(uri)
 		if (!item) {
 			return
@@ -356,7 +358,8 @@ export class TrackingMap {
 		this.allFresh = false
 
 		// Will re-build import mapping after reload.
+		let importedURIs = this.importMap.getByLeft(uri)
 		this.importMap.deleteLeft(uri)
-		this.updateImportedReason(uri)
+		this.updateImportedReasonOfMayURIs(importedURIs)
 	}
 }

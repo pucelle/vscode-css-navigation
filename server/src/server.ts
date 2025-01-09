@@ -132,8 +132,8 @@ class CSSNavigationServer {
 			// Track at most 500 html like files.
 			mostFileCount: 500,
 
-			// Release content if has not been used for 5mins.
-			releaseTimeoutMs: 5 * 60 * 1000,
+			// Release resources if has not been used for 30 mins.
+			releaseTimeoutMs: 30 * 60 * 1000,
 		})
 
 		this.cssServiceMap = new CSSServiceMap(documents, {
