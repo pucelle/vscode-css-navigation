@@ -1,12 +1,12 @@
 # ChangeLog
 
 
-## [2.3]
+## [2.3.0]
 
 - Removes `ignoreSameNameCSSFile` option, if you are using it, use `excludeGlobPatterns` or `ignoreFilesBy` instead.
 - Fix the issue that can't find references from not opened js or ts files.
-- Can rightly release sources after it get closed, and not been included in workspace.
-- Will release long-unused resources, and reload them again after required.
+- Can rightly release those not been included in workspace sources after they get closed.
+- Will release long-unused resources, and reload them again if required.
 - Can follow import chain when searching definitions.
 
 
