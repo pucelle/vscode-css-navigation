@@ -1,7 +1,7 @@
 import {Hover} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
-import {getPathExtension} from './helpers'
+import {getPathExtension} from './utils'
 
 
 /** Provide finding hover service. */

@@ -1,7 +1,7 @@
 import {JSToken, JSTokenScanner, JSTokenType, CSSSelectorTokenScanner, CSSSelectorTokenType, WhiteListHTMLTokenScanner} from '../scanners'
 import {Part, PartType} from '../parts'
 import {Picker} from './picker'
-import {isCSSLikePath} from '../../helpers'
+import {isCSSLikePath} from '../../utils'
 import {CSSTokenTree} from './css-tree'
 import {JSTokenNode} from './js-node'
 import {HTMLTokenTree} from './html-tree'

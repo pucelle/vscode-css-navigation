@@ -1,5 +1,5 @@
 import {Connection, RemoteConsole} from 'vscode-languageserver'
-import {toDecimal} from './number'
+import {toDecimal} from '../utils'
 
 
 export namespace Logger {
@@ -66,8 +66,8 @@ export namespace Logger {
 	let startTimeMap: Map<string, number> = new Map()
 
 	export function getTimestamp(): number {
-		let time = performance.now()
-		return time
+		let time = process.hrtime()
+		return time[0] * 1000 + time[1] / 1000000
 	}
 
 	/** Start a new time counter with specified name. */
@@ -96,13 +96,13 @@ export namespace Logger {
 	type ResultsHandler<A extends any[], T> = (...args: A) => Promise<T | null>
 
 	/** Log executed time of a function, which will return a list, or a single item. */
-	export function logQuerierExecutedTime<A extends any[], T>(fn: ResultsHandler<[...A, number], T>, type: string): ResultsHandler<A, T> {
+	export function logQuerierExecutedTime<A extends any[], T>(fn: ResultsHandler<[A[0], number], T>, type: string): ResultsHandler<A, T> {
 		return async (...args: A) => {
 			let startTime = getTimestamp()
 			let result: Awaited<T> | null = null
 
 			try {
-				result = await fn(...args, startTime)
+				result = await fn(args[0], startTime)
 			}
 			catch (err) {
 				log(String(err))

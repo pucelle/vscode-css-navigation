@@ -1,4 +1,4 @@
-import {isCSSLikePath} from '../../helpers'
+import {isCSSLikePath} from '../../utils'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PathResolver} from './path'
 

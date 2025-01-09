@@ -1,7 +1,7 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {CompletionLabels, CompletionLabelType, CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
 import {CompletionItem} from 'vscode-languageserver'
-import {getPathExtension} from './helpers'
+import {getPathExtension} from './utils'
 
 
 /** Provide auto completion service for HTML or CSS document. */

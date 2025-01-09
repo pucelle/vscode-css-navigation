@@ -3,7 +3,7 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {URI} from 'vscode-uri'
 import * as path from 'path'
 import * as fs from 'fs-extra'
-import {getPathExtension} from '../../helpers'
+import {getPathExtension} from '../../utils'
 import {Part, PartConvertor} from '../parts'
 
 

@@ -3,6 +3,7 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PathResolver} from '../resolver'
 import {Part, PartConvertor, PartType, CSSSelectorWrapperPart, PartComparer, CSSVariableDefinitionPart} from '../parts'
 import {groupBy, quickBinaryFind, quickBinaryFindIndex} from '../utils'
+import {URI} from 'vscode-uri'
 
 
 /** Base of HTML or CSS service for one file. */
@@ -68,6 +69,14 @@ export abstract class BaseService {
 		}
 
 		return this.resolvedImportedCSSPaths = paths
+	}
+
+	/** Get resolved import CSS uris. */
+	async getImportedCSSURIs(): Promise<string[]> {
+		let paths = await this.getImportedCSSPaths()
+		let uris = paths.map(path => URI.file(path).toString())
+
+		return uris
 	}
 
 	/** 

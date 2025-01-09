@@ -6,7 +6,7 @@ import {CSSSelectorWrapperPart} from './part-css-selector-wrapper'
 import {CSSTokenTree} from '../trees/css-tree'
 import {CSSTokenNodeType} from '../trees/css-node'
 import {PartComparer} from './part-comparer'
-import {Color} from '../../helpers'
+import {Color} from '../../utils'
 import {CSSVariableDefinitionPart} from './part-css-variable-definition'
 
 

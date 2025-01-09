@@ -1,6 +1,6 @@
 import {SymbolInformation, LocationLink, Hover, Location} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {FileTracker} from '../../helpers'
+import {FileTracker} from '../../core'
 import {Part} from '../parts'
 import {BaseService} from './base-service'
 import {URI} from 'vscode-uri'
@@ -29,10 +29,8 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	}
 
 	protected *walkAvailableServices(): IterableIterator<S> {
-		for (let uri of this.walkIncludedOrOpenedURIs()) {
-			if (!this.hasIgnored(uri)) {
-				yield this.serviceMap.get(uri)!
-			}
+		for (let uri of this.trackingMap.walkIncludedOrOpenedURIs()) {
+			yield this.serviceMap.get(uri)!
 		}
 	}
 
@@ -49,18 +47,11 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async forceGetServiceByDocument(document: TextDocument): Promise<S> {
 		let uri = document.uri
 
-		if (!this.has(uri) && this.isURIWithinStartPath(uri)) {
+		if (!this.trackingMap.has(uri)) {
 			this.trackOpenedDocument(document)
 		}
 
-		// Already included.
-		if (this.has(uri)) {
-			return this.get(uri) as Promise<S>
-		}
-
-		// Cache missed, normally will not happen.
-		let htmlService = this.createService(document)
-		return htmlService
+		return this.get(uri) as Promise<S>
 	}
 
 	/** Force get a service by file path, create it but not cache if not in service map. */
@@ -73,23 +64,12 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async forceGetServiceByURI(uri: string): Promise<S | null> {
 
 		// Path been included.
-		if (!this.has(uri) && this.isURIWithinStartPath(uri)) {
+		if (!this.trackingMap.has(uri)) {
 			this.trackMoreFile(URI.parse(uri).fsPath)
 		}
 
 		// Already included.
-		if (this.has(uri)) {
-			return this.get(uri) as Promise<S>
-		}
-
-		// Cache missed, normally will not happen.
-		let document = await this.loadDocument(uri)
-		if (!document) {
-			return null
-		}
-
-		let htmlService = this.createService(document)
-		return htmlService
+		return this.get(uri) as Promise<S>
 	}
 
 	/** Parse document to CSS service. */

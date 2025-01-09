@@ -10,17 +10,17 @@ describe('Test CSS File Tracking', () => {
 	let scssURI = getFixtureFileUri('css/test.scss')
 	let cssURI = getFixtureFileUri('css/test.css')
 
-	it.skip('Should track CSS code changes come from vscode', async () => {
+	it.only('Should track CSS code changes come from vscode', async () => {
 		let cssDocument = await vscode.workspace.openTextDocument(scssURI)
 		let cssEditor = await vscode.window.showTextDocument(cssDocument)
-		let insertedText = '\n.class-inserted-from-vscode{color: red;}\n'
+		let insertedText = '\n.class-insert-from-vscode{color: red;}\n'
 		await cssEditor.edit(edit => {
 			edit.insert(cssDocument.positionAt(0), insertedText)
 		})
 		await sleep(1000)
 		let err
 		try{
-			assert.deepStrictEqual(await gs(['class="', 'class-inserted-from-vscode', '"']), ['.class-inserted-from-vscode'])
+			assert.deepStrictEqual(await gs(['class="', 'class-insert-from-vscode', '"']), ['.class-insert-from-vscode'])
 		}
 		catch (e) {
 			err = e
@@ -32,14 +32,14 @@ describe('Test CSS File Tracking', () => {
 	})
 
 	it.skip('Should track CSS file changes on disk', async () => {
-		let insertedText = '\n.class-inserted-on-disk{color: red;}\n'
+		let insertedText = '\n.class-insert-from-disk{color: red;}\n'
 		let rawText = fs.readFileSync(scssURI.fsPath, 'utf8')
 		let text = rawText + insertedText
 		fs.writeFileSync(scssURI.fsPath, text, 'utf8')
 		await sleep(1000)
 		let err
 		try{
-			assert.deepStrictEqual(await gs(['class="', 'class-inserted-on-disk', '"']), ['.class-inserted-on-disk'])
+			assert.deepStrictEqual(await gs(['class="', 'class-insert-from-disk', '"']), ['.class-insert-from-disk'])
 		}
 		catch (e) {
 			err = e
@@ -50,7 +50,7 @@ describe('Test CSS File Tracking', () => {
 		}
 	})
 
-	it.skip('Should track CSS file removal and creation on disk, and should use CSS file as instead after same name SCSS file removed', async () => {
+	it.skip('Should track CSS file removal and creation on disk', async () => {
 		let scssText = fs.readFileSync(scssURI.fsPath, 'utf8')
 		fs.unlinkSync(scssURI.fsPath)
 		await sleep(1000)

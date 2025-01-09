@@ -1,8 +1,7 @@
 import {Location, LocationLink} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, ModuleResolver, Part, PartConvertor, PartType, PathResolver} from './languages'
-import {getPathExtension} from './helpers'
-import {getLongestCommonSubsequenceLength} from './utils'
+import {getPathExtension, getLongestCommonSubsequenceLength} from './utils'
 
 
 /** Provide finding definitions service. */
@@ -249,10 +248,11 @@ async function findEmbeddedOrImported(
 	
 
 	// Having CSS files imported, firstly search within these files, if found, not searching more.
-	let cssPaths = await currentService.getImportedCSSPaths()
+	let cssURIs = await currentService.getImportedCSSURIs()
+	let cssURIChain = cssServiceMap.trackingMap.resolveChainedImportedURIs(cssURIs)
 
-	for (let cssPath of cssPaths) {
-		let cssService = await cssServiceMap.forceGetServiceByFilePath(cssPath)
+	for (let cssURI of cssURIChain) {
+		let cssService = await cssServiceMap.forceGetServiceByURI(cssURI)
 		if (!cssService) {
 			continue
 		}

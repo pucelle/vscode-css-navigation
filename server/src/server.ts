@@ -20,7 +20,8 @@ import {
 } from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {HTMLServiceMap, CSSServiceMap} from './languages'
-import {generateGlobPatternByExtensions, generateGlobPatternByPatterns, Ignore, Logger} from './helpers'
+import {generateGlobPatternByExtensions, generateGlobPatternByPatterns} from './utils'
+import {Ignore, Logger} from './core'
 import {findDefinitions} from './definition'
 import {getCompletionItems} from './completion'
 import {findReferences} from './reference'
@@ -131,8 +132,8 @@ class CSSNavigationServer {
 			// Track at most 500 html like files.
 			mostFileCount: 500,
 
-			// HTML service is low frequency, so release content if has not been used for 5mins.
-			releaseTimeoutMs: 300000,
+			// Release content if has not been used for 5mins.
+			releaseTimeoutMs: 5 * 60 * 1000,
 		})
 
 		this.cssServiceMap = new CSSServiceMap(documents, {
@@ -140,7 +141,6 @@ class CSSNavigationServer {
 			excludeGlobPattern: generateGlobPatternByPatterns(configuration.excludeGlobPatterns) || undefined,
 			alwaysIncludeGlobPattern: generateGlobPatternByPatterns(configuration.alwaysIncludeGlobPatterns) || undefined,
 			startPath: options.workspaceFolderPath,
-			ignoreSameNameCSSFile: configuration.ignoreSameNameCSSFile && configuration.activeCSSFileExtensions.length > 1 && configuration.activeCSSFileExtensions.includes('css'),
 			ignoreFilesBy: configuration.ignoreFilesBy as Ignore[],
 		})
 
@@ -266,7 +266,7 @@ class CSSNavigationServer {
 	/** Provide document css variable color service. */
 	async getDocumentCSSVariableColors(params: DocumentColorParams, time: number): Promise<ColorInformation[] | null> {
 		this.updateTimestamp(time)
-		
+
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
 

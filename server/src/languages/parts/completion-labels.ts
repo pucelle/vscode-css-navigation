@@ -2,7 +2,7 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {Part, PartType} from './part'
 import {CompletionItem, CompletionItemKind, TextEdit} from 'vscode-languageserver'
 import {PartConvertor} from './part-convertor'
-import {Color} from '../../helpers'
+import {Color} from '../../utils'
 
 
 export enum CompletionLabelType {

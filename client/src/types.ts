@@ -18,7 +18,6 @@ interface Configuration {
 	excludeGlobPatterns: string[]
 	alwaysIncludeGlobPatterns: string[]
 
-	ignoreSameNameCSSFile: boolean
 	ignoreCustomAndComponentTagDefinition: boolean
 	ignoreFilesBy: string[]
 

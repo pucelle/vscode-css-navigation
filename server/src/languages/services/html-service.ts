@@ -3,10 +3,18 @@ import {BaseService} from './base-service'
 
 
 const HTMLLanguageIdMap: Record<string, HTMLLanguageId> = {
+
+	// If document opened.
 	'javascriptreact': 'jsx',
 	'typescriptreact': 'tsx',
 	'javascript': 'js',
 	'typescript': 'ts',
+
+	// If document closed.
+	'jsx': 'jsx',
+	'js': 'js',
+	'tsx': 'tsx',
+	'ts': 'ts',
 }
 
 

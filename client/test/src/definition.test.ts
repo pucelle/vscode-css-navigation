@@ -150,6 +150,7 @@ describe('Test Finding Definitions in `@import ...`', () => {
 
 	it('Should find class definition when manually `@import...`', async () => {
 		assert.deepStrictEqual(await gs(['class="', 'class-imported', '"']), ['.class-imported'])
+		assert.deepStrictEqual(await gs(['class="', 'class-deep-imported', '"']), ['.class-deep-imported'])
 	})
 })
 

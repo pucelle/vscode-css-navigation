@@ -87,7 +87,6 @@ export class CSSNavigationExtension {
 			excludeGlobPatterns: config.get('excludeGlobPatterns') || [],
 			alwaysIncludeGlobPatterns: config.get('alwaysIncludeGlobPatterns', []),
 
-			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
 			ignoreCustomAndComponentTagDefinition: config.get('ignoreCustomAndComponentTagDefinition', false),
 			ignoreFilesBy: config.get('ignoreFilesBy', []),
 
