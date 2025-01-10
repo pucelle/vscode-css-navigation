@@ -175,7 +175,7 @@ class CSSNavigationServer {
 			}
 		})
 
-		Logger.log(`💼 CSS Navigation Service for workspace "${path.basename(this.options.workspaceFolderPath)}" started.`)
+		Logger.log(`💼 Service for workspace "${path.basename(this.options.workspaceFolderPath)}" started.`)
 	}
 
 	private updateTimestamp(time: number) {
