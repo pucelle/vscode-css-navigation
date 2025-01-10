@@ -242,7 +242,6 @@ export class FileTracker {
 
 	/** After tracked a new file, will check if it's fresh. */
 	private afterNewFileTracked(uri: string) {
-		Logger.log(`${decodeURIComponent(uri)} tracked`)
 		this.onFileTracked(uri)
 
 		if (this.updating) {
@@ -261,7 +260,7 @@ export class FileTracker {
 
 	/** After knows that file get expired. */
 	private afterFileExpired(uri: string) {
-		Logger.log(`${decodeURIComponent(uri)} expired`)
+		Logger.log(`✏️ ${decodeURIComponent(uri)} expired`)
 		this.onFileExpired(uri)
 
 		if (this.updating) {
@@ -280,7 +279,7 @@ export class FileTracker {
 
 	/** After removed file from tracking. */
 	private afterFileUntracked(uri: string) {
-		Logger.log(`${decodeURIComponent(uri)} removed`)
+		Logger.log(`🗑️ ${decodeURIComponent(uri)} removed`)
 		this.onFileUntracked(uri)
 	}
 
@@ -424,7 +423,7 @@ export class FileTracker {
 		if (document) {
 			await this.parseDocument(uri, document)
 			this.trackingMap.setFresh(uri, true)
-			Logger.log(`${decodeURIComponent(uri)} loaded`)
+			Logger.log(`📄 ${decodeURIComponent(uri)} loaded`)
 		}
 	}
 
@@ -472,7 +471,7 @@ export class FileTracker {
 		this.startDataLoaded = false
 		this.trackingMap.clear()
 
-		Logger.log(`All ${size} resources released`)
+		Logger.log(`⏰ All ${size} long-unused resources released`)
 		this.onReleaseResources()
 	}
 
@@ -491,6 +490,6 @@ export class FileTracker {
 			this.untrackFileByURI(uri)
 		}
 
-		Logger.log(`${uris.length} imported only resources released`)
+		Logger.log(`⏰ ${uris.length} long-unused imported resources released`)
 	}
 }

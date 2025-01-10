@@ -27,11 +27,12 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 
 		// If having `@import ...`, load it.
 		let importPaths = await cssService.getImportedCSSPaths()
+		let importedURIs = importPaths.map(path => URI.file(path).toString())
+
 		for (let importPath of importPaths) {
 			this.trackMoreFile(importPath)
-
-			let importedURI = URI.file(importPath).toString()
-			this.trackingMap.addImport(importedURI, uri)
 		}
+
+		this.trackingMap.addImported(importedURIs, uri)
 	}
 }

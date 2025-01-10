@@ -150,9 +150,22 @@ export class TrackingMap {
 	}
 
 	/** Suggest to track both, then add import relationship. */
-	addImport(imported: string, from: string) {
-		this.importMap.add(from, imported)
-		this.updateImportedReason(imported)
+	addImported(imported: string[], from: string) {
+		let changed = new Set(this.importMap.getByLeft(from))
+
+		for (let uri of imported) {
+			changed.add(uri)
+		}
+
+		this.importMap.replaceLeft(from, imported)
+		this.updateImportedReasonOfURIs(changed)
+	}
+
+	/** Update a group of import uris. */
+	private updateImportedReasonOfURIs(importedURIs: Iterable<string>) {
+		for (let importedURI of importedURIs) {
+			this.updateImportedReason(importedURI)
+		}
 	}
 
 	/** `uri` must be an import uri. */
@@ -193,15 +206,6 @@ export class TrackingMap {
 		}
 	}
 
-	/** Update a group of import uris. */
-	private updateImportedReasonOfMayURIs(importedURIs: string[] | undefined) {
-		if (importedURIs) {
-			for (let importedURI of importedURIs) {
-				this.updateImportedReason(importedURI)
-			}
-		}
-	}
-
 	/** URI be included, or any uri imported it be included. */
 	private isURIIncluded(uri: string, depth: number = 5): boolean {
 		let item = this.trackingMap.get(uri)
@@ -237,7 +241,10 @@ export class TrackingMap {
 		let importedURIs = this.importMap.getByLeft(uri)
 		this.importMap.deleteLeft(uri)
 		this.importMap.deleteRight(uri)
-		this.updateImportedReasonOfMayURIs(importedURIs)
+
+		if (importedURIs) {
+			this.updateImportedReasonOfURIs(importedURIs)
+		}
 	}
 
 	clear() {
@@ -273,6 +280,8 @@ export class TrackingMap {
 					this.makeExpire(uri)
 				}
 			}
+
+			// Can't compare document, always become expire.
 			else {
 				this.makeExpire(uri)
 			}
@@ -357,9 +366,7 @@ export class TrackingMap {
 		item.version = 0
 		this.allFresh = false
 
-		// Will re-build import mapping after reload.
-		let importedURIs = this.importMap.getByLeft(uri)
+		// Will replace import mapping after reload, here no need to clear import mapping.
 		this.importMap.deleteLeft(uri)
-		this.updateImportedReasonOfMayURIs(importedURIs)
 	}
 }

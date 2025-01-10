@@ -53,12 +53,12 @@ export namespace Logger {
 
 	/** Warn level message. */
 	export function warn(msg: string) {
-		scopedConsole.warn(getTimeMarker() + msg)
+		scopedConsole.warn('⚠️ ' + getTimeMarker() + msg)
 	}
 
 	/** Error level message. */
 	export function error(msg: any) {
-		scopedConsole.error(String(msg))
+		scopedConsole.error('❌ ' + String(msg))
 	}
 
 
@@ -87,7 +87,7 @@ export namespace Logger {
 		let timeCost = Math.round(getTimestamp() - startTime!)
 
 		if (message !== null) {
-			log(message + ` in ${timeCost} ms`)
+			log('🕒 ' + message + ` in ${timeCost} ms`)
 		}
 	}
 
@@ -105,7 +105,7 @@ export namespace Logger {
 				result = await fn(args[0], startTime)
 			}
 			catch (err) {
-				log(String(err))
+				error(String(err))
 				return null
 			}
 
@@ -113,21 +113,21 @@ export namespace Logger {
 			
 			if (Array.isArray(result)) {
 				if (result.length === 0) {
-					log(`No ${type} found, ${time} ms cost`)
+					log(`🔍 No ${type} found, ${time} ms cost`)
 				}
 				else if (result.length === 1) {
-					log(`1 ${type} found, ${time} ms cost`)
+					log(`🔍 1 ${type} found, ${time} ms cost`)
 				}
 				else {
-					log(`${result.length} ${type}s found, ${time} ms cost`)
+					log(`🔍 ${result.length} ${type}s found, ${time} ms cost`)
 				}
 			}
 			else {
 				if (result) {
-					log(`1 ${type} found, ${time} ms cost`)
+					log(`🔍 1 ${type} found, ${time} ms cost`)
 				}
 				else {
-					log(`No ${type} found, ${time} ms cost`)
+					log(`🔍 No ${type} found, ${time} ms cost`)
 				}
 			}
 
