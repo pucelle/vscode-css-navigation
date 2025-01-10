@@ -8,7 +8,7 @@ export function removeQuotes(text: string): string {
 	}
 
 	if (/['"]$/.test(text)) {
-		text = text.slice(-1)
+		text = text.slice(0, -1)
 	}
 
 	return text

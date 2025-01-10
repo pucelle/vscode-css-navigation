@@ -432,7 +432,7 @@ export class FileTracker {
 		if (document) {
 			await this.parseDocument(uri, document)
 			this.trackingMap.setFresh(uri, true)
-			Logger.log(`📄 ${decodeURIComponent(uri)} loaded`)
+			Logger.log(`📃 ${decodeURIComponent(uri)} loaded`)
 		}
 	}
 

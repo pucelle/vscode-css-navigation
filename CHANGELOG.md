@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.3.1]
+
+- Fix the issue that can't resolve HTML imports like `<link rel="stylesheet" href="...">`.
+
+
 ## [2.3.0]
 
 - Removes `ignoreSameNameCSSFile` option, if you are using it, use `excludeGlobPatterns` or `ignoreFilesBy` instead.
