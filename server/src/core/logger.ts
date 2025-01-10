@@ -92,7 +92,6 @@ export namespace Logger {
 	}
 
 
-
 	type ResultsHandler<A extends any[], T> = (...args: A) => Promise<T | null>
 
 	/** Log executed time of a function, which will return a list, or a single item. */
@@ -126,7 +125,9 @@ export namespace Logger {
 				if (result) {
 					log(`🔍 1 ${type} found, ${time} ms cost`)
 				}
-				else {
+
+				// Too many hover messages.
+				else if (type !== 'hover') {
 					log(`🔍 No ${type} found, ${time} ms cost`)
 				}
 			}
