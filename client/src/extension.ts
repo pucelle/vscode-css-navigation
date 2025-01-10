@@ -207,7 +207,7 @@ export class CSSNavigationExtension {
 
 		this.showChannelMessage(
 			getTimeMarker()
-			+ `Client for workspace folder "${workspaceFolder.name}" started`
+			+ `💼 Client for workspace folder "${workspaceFolder.name}" started`
 			+ (searchAcrossWorkspaceFolders ? ', and search across all workspace folders.' : '')
 		)
 

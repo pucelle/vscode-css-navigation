@@ -16,7 +16,7 @@ import {
 	HoverParams,
 	Hover,
 	DocumentColorParams,
-	ColorInformation,
+	ColorInformation
 } from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {HTMLServiceMap, CSSServiceMap} from './languages'
@@ -123,25 +123,28 @@ class CSSNavigationServer {
 	constructor(options: InitializationOptions) {
 		this.options = options
 
-		this.htmlServiceMap = new HTMLServiceMap(documents, {
+		this.htmlServiceMap = new HTMLServiceMap(documents, connection.window, {
 			includeFileGlobPattern: generateGlobPatternByExtensions(configuration.activeHTMLFileExtensions)!,
 			excludeGlobPattern: generateGlobPatternByPatterns(configuration.excludeGlobPatterns) || undefined,
 			startPath: options.workspaceFolderPath,
 			ignoreFilesBy: configuration.ignoreFilesBy as Ignore[],
 
-			// Track at most 500 html like files.
-			mostFileCount: 500,
+			// Track at most 1000 html like files.
+			mostFileCount: 1000,
 
 			// Release resources if has not been used for 30 mins.
 			releaseTimeoutMs: 30 * 60 * 1000,
 		})
 
-		this.cssServiceMap = new CSSServiceMap(documents, {
+		this.cssServiceMap = new CSSServiceMap(documents, connection.window, {
 			includeFileGlobPattern: generateGlobPatternByExtensions(configuration.activeCSSFileExtensions)!,
 			excludeGlobPattern: generateGlobPatternByPatterns(configuration.excludeGlobPatterns) || undefined,
 			alwaysIncludeGlobPattern: generateGlobPatternByPatterns(configuration.alwaysIncludeGlobPatterns) || undefined,
 			startPath: options.workspaceFolderPath,
 			ignoreFilesBy: configuration.ignoreFilesBy as Ignore[],
+
+			// Track at most 1000 css files.
+			mostFileCount: 1000,
 		})
 
 		let serviceMaps = [this.htmlServiceMap, this.cssServiceMap]

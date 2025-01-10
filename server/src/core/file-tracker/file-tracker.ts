@@ -1,6 +1,6 @@
 import * as path from 'path'
 import * as fs from 'fs-extra'
-import {DidChangeWatchedFilesParams, FileChangeType, TextDocuments} from 'vscode-languageserver'
+import {DidChangeWatchedFilesParams, FileChangeType, TextDocuments, RemoteWindow} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {Logger} from '../logger'
 import {URI} from 'vscode-uri'
@@ -46,6 +46,7 @@ const CheckUnUsedTimeInterval =  5 * 60 * 1000
 export class FileTracker {
 
 	readonly documents: TextDocuments<TextDocument>
+	readonly window: RemoteWindow
 	readonly startPath: string | null
 	readonly alwaysIncludeGlobPattern: string | null
 	readonly ignoreFilesBy: Ignore[]
@@ -69,8 +70,9 @@ export class FileTracker {
 	 */
 	protected updatePromiseMap: Map<string, Promise<void>> = new Map()
 
-	constructor(documents: TextDocuments<TextDocument>, options: FileTrackerOptions) {
+	constructor(documents: TextDocuments<TextDocument>, window: RemoteWindow, options: FileTrackerOptions) {
 		this.documents = documents
+		this.window = window
 		this.startPath = options.startPath || null
 		this.alwaysIncludeGlobPattern = options.alwaysIncludeGlobPattern || null
 		this.ignoreFilesBy = options.ignoreFilesBy || []
@@ -183,11 +185,18 @@ export class FileTracker {
 	
 	/** Track folder. */
 	private async tryTrackFolder(folderPath: string, reason: TrackingReasonMask) {
-		let filePathsGenerator = walkDirectoryToMatchFiles(folderPath, this.ignoreFilesBy, this.mostFileCount)
+		let filePathsGenerator = walkDirectoryToMatchFiles(folderPath, this.ignoreFilesBy)
+		let count = 0
 
 		for await (let absPath of filePathsGenerator) {
 			if (this.test.shouldTrackFile(absPath)) {
 				this.trackFile(absPath, reason)
+				count++
+
+				if (count >= this.mostFileCount) {
+					this.window.showWarningMessage(`CSS Navigation limits scanning at most "${this.mostFileCount}" files for performance reason!`)
+					break
+				}
 			}
 		}
 	}

@@ -155,8 +155,7 @@ class FileWalker {
 /** Will walk the file paths, generate each absolute paths, not include folder path. */
 export async function* walkDirectoryToMatchFiles(
 	currentDir: string,
-	ignoreFileNames: string[],
-	mostFileCount: number = Infinity
+	ignoreFileNames: string[]
 ): AsyncGenerator<string> {
 	let walker = new FileWalker({
 		currentDir,
@@ -164,15 +163,8 @@ export async function* walkDirectoryToMatchFiles(
 		followSymbolLinks: false,
 	})
 
-	let count = 0
-
 	for await(let relPath of walker.walk()) {
-		if (count > mostFileCount) {
-			break
-		}
-
 		yield path.join(currentDir, relPath)
-		count++
 	}
 }
 
