@@ -1,6 +1,12 @@
 # ChangeLog
 
 
+## [2.3.2]
+
+- Provides more detailed error log about which file to parse failed.
+- One file parsing failed will not affect whole service.
+
+
 ## [2.3.1]
 
 - Fix the issue that can't resolve HTML imports like `<link rel="stylesheet" href="...">`.

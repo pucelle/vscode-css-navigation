@@ -23,7 +23,10 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 	protected async parseDocument(uri: string, document: TextDocument) {
 		super.parseDocument(uri, document)
 
-		let cssService = this.serviceMap.get(uri)!
+		let cssService = this.serviceMap.get(uri)
+		if (!cssService) {
+			return
+		}
 
 		// If having `@import ...`, load it.
 		let importPaths = await cssService.getImportedCSSPaths()

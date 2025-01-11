@@ -19,6 +19,9 @@ export async function findDefinitions(
 
 	if (isHTMLFile) {
 		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+		if (!currentHTMLService) {
+			return null
+		}
 
 		let fromPart = currentHTMLService.findPartAt(offset)
 		if (!fromPart) {
@@ -29,6 +32,9 @@ export async function findDefinitions(
 	}
 	else if (isCSSFile) {
 		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+		if (!currentCSSService) {
+			return null
+		}
 
 		let fromPart = currentCSSService.findPartAt(offset)
 		if (!fromPart) {

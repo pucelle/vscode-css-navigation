@@ -17,10 +17,18 @@ export async function getCSSVariableColors(
 
 	if (isHTMLFile) {
 		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+		if (!currentHTMLService) {
+			return null
+		}
+
 		return getCSSVariableColorsInAny(currentHTMLService, cssServiceMap, document)
 	}
 	else if (isCSSFile) {
 		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+		if (!currentCSSService) {
+			return null
+		}
+
 		return await getCSSVariableColorsInAny(currentCSSService, cssServiceMap, document)
 	}
 

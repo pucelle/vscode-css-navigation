@@ -19,6 +19,9 @@ export async function findReferences(
 
 	if (isHTMLFile) {
 		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+		if (!currentHTMLService) {
+			return null
+		}
 
 		let fromPart = currentHTMLService.findDetailedPartAt(offset)
 		if (!fromPart) {
@@ -29,6 +32,9 @@ export async function findReferences(
 	}
 	else if (isCSSFile) {
 		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+		if (!currentCSSService) {
+			return null
+		}
 
 		let fromPart = currentCSSService.findDetailedPartAt(offset)
 		if (!fromPart) {

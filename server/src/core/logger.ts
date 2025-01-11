@@ -53,7 +53,7 @@ export namespace Logger {
 
 	/** Warn level message. */
 	export function warn(msg: string) {
-		scopedConsole.warn('⚠️ ' + getTimeMarker() + msg)
+		scopedConsole.warn('⚠️ ' + msg)
 	}
 
 	/** Error level message. */

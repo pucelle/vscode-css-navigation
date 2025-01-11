@@ -1,6 +1,6 @@
 import {SymbolInformation, LocationLink, Hover, Location} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {FileTracker} from '../../core'
+import {FileTracker, Logger} from '../../core'
 import {Part} from '../parts'
 import {BaseService} from './base-service'
 import {URI} from 'vscode-uri'
@@ -25,12 +25,20 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	}
 
 	protected async parseDocument(uri: string, document: TextDocument) {
-		this.serviceMap.set(uri, this.createService(document))
+		try {
+			this.serviceMap.set(uri, this.createService(document))
+		}
+		catch (err) {
+			Logger.error(`Failed to parse ${uri}, please contact me on github`)
+			Logger.error(err)
+		}
 	}
 
 	protected *walkAvailableServices(): IterableIterator<S> {
 		for (let uri of this.trackingMap.walkIncludedOrOpenedURIs()) {
-			yield this.serviceMap.get(uri)!
+			if (this.serviceMap.has(uri)) {
+				yield this.serviceMap.get(uri)!
+			}
 		}
 	}
 
@@ -44,24 +52,24 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	}
 
 	/** Force get a service by document, create it but not cache if not in service map. */
-	async forceGetServiceByDocument(document: TextDocument): Promise<S> {
+	async forceGetServiceByDocument(document: TextDocument): Promise<S | undefined> {
 		let uri = document.uri
 
 		if (!this.trackingMap.has(uri)) {
 			this.trackOpenedDocument(document)
 		}
 
-		return this.get(uri) as Promise<S>
+		return this.get(uri) as Promise<S | undefined>
 	}
 
 	/** Force get a service by file path, create it but not cache if not in service map. */
-	async forceGetServiceByFilePath(fsPath: string): Promise<S | null> {
+	async forceGetServiceByFilePath(fsPath: string): Promise<S | undefined> {
 		let uri = URI.file(fsPath).toString()
 		return this.forceGetServiceByURI(uri)
 	}
 
 	/** Force get a service by uri, create it but not cache if not in service map. */
-	async forceGetServiceByURI(uri: string): Promise<S | null> {
+	async forceGetServiceByURI(uri: string): Promise<S | undefined> {
 
 		// Path been included.
 		if (!this.trackingMap.has(uri)) {
@@ -69,7 +77,7 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		}
 
 		// Already included.
-		return this.get(uri) as Promise<S>
+		return this.get(uri) as Promise<S | undefined>
 	}
 
 	/** Parse document to CSS service. */
