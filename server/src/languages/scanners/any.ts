@@ -179,7 +179,7 @@ export class AnyTokenScanner<T extends number> {
 	protected readBracketed(): boolean {
 		let stack: string[] = []
 		let expect: string | null = null
-		let re = /[()\[\]{}"'`\/\s]/g
+		let re = /[()\[\]{}"'`\/]/g
 
 		while (this.state !== ScanState.EOF) {
 			if (!this.readUntil(re)) {
@@ -188,18 +188,16 @@ export class AnyTokenScanner<T extends number> {
 			
 			let char = this.peekChar()
 
-			if (!expect && /[\s]/.test(char)) {
-				break
-			}
-
 			// `|"..."`
-			else if (char === '"' || char === '\'') {
+			if (char === '"' || char === '\'') {
 				this.readString()
+				continue
 			}
 			
 			// '|`...`'
 			else if (char === '`' && LanguageIds.isScriptSyntax(this.languageId)) {
 				this.readTemplateLiteral()
+				continue
 			}
 
 			// `|/*`
@@ -209,6 +207,7 @@ export class AnyTokenScanner<T extends number> {
 				this.offset += 2
 
 				this.readOut(/\*\//g)
+				continue
 			}
 
 			// `|//`
@@ -217,9 +216,8 @@ export class AnyTokenScanner<T extends number> {
 				// Move cursor to `//|`.
 				this.offset += 2
 
-				if (!this.readLineAndEnd()) {
-					break
-				}
+				this.readLineAndEnd()
+				continue
 			}
 
 				// `|/`
@@ -227,6 +225,7 @@ export class AnyTokenScanner<T extends number> {
 
 				// read out whole expression.
 				this.readRegExp()
+				continue
 			}
 
 			// Eat the char.

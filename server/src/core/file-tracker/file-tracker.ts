@@ -387,7 +387,7 @@ export class FileTracker {
 			for (let filePath of alwaysIncludePaths) {
 				filePath = URI.file(filePath).fsPath
 
-				if (this.test.shouldTrackFile(filePath)) {
+				if (this.test.shouldIncludeFile(filePath)) {
 					this.trackFile(filePath, TrackingReasonMask.Included)
 				}
 			}

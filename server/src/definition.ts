@@ -145,12 +145,6 @@ async function findDefinitionsInHTML(
 		}
 	}
 
-	
-	// Skip component tag.
-	if (fromPart.type === PartType.Tag && /^[A-Z]/.test(fromPart.text)) {
-		return null
-	}
-
 
 	// Try to find definition from split view, but can't visit `vscode` module from language server.
 	// let visibleEditors = vscode.window.visibleTextEditors

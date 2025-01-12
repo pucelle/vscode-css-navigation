@@ -1,6 +1,12 @@
 # ChangeLog
 
 
+## [2.3.3]
+
+- Fix the issue that files included by `alwaysIncludeGlobPatterns` get excluded by excluding rules.
+- Fix the issue that sometimes template literal html`...` be can't rightly parsed.
+
+
 ## [2.3.2]
 
 - Provides more detailed error log about which file to parse failed.

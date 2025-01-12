@@ -394,14 +394,20 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 			
 			// `|/*`
 			else if (char === '/' && this.peekChar(1) === '*') {
+
+				// Move cursor to `/*|`.
 				this.offset += 2
+
 				this.readOut(/\*\//g)
 				continue
 			}
 
 			// `|//`
 			else if (char === '/' && this.peekChar(1) === '/') {
+
+				// Move cursor to `//|`.
 				this.offset += 2
+
 				this.readLineAndEnd()
 				continue
 			}
