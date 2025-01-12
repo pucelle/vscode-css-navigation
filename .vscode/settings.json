@@ -2,5 +2,6 @@
 	"editor.insertSpaces": false,
 	"typescript.tsc.autoDetect": "off",
 	"typescript.preferences.quoteStyle": "single",
-	"i18n-ally.disabled": true
+	"i18n-ally.disabled": true,
+	"CSSNavigation.alwaysIncludeGlobPatterns": ["node_modules/test-module/always-include.scss"]
 }
