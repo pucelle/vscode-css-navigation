@@ -107,6 +107,10 @@ export namespace PartConvertor {
 			}
 		}
 
+		else if (fromType === PartType.ClassPotential) {
+			text = ''
+		}
+
 		return text
 	}
 
@@ -119,7 +123,7 @@ export namespace PartConvertor {
 		else if (type === PartType.Id) {
 			return PartType.CSSSelectorId
 		}
-		else if (type === PartType.Class) {
+		else if (type === PartType.Class || type === PartType.ClassPotential) {
 			return PartType.CSSSelectorClass
 		}
 		else if (type === PartType.CSSSelectorQueryTag) {

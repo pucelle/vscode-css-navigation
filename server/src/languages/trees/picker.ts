@@ -24,20 +24,6 @@ export namespace Picker {
 		return words
 	}
 
-	/** "ab c|d" => "cd". */
-	export function pickWord(text: string, offset: number): Picked | undefined {
-		for (let word of pickWords(text)) {
-			let start = word.start
-			let end = start + word.text.length
-
-			if (start <= offset && end >= offset) {
-				return word
-			}
-		}
-
-		return undefined
-	}
-
 
 	/** ["ab", {cd: ef}] => ["ab", "cd"]. */
 	export function pickWordsFromExpression(text: string): Picked[] {
@@ -67,18 +53,66 @@ export namespace Picker {
 		return words
 	}
 
-	/** ["ab", {c|d: ef}] => "cd". */
-	export function pickWordFromExpression(text: string, offset: number): Picked | undefined {
-		for (let word of pickWordsFromExpression(text)) {
-			let start = word.start
-			let end = start + word.text.length
 
-			if (start <= offset && end >= offset) {
-				return word
+	/** 
+	 * `"|"` -> `[""]`.
+	 * `"a |"` -> `[""]`.
+	 * `"a | b"` -> `[""]`.
+	 */
+	export function pickPotentialEmptyWords(text: string): Picked[] {
+		let re = /"(?:\\"|.)*?"|'(?:\\'|.)*?'|`(?:\\`|.)*?`/g
+		let match: RegExpExecArray | null
+		let words: Picked[] = []
+
+		while (match = re.exec(text)) {
+			let start = match.index + 1
+			let quoted = match[0].slice(1, -1)
+
+			// `"|"` -> `[""]`.
+			if (quoted.length === 0) {
+				words.push({
+					text: '',
+					start,
+				})
+			}
+			else {
+				let sm: RegExpExecArray | null
+				let re = /\s+/g
+
+				while (sm = re.exec(quoted)) {
+					let subStart = sm.index
+					let subEnd = sm.index + sm[0].length
+
+					// `| a`
+					if (subStart === 0) {
+						subEnd--
+					}
+
+					// `a |`
+					else if (subEnd === quoted.length) {
+						subStart++
+					}
+
+					// `a  b`
+					else {
+						subStart++
+						subEnd--
+					}
+
+					// `a b`
+					if (subStart > subEnd) {
+						continue
+					}
+
+					words.push({
+						text: quoted.slice(subStart, subEnd),
+						start: start + subStart,
+					})
+				}
 			}
 		}
 
-		return undefined
+		return words
 	}
 
 

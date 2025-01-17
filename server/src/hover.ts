@@ -1,6 +1,6 @@
 import {Hover} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
+import {CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor, PartType} from './languages'
 import {getPathExtension} from './utils'
 
 
@@ -24,6 +24,11 @@ export async function findHover(
 
 		let fromPart = currentHTMLService.findDetailedPartAt(offset)
 		if (!fromPart) {
+			return null
+		}
+
+		// No hover.
+		if (fromPart.type === PartType.ClassPotential) {
 			return null
 		}
 

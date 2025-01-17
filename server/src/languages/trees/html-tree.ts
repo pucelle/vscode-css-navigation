@@ -181,7 +181,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			yield new Part(PartType.Class, attrName.text.slice(7), attrName.start + 7)
 		}
 
-		// For `JSX`, `Lupos.js`, `Vue.js`
+		// For normal class attribute, or for `JSX`, `Lupos.js`, `Vue.js`
 		else if (name === 'class' || name === 'className' || name === ':class') {
 			if (attrValue) {
 				let value = attrValue.text
@@ -198,6 +198,11 @@ export class HTMLTokenTree extends HTMLTokenNode {
 					for (let word of Picker.pickWords(value)) {
 						yield new Part(PartType.Class, word.text, attrValue.start + word.start)
 					}
+				}
+
+				// Also provide completions for `class="|"`, or `class="abc |"`, or `class="abc | def"`.
+				for (let word of Picker.pickPotentialEmptyWords(value)) {
+					yield new Part(PartType.ClassPotential, word.text, attrValue.start + word.start)
 				}
 			}
 		}

@@ -1,5 +1,5 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CompletionLabels, CompletionLabelType, CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor} from './languages'
+import {CompletionLabels, CompletionLabelType, CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor, PartType} from './languages'
 import {CompletionItem} from 'vscode-languageserver'
 import {getPathExtension} from './utils'
 
@@ -27,7 +27,7 @@ export async function getCompletionItems(
 			return null
 		}
 
-		return await getCompletionItemsInHTML(fromPart, currentHTMLService, document, cssServiceMap)
+		return await getCompletionItemsInHTML(fromPart, currentHTMLService, document, cssServiceMap, offset)
 	}
 	else if (isCSSFile) {
 		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
@@ -52,7 +52,8 @@ async function getCompletionItemsInHTML(
 	fromPart: Part,
 	currentService: HTMLService,
 	document: TextDocument,
-	cssServiceMap: CSSServiceMap
+	cssServiceMap: CSSServiceMap,
+	offset: number
 ): Promise<CompletionItem[] | null> {
 
 
@@ -77,7 +78,8 @@ async function getCompletionItemsInHTML(
 		}
 	}
 
-	return labels.output(fromPart, document)
+	let forceEditCollapseToOffset = fromPart.type === PartType.ClassPotential ? offset : undefined
+	return labels.output(fromPart, document, forceEditCollapseToOffset)
 }
 
 

@@ -35,7 +35,8 @@ export class CompletionLabels {
 		}
 	}
 
-	output(fromPart: Part, document: TextDocument): CompletionItem[] {
+	/** If `forceForOffset` specified, reset text edit to this offset. */
+	output(fromPart: Part, document: TextDocument, forceEditCollapseToOffset: number | undefined = undefined): CompletionItem[] {
 		let items: CompletionItem[] = []
 
 		let collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base', ignorePunctuation: true})
@@ -75,6 +76,12 @@ export class CompletionLabels {
 			// `--name` -> `var(--name)`
 			if (fromPart.type === PartType.CSSVariableReferenceNoVar) {
 				insertText = `var(${label})`
+			}
+
+			// Reset text edit collapse to the specified offset.
+			let range = PartConvertor.toRange(fromPart, document)
+			if (forceEditCollapseToOffset !== undefined) {
+				range.start = range.end = document.positionAt(forceEditCollapseToOffset)
 			}
 
 			let textEdit = TextEdit.replace(

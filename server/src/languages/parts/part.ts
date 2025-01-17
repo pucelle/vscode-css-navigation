@@ -30,6 +30,9 @@ export enum PartType {
 	/** It doesn't include identifier `.`. */
 	Class,
 
+	/** To do completion like `class="|"`. */
+	ClassPotential,
+
 	/**
 	 * `querySelector('div')`
 	 * `$('div')`

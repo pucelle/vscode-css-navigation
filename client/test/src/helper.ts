@@ -56,11 +56,11 @@ async function getExtensionExport(): Promise<CSSNavigationExtension> {
 
 
 export async function searchSymbolNames([start, selector, end]: [string, string, string], document: vscode.TextDocument = htmlDocument): Promise<string[] | null> {
-	let ranges = searchDocumentForSelector([start, selector, end], document)
-	let searchWord = start + selector + end
+	let ranges = searchDocumentForContent([start, selector, end], document)
+	let searchText = start + selector + end
 
 	if (!ranges) {
-		assert.fail(`Can't find "${searchWord}" in index.html`)
+		assert.fail(`Can't find "${searchText}" in index.html`)
 	}
 
 	let namesOfStart = await getSymbolNamesAtPosition(ranges.in.start, document)
@@ -78,8 +78,10 @@ export async function searchSymbolNames([start, selector, end]: [string, string,
 	return namesOfStart
 }
 
-function searchDocumentForSelector([start, selector, end]: [string, string, string], document: vscode.TextDocument): {in: vscode.Range, out: vscode.Range} | null {
-	let searchWord = start + selector + end
+function searchDocumentForContent([start, content, end]: [string, string, string], document: vscode.TextDocument):
+	{in: vscode.Range, out: vscode.Range} | null
+{
+	let searchWord = start + content + end
 	let matchRange: any
 	let outerRange: any
 
@@ -89,11 +91,11 @@ function searchDocumentForSelector([start, selector, end]: [string, string, stri
 		if (index > -1) {
 			matchRange = new vscode.Range(
 				new vscode.Position(i, index + start.length),
-				new vscode.Position(i, index + start.length + selector.length)
+				new vscode.Position(i, index + start.length + content.length)
 			)
 			outerRange = new vscode.Range(
-				new vscode.Position(i, index + start.length - 1),
-				new vscode.Position(i, index + start.length + selector.length + 1)
+				document.positionAt(document.offsetAt(matchRange.start) - 1),
+				document.positionAt(document.offsetAt(matchRange.end) + 1),
 			)
 			break
 		}
@@ -140,7 +142,7 @@ export async function searchWorkspaceSymbolNames(query: string): Promise<string[
 
 
 export async function searchReferences(searchWord: string, document: vscode.TextDocument = cssDocument): Promise<string[] | null> {
-	let ranges = searchWordInDocument(searchWord, document)
+	let ranges = searchDocumentForContent(['', searchWord, ''], document)
 	if (!ranges) {
 		assert.fail(`Can't find "${searchWord}" in ${path.basename(document.uri.toString())}`)
 	}
@@ -156,40 +158,10 @@ export async function searchReferences(searchWord: string, document: vscode.Text
 	let namesOutOfStart = await getReferenceNamesAtPosition(ranges.out.start, document)
 	let namesOutOfEnd = await getReferenceNamesAtPosition(ranges.out.end, document)
 
-	assert.ok(namesOutOfStart.length === 0, `Can't find reference from out of left range`)
-	assert.ok(namesOutOfEnd.length === 0, `Can't find reference from out of right range`)
+	assert.ok(namesOutOfStart.length === 0, `Wrongly find reference from out of left range`)
+	assert.ok(namesOutOfEnd.length === 0, `Wrongly find reference from out of right range`)
 
 	return namesOfStart
-}
-
-function searchWordInDocument(searchWord: string, document: vscode.TextDocument): {in: vscode.Range, out: vscode.Range} | null {
-	let matchRange: any
-	let outerRange: any
-
-	for (let i = 0; i < document.lineCount; i++) {
-		let line = document.lineAt(i)
-		let index = line.text.indexOf(searchWord)
-		if (index > -1) {
-			matchRange = new vscode.Range(
-				new vscode.Position(i, index),
-				new vscode.Position(i, index + searchWord.length)
-			)
-			outerRange = new vscode.Range(
-				document.positionAt(document.offsetAt(new vscode.Position(i, index)) - 1),
-				document.positionAt(document.offsetAt(new vscode.Position(i, index + searchWord.length)) + 1)
-			)
-			break
-		}
-	}
-
-	if (!matchRange || !outerRange) {
-		return null
-	}
-
-	return {
-		in: matchRange!,
-		out: outerRange!
-	}
 }
 
 async function getReferenceNamesAtPosition(position: vscode.Position, document: vscode.TextDocument): Promise<string[]> {
@@ -208,10 +180,11 @@ async function getReferenceNamesAtPosition(position: vscode.Position, document: 
 
 
 
-export async function searchCompletion(searchWord: string, document: vscode.TextDocument = htmlDocument): Promise<string[] | null> {
-	let ranges = searchWordInDocument(searchWord, document)
+export async function searchCompletion([start, selector, end]: [string, string, string], document: vscode.TextDocument = htmlDocument): Promise<string[] | null> {
+	let searchText = start + selector + end
+	let ranges = searchDocumentForContent([start, selector, end], document)
 	if (!ranges) {
-		assert.fail(`Can't find "${searchWord}" in ${path.basename(document.uri.toString())}`)
+		assert.fail(`Can't find "${searchText}" in ${path.basename(document.uri.toString())}`)
 	}
 
 	let namesOfEnd = await getCompletionNamesAtPosition(ranges.in.end)

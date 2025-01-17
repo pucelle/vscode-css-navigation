@@ -1,16 +1,21 @@
 # ChangeLog
 
 
+## [2.3.4]
+
+- Now the class name can be completed without needing to input the first character.
+
+
 ## [2.3.3]
 
 - Fix the issue that files included by `alwaysIncludeGlobPatterns` get excluded by excluding rules.
-- Fix the issue that sometimes template literal html`...` be can't rightly parsed.
+- Fix the issue that sometimes template literal html`...` can't be rightly parsed.
 
 
 ## [2.3.2]
 
-- Provides more detailed error log about which file to parse failed.
-- One file parsing failed will not affect whole service.
+- Provides more detailed error log about which file is failed to parse.
+- One file parsing failed will not cause whole service crush.
 
 
 ## [2.3.1]

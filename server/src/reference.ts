@@ -28,6 +28,11 @@ export async function findReferences(
 			return null
 		}
 
+		// No reference.
+		if (fromPart.type === PartType.ClassPotential) {
+			return null
+		}
+
 		locations = await findReferencesInHTML(fromPart, currentHTMLService, htmlServiceMap, cssServiceMap)
 	}
 	else if (isCSSFile) {

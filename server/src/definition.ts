@@ -28,6 +28,11 @@ export async function findDefinitions(
 			return null
 		}
 
+		// No definition.
+		if (fromPart.type === PartType.ClassPotential) {
+			return null
+		}
+
 		locations = await findDefinitionsInHTML(fromPart, currentHTMLService, document, cssServiceMap, configuration)
 	}
 	else if (isCSSFile) {
