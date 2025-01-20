@@ -3,7 +3,7 @@
     CSS Navigation - VSCode Extension
 </h1>
 
-Provides complete CSS **Completion**, **Finding Definition**, **Finding References**, **Hover**, **Workspace Symbols** services across whole workspace. 
+Provides CSS **Completion**, **Finding Definition**, **Finding References**, **Hover**, **Workspace Symbols** services for HTML, JS, TS, Vue and more languages across whole workspace.
 
 
 ## Features
@@ -26,9 +26,10 @@ Choose **Go to definition** or **Peek definition**, the extension will search re
 The places you can goto definitions:
 
 - HTML (or files whose extension included by `activeHTMLFileExtensions` option): _<_`html-tag`_>_, _class=_"`class-name`_"_, _id="_`id-name`_"_.
-- JSX & TSX: _className="_`class-name`_"_, _className={"_`class-name`_"}_ and others.
 - Jquery & DOM Selector: _$('_`class-name`_')_, x._querySelector('_`class-name`_')_, x._querySelectorAll('_`class-name`_')_.
 - CSS Variables: `var(--css-variable-name)`.
+- JSX & TSX: _className="_`class-name`_"_, _className={"_`class-name`_"}_ and others.
+- Vue: :class="_`class-name`_", :class="{_`'class-name'`_ : ... }"
 - If want more, give me a feedback.
 
 ![definition](images/definition.gif)
@@ -102,6 +103,7 @@ editor.quickSuggestions": {
 | `searchAcrossWorkspaceFolders`    | When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current workspace, you should set this to `true`.
 | `ignoreCustomAndComponentTagDefinition` | When `true` by default, Custom-Element or Component tag (like React Component) definition going from HTML to CSS will be ignored, such that it goes to it's custom-element or component definition place directly which has implemented by other plugins.
 | `ignoreFilesBy`                   | Specifies this to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions. Default value is `[".gitignore"]`.
+| `maxHoverStylePropertyCount`      | When mouse hover at a class or id attribute, how many style properties at most should show. Default value is `4`.
 | `enableLogLevelMessage`           | Whether to enable log level message, set it to `true` for debugging.
 | `enableGoToDefinition`            | Whether to enable goto definition service, default value is `true`.
 | `enableWorkspaceSymbols`          | Whether to enable workspace symbol service, default value is `true`.
@@ -110,7 +112,6 @@ editor.quickSuggestions": {
 | `enableHover`                     | Whether to enable id and class name hover service, default value is `true`.
 | `enableCSSVariableColor`          | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. default value is `true`.
 | `disableOwnCSSVariableCompletion` | Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. Note set it to `true` will also disable css variable completion within functions like `color-mix()`, and css variable value preview in completion list. default value is `false`.
-| `maxHoverStylePropertyCount`      | When mouse hover at a class or id attribute, how many style properties at most should show. Default value is `4`.
 
 
 ## Why started this project
