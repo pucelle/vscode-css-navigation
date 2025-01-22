@@ -1,7 +1,7 @@
 {
 	"name": "vscode-css-navigation",
 	"displayName": "CSS Navigation",
-	"description": "Provides CSS **Completion**, **Finding Definition**, **Finding References**, **Hover**, **Workspace Symbols** services for HTML, JS, TS, JSX, Vue and more languages across whole workspace",
+	"description": "Provides CSS Completion, Finding Definition, Finding References, Hover, Workspace Symbols services for HTML, JS, TS, JSX, Vue and more languages across whole workspace",
 	"icon": "images/logo.png",
 	"version": "2.3.5",
 	"license": "MIT",
@@ -130,12 +130,12 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "A glob pattern, which always use `/` as a path separator, files match will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`, or out of workspace directory. Stronly suggest you specifies the full start path, or absolute path for the pattern, but not start with `**/`."
+					"description": "A glob pattern, which always use `/` as a path separator, files match will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`, or out of workspace directory. Strongly suggest you specifies the full start path, or relative path of current workspace, but should not specifies as start with `**/`. Otherwise, if you don't want specifying this, just open the files you want to import in vscode works too."
 				},
 				"CSSNavigation.searchAcrossWorkspaceFolders": {
 					"type": "boolean",
 					"default": false,
-					"description": "When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current worksapce, you should set this to `true`."
+					"description": "When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current workspace, you should set this to `true`."
 				},
 				"CSSNavigation.ignoreCustomAndComponentTagDefinition": {
 					"type": "boolean",
