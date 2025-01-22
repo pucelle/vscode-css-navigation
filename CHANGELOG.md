@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.3.5]
+
+- Fix an issue that cause wrongly parsing self-close tag.
+
+
 ## [2.3.4]
 
 - Now the class name can be completed without needing to input the first character.

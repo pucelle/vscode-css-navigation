@@ -265,7 +265,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 			this.sync()
 
 			// `/>|`
-			if (this.peekChar(-1) === '/') {
+			if (this.peekChar(-2) === '/') {
 				yield this.makeToken(HTMLTokenType.SelfCloseTagEnd)
 			}
 

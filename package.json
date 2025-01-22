@@ -1,9 +1,9 @@
 {
 	"name": "vscode-css-navigation",
 	"displayName": "CSS Navigation",
-	"description": "Provides CSS **Completion**, **Finding Definition**, **Finding References**, **Hover**, **Workspace Symbols** services across whole workspace.",
+	"description": "Provides CSS **Completion**, **Finding Definition**, **Finding References**, **Hover**, **Workspace Symbols** services for HTML, JS, TS, JSX, Vue and more languages across whole workspace",
 	"icon": "images/logo.png",
-	"version": "2.3.4",
+	"version": "2.3.5",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
