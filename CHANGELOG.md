@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.3.6]
+
+- Fix the issue that `style.setProperty('--')` can't get completion.
+
+
 ## [2.3.5]
 
 - Fix an issue that cause wrongly parsing self-close tag.
