@@ -91,6 +91,7 @@
 						"tsx",
 						"vue",
 						"twig",
+						"astro",
 						"svelte"
 					],
 					"items": {
