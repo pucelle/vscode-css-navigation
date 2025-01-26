@@ -21,11 +21,14 @@
 		"Programming Languages"
 	],
 	"keywords": [
+		"CSS",
 		"CSS Goto Definition",
 		"CSS Peek Definition",
 		"CSS Completion",
 		"CSS Workspace Symbol",
 		"CSS Find References",
+		"CSS Hover",
+		"CSS Variable",
 		"Sass, Less"
 	],
 	"activationEvents": [
