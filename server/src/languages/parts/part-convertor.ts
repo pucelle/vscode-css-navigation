@@ -210,7 +210,7 @@ export namespace PartConvertor {
 	/** Selector part to hover. */
 	export function toHoverOfSelectorWrapper(part: CSSSelectorWrapperPart, fromPart: Part, document: TextDocument, fromDocument: TextDocument, maxStylePropertyCount: number): Hover {
 		let comment = part.comment?.trim()
-		let content = '```css\n' + PartComparer.mayFormatted(part)[0] + '{'
+		let content = '```css\n' + PartComparer.mayFormatted(part)[0] + ' {'
 
 		if (maxStylePropertyCount > 0) {
 			content += parseStyleProperties(part, document.getText(), maxStylePropertyCount)

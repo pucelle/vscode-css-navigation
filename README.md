@@ -1,11 +1,11 @@
-[<img src="https://api.gitsponsors.com/api/badge/img?id=170285756" height="20">](https://api.gitsponsors.com/api/badge/link?p=BuoHRJij/LtWXXytFZfibYiODZ7YYnM7nVDoCxgFBA8BZR6BfjyfCcmeLXfZvUHrjKmw4xG1VLHu/PqXfHqUOhJDNfmT+4ht7TvM5PTOBcWoxury/0PgIHfIUynD/xRrxnV7847xIf2p9TcK9cRF8w==)
-
 <h1 align="left">
     <img src="https://github.com/pucelle/vscode-css-navigation/raw/master/images/logo.png" width="32" height="32" alt="Using magnifying class to view CSS" />
     CSS Navigation - VSCode Extension
 </h1>
 
 Provides CSS **Completion**, **Finding Definition**, **Finding References**, **Hover**, **Workspace Symbols** services for HTML, JS, TS, JSX, Vue and more languages across whole workspace.
+
+[<img src="https://api.gitsponsors.com/api/badge/img?id=170285756" height="20">](https://api.gitsponsors.com/api/badge/link?p=BuoHRJij/LtWXXytFZfibYiODZ7YYnM7nVDoCxgFBA8BZR6BfjyfCcmeLXfZvUHrjKmw4xG1VLHu/PqXfHqUOhJDNfmT+4ht7TvM5PTOBcWoxury/0PgIHfIUynD/xRrxnV7847xIf2p9TcK9cRF8w==)
 
 
 ## Features

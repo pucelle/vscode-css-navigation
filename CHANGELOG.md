@@ -1,6 +1,12 @@
 # ChangeLog
 
 
+## [2.3.7]
+
+- Add `astro` to HTML file extension list.
+- CSS Selector Hover message format adjusted, has a space after selector, before `{`.
+
+
 ## [2.3.6]
 
 - Fix the issue that `style.setProperty('--')` can't get completion.
