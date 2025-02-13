@@ -78,6 +78,7 @@ You may open workspace symbol popup by `Go / Goto Symbol in Workspace`, or use s
 ### Miscellaneous Features
 
 - Can goto referenced files after clicking url part of `<link href="...">` or `@import "..."`, and several more.
+- Completions sort by numbers, e.g.: `.class1`, `.class2`, `.class10`.
 
 
 
@@ -148,7 +149,7 @@ So please give your feedback, thanks.
 
 ### Should I reload this plugin after changed settings, or modified files?
 
-No need to, this plugin will automatically restart after settings get changed, and reload files after they get changed.
+No need to, this plugin will automatically restart after settings get changed, and reload files after they get changed on VSCode or disk.
 
 But if an imported file is out of current workspace, change it outside of VSCode will cause this plugin can't detect and re-parse it. You may simply open it in VSCode to make current plugin can track it.
 
@@ -159,6 +160,13 @@ This plugin itself will never generate repetitive completion items, but it would
 
 A frequently happened problem is css variable completion repetition -- vscode has provided css variable completion within each single css files, so you will found they get repetitive with current plugin provided.
 But this can be avoid by simply set `disableOwnCSSVariableCompletion` to `false`.
+
+
+### By finding references, I found the same selector where I started to find references from
+
+From v2.3.8, this plugin will exclude the selector where you started to find references from.
+But VSCode built in CSS features would still provide references which will include it.
+We are still looking for a way to exclude it, see https://github.com/pucelle/vscode-css-navigation/issues/102
 
 
 ### Can I change definition order to make Sass files are always come before CSS files?

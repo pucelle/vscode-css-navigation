@@ -1,6 +1,12 @@
 # ChangeLog
 
 
+## [2.3.8]
+
+- When finding references, will exclude current selector from reference list.
+  But you will still find it exist until we can find a way to disable VSCode built-in CSS Reference feature.
+
+
 ## [2.3.7]
 
 - Add `astro` to HTML file extension list.

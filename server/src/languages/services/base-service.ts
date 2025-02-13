@@ -299,6 +299,11 @@ export abstract class BaseService {
 
 			for (let part of this.getPartsByType(type)) {
 
+				// No include from part.
+				if (part === fromPart) {
+					continue
+				}
+
 				// Filter by text.
 				if (!PartComparer.isReferenceTextMatch(part, matchDefPart.type, texts)) {
 					continue

@@ -19,7 +19,7 @@ class App {
 			}
 		`
 
-		return ( 
+		return (
 			<div>
 				<div id="id1" />
 				<div class="class1" />

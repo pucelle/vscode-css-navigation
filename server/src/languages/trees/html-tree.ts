@@ -176,9 +176,14 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			}
 		}
 
-		// For `Lupos.js`, completion `:class.|name|`
+		// For `Lupos.js`, complete `:class.|name|` with class names.
 		else if (this.isScriptSyntax() && name.startsWith(':class.')) {
 			yield new Part(PartType.Class, attrName.text.slice(7), attrName.start + 7)
+		}
+
+		// For `Lupos.js`, complete `:style.-` with CSS Variables.
+		else if (this.isScriptSyntax() && name.startsWith(':style.-')) {
+			yield new Part(PartType.CSSVariableAssignment, attrName.text.slice(7), attrName.start + 7)
 		}
 
 		// For normal class attribute, or for `JSX`, `Lupos.js`, `Vue.js`
