@@ -5,6 +5,7 @@
 
 - When finding references, will exclude current selector from reference list.
   But you will still find it exist until we can find a way to disable VSCode built-in CSS Reference feature.
+- Fix a parsing issue when js codes contain `/`.
 
 
 ## [2.3.7]
