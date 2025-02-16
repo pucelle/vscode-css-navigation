@@ -220,13 +220,13 @@ export class AnyTokenScanner<T extends number> {
 				continue
 			}
 
-				// `|/`
-			else if (char === '/' && LanguageIds.isScriptSyntax(this.languageId)) {
+			// `|/`, currently can't distinguish it from sign of division.
+			// else if (char === '/' && LanguageIds.isScriptSyntax(this.languageId)) {
 
-				// read out whole expression.
-				this.readRegExp()
-				continue
-			}
+			// 	// read out whole expression.
+			// 	this.readRegExp()
+			// 	continue
+			// }
 
 			// Eat the char.
 			this.offset += 1

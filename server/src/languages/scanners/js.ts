@@ -85,10 +85,10 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 			this.state = ScanState.WithinMultiLineComment
 		}
 
-		// `|/`
-		else if (char === '/') {
-			this.readRegExp()
-		}
+		// `|/`, currently can't distinguish it from sign of division.
+		// else if (char === '/') {
+		// 	this.readRegExp()
+		// }
 
 		// `|'`
 		else if (char === '\'' || char === '"') {
