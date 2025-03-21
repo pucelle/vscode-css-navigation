@@ -300,9 +300,10 @@ export abstract class BaseService {
 			for (let part of this.getPartsByType(type)) {
 
 				// No include from part.
-				if (part === fromPart) {
-					continue
-				}
+				// Beware this will cause some reference tests can't pass because of the build-in reference.
+				// if (part === fromPart) {
+				// 	continue
+				// }
 
 				// Filter by text.
 				if (!PartComparer.isReferenceTextMatch(part, matchDefPart.type, texts)) {

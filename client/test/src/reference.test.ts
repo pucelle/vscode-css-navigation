@@ -23,7 +23,7 @@ describe('Test Reference from CSS', () => {
 		assert.deepStrictEqual(await searchReferences('.class7-sub7'), ['class7-sub7'])
 	})
 
-	it('Should find reference in current HTML document, be aware this is not available by default', async () => {
+	it('Should find reference in current HTML document', async () => {
 		assert.ok((await searchReferences('.css-class-in-style', htmlDocument))!.includes('css-class-in-style'))
 		assert.ok((await searchReferences('&-in-style', htmlDocument))!.includes('scss-class-in-style'))
 	})

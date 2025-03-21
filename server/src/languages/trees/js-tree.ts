@@ -281,6 +281,7 @@ export class JSTokenTree extends JSTokenNode{
 		while (match = re.exec(text)) {
 			let tagName = match[1]
 			let isCloseTag = match[0][1] === '/'
+			let isSelfCloseTag = match[0][match[0].length - 2] === '/'
 
 			if (DOMElementNames.has(tagName)) {
 				whiteList.add(tagName)
@@ -289,6 +290,9 @@ export class JSTokenTree extends JSTokenNode{
 				if (match[0][match[0].length - 2] === '/' || startTags.has(tagName)) {
 					whiteList.add(tagName)
 				}
+			}
+			else if (isSelfCloseTag) {
+				whiteList.add(tagName)
 			}
 			else {
 				startTags.add(tagName)
