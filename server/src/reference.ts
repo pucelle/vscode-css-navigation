@@ -62,13 +62,7 @@ async function findReferencesInHTML(
 ): Promise<Location[] | null> {
 	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 	let locations: Location[] = []
-
-
-	// Skip component tag.
-	if (fromPart.type === PartType.Tag && /^[A-Z]/.test(fromPart.text)) {
-		return null
-	}
-
+	
 
 	// Find CSS Selector and CSS Variable across all HTML & CSS documents.
 	if (fromPart.isDefinitionType() || fromPart.isReferenceType()) {

@@ -141,10 +141,10 @@ async function findDefinitionsInHTML(
 	}
 
 
-	// If custom tag or component tag, and should ignore.
+	// If custom tag, and should ignore.
 	if (fromPart.type === PartType.Tag) {
 		if (configuration.ignoreCustomAndComponentTagDefinition &&
-			(fromPart.text.includes('-') || /^[A-Z]/.test(fromPart.text))
+			fromPart.text.includes('-')
 		) {
 			return null
 		}

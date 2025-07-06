@@ -1,7 +1,12 @@
 # ChangeLog
 
 
-## [2.3.8]
+## [2.3.10]
+
+- Fix #104, will not suggest for react components as a tag selector in CSS codes.
+
+
+## [2.3.9]
 
 - Fix #103, now self-closed React Element like `<Image />` can be rightly detected.
 - Fix a parsing issue when js codes contain `/`.

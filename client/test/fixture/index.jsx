@@ -31,6 +31,7 @@ class App {
 				<div className={style.class6} />
 				<div className={style['class7']} />
 				<Image class={['class8', { class9: this.show }, 'class10']} />
+				<ReactComponent />
 			</div>
 		)
 	}

@@ -137,7 +137,11 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	/** Parse node and attributes. */
 	protected *parseNodeParts(node: HTMLTokenNode): Iterable<Part> {
 		if (node.token.type === HTMLTokenType.StartTagName) {
-			yield new Part(PartType.Tag, node.token.text, node.token.start, node.tagLikeEnd)
+
+			// Tag, ignores react components like `Abc`.
+			if (!/^[A-Z]/.test(node.token.text)) {
+				yield new Part(PartType.Tag, node.token.text, node.token.start, node.tagLikeEnd)
+			}
 
 			// Parse attributes and sort them.
 			yield* this.sortParts(this.parseAttrParts(node))

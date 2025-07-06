@@ -22,6 +22,7 @@ export enum PartType {
 
 	//// From HTML.
 
+	/** Tag, ignores Component reference which like `Abc`. */
 	Tag,
 
 	/** It doesn't include identifier `#`. */
@@ -225,14 +226,14 @@ export class Part {
 		let start = this.start
 
 		if (/^\s+/.test(text)) {
-			text = text.trimLeft()
+			text = text.trimStart()
 			start += this.text.length - text.length
 			
 			return new Part(this.type, text, start, this.defEnd)
 		}
 
 		if (/\s+$/.test(text)) {
-			text = text.trimRight()
+			text = text.trimEnd()
 		}
 
 		if (text !== this.text) {
