@@ -137,11 +137,8 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	/** Parse node and attributes. */
 	protected *parseNodeParts(node: HTMLTokenNode): Iterable<Part> {
 		if (node.token.type === HTMLTokenType.StartTagName) {
-
-			// Tag, ignores react components like `Abc`.
-			if (!/^[A-Z]/.test(node.token.text)) {
-				yield new Part(PartType.Tag, node.token.text, node.token.start, node.tagLikeEnd)
-			}
+			let partType = /^[A-Z]/.test(node.token.text) ? PartType.ComponentTag : PartType.Tag
+			yield new Part(partType, node.token.text, node.token.start, node.tagLikeEnd)
 
 			// Parse attributes and sort them.
 			yield* this.sortParts(this.parseAttrParts(node))
@@ -197,11 +194,20 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 				// Probably expression.
 				if (this.isScriptSyntax() && mayBeExpression(value)) {
+					let cssParts: Part[] = []
+
 					for (let word of Picker.pickWordsFromExpression(value)) {
-						yield new Part(PartType.Class, word.text, attrValue.start + word.start)
+						cssParts.push(new Part(PartType.Class, word.text, attrValue.start + word.start))
 					}
 
-					yield* this.parseReactModulePart(attrValue)
+					// May a same word get recognized as CSS part, later as react module part also.
+					let moduleParts = [...this.parseReactModulePart(attrValue)]
+					if (moduleParts.length > 0) {
+						cssParts = cssParts.filter(p => !moduleParts.find(mp => mp.start === p.start))
+					}
+
+					yield* cssParts
+					yield* moduleParts
 				}
 				else {
 					for (let word of Picker.pickWords(value)) {

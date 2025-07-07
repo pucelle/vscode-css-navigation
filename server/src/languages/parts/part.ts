@@ -22,8 +22,11 @@ export enum PartType {
 
 	//// From HTML.
 
-	/** Tag, ignores Component reference which like `Abc`. */
+	/** Excludes tags starts with A~Z like React or Lupos Component. */
 	Tag,
+
+	/** Like React or Lupos Component. */
+	ComponentTag,
 
 	/** It doesn't include identifier `#`. */
 	Id,
