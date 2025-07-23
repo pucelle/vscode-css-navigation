@@ -3,6 +3,7 @@ import {Part, PartType} from './part'
 import {CompletionItem, CompletionItemKind, TextEdit} from 'vscode-languageserver'
 import {PartConvertor} from './part-convertor'
 import {Color} from '../../utils'
+import {CompletionLabel} from '../services/types'
 
 
 export enum CompletionLabelType {
@@ -16,9 +17,9 @@ export enum CompletionLabelType {
 export class CompletionLabels {
 
 	private typeMap: Map<string, CompletionLabelType> = new Map()
-	private detailMap: Map<string, string | undefined> = new Map()
+	private detailMap: Map<string, CompletionLabel | null> = new Map()
 
-	add(type: CompletionLabelType, labelMap: Map<string, string | undefined>) {
+	add(type: CompletionLabelType, labelMap: Map<string, CompletionLabel | null>) {
 		for (let [label, detail] of labelMap) {
 			if (!this.typeMap.has(label) || this.typeMap.get(label)! < type) {
 				this.typeMap.set(label, type)
@@ -40,12 +41,12 @@ export class CompletionLabels {
 		let items: CompletionItem[] = []
 
 		let collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base', ignorePunctuation: true})
-		let sortedLabels = [...this.typeMap.keys()].sort(collator.compare)
+		let sortedTexts = [...this.typeMap.keys()].sort(collator.compare)
 
-		for (let i = 0; i < sortedLabels.length; i++) {
+		for (let i = 0; i < sortedTexts.length; i++) {
 			let kind: CompletionItemKind
-			let label = sortedLabels[i]
-			let type = this.typeMap.get(label)
+			let text = sortedTexts[i]
+			let type = this.typeMap.get(text)
 
 			if (type === CompletionLabelType.CSSVariable) {
 				kind = CompletionItemKind.Variable
@@ -57,25 +58,30 @@ export class CompletionLabels {
 				kind = CompletionItemKind.Value
 			}
 
-			let value = this.detailMap.get(label)
-			let detail = value
+			let label = this.detailMap.get(text)
+			let detail = label?.text
 
-			if (type === CompletionLabelType.CSSVariable && value) {
-				let color = Color.fromString(value)
+			// Completion supports only HEX color type.
+			if (type === CompletionLabelType.CSSVariable && detail) {
+				let color = Color.fromString(detail)
 				if (color) {
 					kind = CompletionItemKind.Color
 					detail = color.toHEX()
 				}
 			}
 
+			// Before completion items expanded, shows detail,
+			// After expanded, shows documentation.
+			// If both provided, shows detail + documentation after expanded.
+			let documentation = label?.markdown
 
 			// Use space because it's char code is 32, lower than any other visible characters.
 			let sortText = ' ' + String(i).padStart(3, '0')
-			let insertText = label
+			let insertText = text
 
 			// `--name` -> `var(--name)`
 			if (fromPart.type === PartType.CSSVariableReferenceNoVar) {
-				insertText = `var(${label})`
+				insertText = `var(${text})`
 			}
 
 			// Reset text edit collapse to the specified offset.
@@ -91,10 +97,11 @@ export class CompletionLabels {
 	
 			let item: CompletionItem = {
 				kind,
-				label,
+				label: text,
 				detail,
 				sortText,
 				textEdit,
+				documentation: documentation ? {kind: 'markdown', value: documentation} : undefined
 			}
 
 			items.push(item)

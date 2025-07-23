@@ -70,7 +70,7 @@ export namespace PartConvertor {
 	}
 
 	
-	/** Convert text to from specified part type, to target part type. */
+	/** Convert text from specified part type, to target part type. */
 	export function textToType(text: string, fromType: PartType, toType: PartType): string {
 		if (fromType === toType) {
 			return text
@@ -209,7 +209,25 @@ export namespace PartConvertor {
 
 	/** Selector part to hover. */
 	export function toHoverOfSelectorWrapper(part: CSSSelectorWrapperPart, fromPart: Part, document: TextDocument, fromDocument: TextDocument, maxStylePropertyCount: number): Hover {
+		let content = getSelectorStyleContent(part, document, maxStylePropertyCount)
 		let comment = part.comment?.trim()
+
+		if (comment) {
+			content = comment + '\n' + content
+		}
+
+		return {
+			contents: {
+				kind: MarkupKind.Markdown,
+				value: content,
+			},
+			range: toRange(fromPart, fromDocument),
+		}
+	}
+
+	/** Get selector style content by selector part. */
+	export function getSelectorStyleContent(part: CSSSelectorWrapperPart, document: TextDocument, maxStylePropertyCount: number): string {
+		
 		let content = '```css\n' + PartComparer.mayFormatted(part)[0] + ' {'
 
 		if (maxStylePropertyCount > 0) {
@@ -221,17 +239,7 @@ export namespace PartConvertor {
 
 		content += '}\n```'
 
-		if (comment) {
-			content += '\n' + comment
-		}
-
-		return {
-			contents: {
-				kind: MarkupKind.Markdown,
-				value: content,
-			},
-			range: toRange(fromPart, fromDocument),
-		}
+		return content
 	}
 
 	function parseStyleProperties(part: CSSSelectorWrapperPart, string: string, maxStylePropertyCount: number): string {

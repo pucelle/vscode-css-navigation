@@ -4,6 +4,7 @@ import {PathResolver} from '../resolver'
 import {Part, PartConvertor, PartType, CSSSelectorWrapperPart, PartComparer, CSSVariableDefinitionPart} from '../parts'
 import {groupBy, quickBinaryFind, quickBinaryFindIndex} from '../utils'
 import {URI} from 'vscode-uri'
+import {CompletionLabel} from './types'
 
 
 /** Base of HTML or CSS service for one file. */
@@ -81,7 +82,7 @@ export abstract class BaseService {
 
 	/** 
 	 * Find a part at specified offset.
-	 * Note it nerve get detailed part.
+	 * Note it never get detailed part.
 	 */
 	findPartAt(offset: number) {
 		let part = quickBinaryFind(this.parts, (part) => {
@@ -200,8 +201,8 @@ export abstract class BaseService {
 	 * Get completion labels match part.
 	 * `matchDefPart` must have been converted to definition type.
 	 */
-	getCompletionLabels(matchPart: Part, fromPart: Part): Map<string, string | undefined> {
-		let labelMap: Map<string, string | undefined> = new Map()
+	getCompletionLabels(matchPart: Part, fromPart: Part, maxStylePropertyCount: number): Map<string, CompletionLabel | null> {
+		let labelMap: Map<string, CompletionLabel | null> = new Map()
 		let re = PartConvertor.makeStartsMatchExp(matchPart.text)
 
 		for (let part of this.getPartsByType(matchPart.type)) {
@@ -217,14 +218,26 @@ export abstract class BaseService {
 
 			// Show variable details.
 			if (part.type === PartType.CSSVariableDefinition) {
-				labelMap.set(part.text, (part as CSSVariableDefinitionPart).value)
+				let labelText = (part as CSSVariableDefinitionPart).value
+				labelMap.set(part.text, labelText ? {text: labelText, markdown: undefined} : null)
 			}
 			else {
+				let label: CompletionLabel | null = null
 
-				// Convert text from current type to original type.
+				if (part.isSelectorDetailedType()) {
+					let wrapperPart = this.findPartAt(part.start) as CSSSelectorWrapperPart | undefined
+					if (wrapperPart) {
+						label = {
+							text: wrapperPart.comment,
+							markdown: PartConvertor.getSelectorStyleContent(wrapperPart, this.document, maxStylePropertyCount),
+						}
+					}
+				}
+
+				// Convert text from current type to original type of text.
 				for (let text of PartComparer.mayFormatted(part)) {
-					let label = PartConvertor.textToType(text, matchPart.type, fromPart.type)
-					labelMap.set(label, undefined)
+					let originalTypeOfText = PartConvertor.textToType(text, matchPart.type, fromPart.type)
+					labelMap.set(originalTypeOfText, label)
 				}
 			}
 		}
@@ -238,8 +251,8 @@ export abstract class BaseService {
 	 * `fromPart` is a definition part like class name selector,
 	 * but current parts are reference types of parts.
 	 */
-	getReferencedCompletionLabels(fromPart: Part): Map<string, string | undefined> {
-		let labelMap: Map<string, string | undefined> = new Map()
+	getReferencedCompletionLabels(fromPart: Part): Map<string, CompletionLabel | null> {
+		let labelMap: Map<string, CompletionLabel | null> = new Map()
 		let re = PartConvertor.makeIdentifiedStartsMatchExp(PartComparer.mayFormatted(fromPart), fromPart.type)
 		let matchDefPart = PartConvertor.toDefinitionMode(fromPart)
 
@@ -268,10 +281,10 @@ export abstract class BaseService {
 					let mayNestedText = PartConvertor.textToType(text, part.type, fromPart.type).replace(re, fromPart.text)
 
 					if (mayNestedText === text) {
-						labelMap.set(mayNestedText, undefined)
+						labelMap.set(mayNestedText, null)
 					}
 					else {
-						labelMap.set(mayNestedText, text)
+						labelMap.set(mayNestedText, {text, markdown: undefined})
 					}
 				}
 			}
@@ -335,7 +348,7 @@ export abstract class BaseService {
 			parts.push(part)
 		}
 
-		// Find independent part, if not found, get first.
+		// Find independent part, if not found, use first part.
 		let part = parts.find(part => part.isSelectorDetailedType() && part.independent)
 		if (!part && parts.length > 0) {
 			part = parts[0]

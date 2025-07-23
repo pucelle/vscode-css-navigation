@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.4.0]
+
+- Now will show CSS selector comment and several style properties on completion items.
+- Adjust CSS Selector hover info to place comment in the head.
+
 ## [2.3.10]
 
 - Fix #104, will not suggest for react components as a tag selector in CSS.

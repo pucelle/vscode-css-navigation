@@ -4,8 +4,8 @@ import {CSSSelectorDetailedPart, parseDetailedParts} from './part-css-selector-d
 
 
 /** 
- * Part is normally a tag/class/id selector, or a css variable.
- * For Quick Info and workspace symbol searching.
+ * Wrapper Part is a selector which includes several detailed part.
+ * Eg, `.a .b` includes `.a` and `.b`.
  */
 export class CSSSelectorWrapperPart extends Part {
 

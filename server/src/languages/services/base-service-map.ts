@@ -4,6 +4,7 @@ import {FileTracker, Logger} from '../../core'
 import {Part} from '../parts'
 import {BaseService} from './base-service'
 import {URI} from 'vscode-uri'
+import {CompletionLabel} from './types'
 
 
 
@@ -107,14 +108,14 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		return symbols
 	}
 
-	async getCompletionLabels(matchPart: Part, fromPart: Part): Promise<Map<string, string | undefined>> {
+	async getCompletionLabels(matchPart: Part, fromPart: Part, maxHoverStylePropertyCount: number): Promise<Map<string, CompletionLabel | null>> {
 		await this.beFresh()
 
-		let labelMap: Map<string, string | undefined> = new Map()
+		let labelMap: Map<string, CompletionLabel | null> = new Map()
 
 		for (let service of this.walkAvailableServices()) {
-			for (let [label, detail] of service.getCompletionLabels(matchPart, fromPart)) {
-				labelMap.set(label, detail)
+			for (let [label, item] of service.getCompletionLabels(matchPart, fromPart, maxHoverStylePropertyCount)) {
+				labelMap.set(label, item)
 			}
 		}
 
@@ -127,10 +128,10 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	 * `matchPart` is a definition part,
 	 * but current parts are a reference type of parts.
 	 */
-	async getReferencedCompletionLabels(fromPart: Part): Promise<Map<string, string | undefined>> {
+	async getReferencedCompletionLabels(fromPart: Part): Promise<Map<string, CompletionLabel | null>> {
 		await this.beFresh()
 
-		let labelMap: Map<string, string | undefined> = new Map()
+		let labelMap: Map<string, CompletionLabel | null> = new Map()
 
 		for (let service of this.walkAvailableServices()) {
 			for (let [label, detail] of service.getReferencedCompletionLabels(fromPart)) {
