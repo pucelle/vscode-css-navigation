@@ -106,7 +106,7 @@ editor.quickSuggestions": {
 | `searchAcrossWorkspaceFolders`    | When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current workspace, you should set this to `true`.
 | `ignoreCustomAndComponentTagDefinition` | When `true` by default, Custom-Element or Component tag (like React Component) definition going from HTML to CSS will be ignored, such that it goes to it's custom-element or component definition place directly which has implemented by other plugins.
 | `ignoreFilesBy`                   | Specifies this to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions. Default value is `[".gitignore"]`.
-| `maxHoverStylePropertyCount`      | When mouse hover at a class or id attribute, how many style properties at most should show. Default value is `4`.
+| `maxHoverStylePropertyCount`      | When mouse hover at a class or id attribute, how many style properties at most should show. This option also affects the style properties in css selector completion description. Default value is `4`.
 | `enableLogLevelMessage`           | Whether to enable log level message, set it to `true` for debugging.
 | `enableGoToDefinition`            | Whether to enable goto definition service, default value is `true`.
 | `enableWorkspaceSymbols`          | Whether to enable workspace symbol service, default value is `true`.
