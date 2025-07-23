@@ -6,19 +6,23 @@
 - Now will show CSS selector comment and several style properties on completion items.
 - Adjust CSS Selector hover info to place comment in the head.
 
+
 ## [2.3.10]
 
 - Fix #104, will not suggest for react components as a tag selector in CSS.
+
 
 ## [2.3.9]
 
 - Fix #103, now self-closed React Element like `<Image />` can be rightly detected.
 - Fix a parsing issue when js codes contain `/`.
 
+
 ## [2.3.8]
 
 - For #102, When finding references, will exclude current selector from reference list.
   But you will still find it exist until we can find a way to disable VSCode built-in CSS Reference feature.
+
 
 ## [2.3.7]
 
