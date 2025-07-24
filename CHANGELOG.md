@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.5.0]
+
+- Fix #106, supports css variable name completion when overwriting variable value.
+
+
 ## [2.4.0]
 
 - Now will show CSS selector comment and several style properties on completion items.

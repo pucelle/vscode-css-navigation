@@ -138,6 +138,7 @@ export namespace PartConvertor {
 		else if (type === PartType.CSSVariableAssignment
 			|| type === PartType.CSSVariableReference
 			|| type === PartType.CSSVariableReferenceNoVar
+			|| type === PartType.CSSVariableDefinitionNotComplete
 		) {
 			return PartType.CSSVariableDefinition
 		}

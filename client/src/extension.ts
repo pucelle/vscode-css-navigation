@@ -15,6 +15,29 @@ let extension: CSSNavigationExtension
 export function activate(context: vscode.ExtensionContext): CSSNavigationExtension {
 	extension = new CSSNavigationExtension(context)
 
+	// Register command.
+    let moveCursorForwardCommand = vscode.commands.registerCommand(
+        'CSSNavigation.moveCursorForward',
+        () => {
+            let editor = vscode.window.activeTextEditor
+            if (!editor) {
+				return
+			}
+
+            let currentPosition = editor.selection.active
+
+            let newPosition = currentPosition.with(
+                currentPosition.line,
+                Math.max(0, currentPosition.character - 1)
+            )
+     
+            editor.selection = new vscode.Selection(newPosition, newPosition)
+        }
+    )
+
+    context.subscriptions.push(moveCursorForwardCommand)
+
+
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration('CSSNavigation')) {

@@ -90,6 +90,9 @@ export enum PartType {
 	/** `--variable-name: ...;` */
 	CSSVariableDefinition,
 
+	/** `-`, `--`, or `--property`, no value specified yet. */
+	CSSVariableDefinitionNotComplete,
+
 	/** `property: var(--variable-name);` */
 	CSSVariableReference,
 
@@ -146,6 +149,7 @@ export class Part {
 	isCSSVariableType() {
 		return this.type === PartType.CSSVariableAssignment
 			|| this.type === PartType.CSSVariableDefinition
+			|| this.type === PartType.CSSVariableDefinitionNotComplete
 			|| this.type === PartType.CSSVariableReference
 			|| this.type === PartType.CSSVariableReferenceNoVar
 	}

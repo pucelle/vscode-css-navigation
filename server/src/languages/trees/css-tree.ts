@@ -38,8 +38,19 @@ export class CSSTokenTree extends CSSTokenNode {
 			}
 
 			// Especially when inputting like `a{b|}`.
-			else if (mayBeSelector && !joint.text.includes(':')) {
-				current.children!.push(new CSSTokenNode(CSSTokenNodeType.Selector, joint, current))
+			else if (mayBeSelector) {
+
+				// Not complete variable definition.
+				if (/^\s*-/.test(joint.text)) {
+					let nameToken = parsePropertyNameToken(joint)!
+					current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, latestComment))
+				}
+
+				// Skip content contains `:`.
+				// text may still have whitespaces on left, wait to be dropped in selector parser.
+				else if (!joint.text.includes(':')) {
+					current.children!.push(new CSSTokenNode(CSSTokenNodeType.Selector, joint, current, latestComment))
+				}
 			}
 
 			// Otherwise parse as property.
@@ -114,7 +125,7 @@ export class CSSTokenTree extends CSSTokenNode {
 
 	/** 
 	 * For property name part.
-	 * Be static for also parsing inline style.
+	 * Be static for the usage of parsing inline style.
 	 */
 	static *parsePropertyNamePart(text: string, start: number, commentText: string | undefined, valueText: string | undefined): Iterable<Part> {
 
@@ -122,13 +133,20 @@ export class CSSTokenTree extends CSSTokenNode {
 
 			// Will not set defEnd to value end, because default vscode plugin will
 			// also generate a definition, but end with property name end.
-			yield new CSSVariableDefinitionPart(text, start, commentText, valueText)
+			if (valueText) {
+				yield new CSSVariableDefinitionPart(text, start, commentText, valueText)
+			}
+
+			// Not complete css variable definition, for completion.
+			else {
+				yield new Part(PartType.CSSVariableDefinitionNotComplete, text, start)
+			}
 		}
 	}
 
 	/** 
 	 * For property value part.
-	 * Be static for also parsing inline style.
+	 * Be static for the usage parsing inline style.
 	 */
 	static *parsePropertyValuePart(text: string, start: number): Iterable<Part> {
 		let varMatches = Picker.locateAllMatches(text, /var\(\s*([\w-]*)\s*\)|^\s*(-[\w-]*)|(--[\w-]*)/g)
@@ -211,7 +229,6 @@ export class CSSTokenTree extends CSSTokenNode {
 		}
 
 		let commentText = node.commentToken?.text
-
 		let nextNode = node.getNextSibling()
 
 		// CSS Variable value.
@@ -353,4 +370,22 @@ function splitPropertyTokens(token: CSSToken): [CSSToken, CSSToken] | null {
 	}
 	
 	return [name, value]
+}
+
+
+function parsePropertyNameToken(token: CSSToken): CSSToken | null {
+	let match = Picker.locateMatches(token.text, /[\w-_]+/)
+	if (!match) {
+		return null
+	}
+
+	// Exclude whitespaces.
+	let name: CSSToken = {
+		type: CSSTokenType.NotDetermined,
+		text: match[0].text,
+		start: token.start + match[0].start,
+		end: token.start + match[0].start + match[0].text.length,
+	}
+
+	return name
 }

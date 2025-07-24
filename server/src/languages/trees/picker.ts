@@ -117,11 +117,68 @@ export namespace Picker {
 
 
 	/** 
+	 * Match string, add start offset to each match.
+	 * Note it may not 100% get correct result.
+	 * Note it will skip not captured matches, means `/(1)|(2)/` will always fill match[1].
+	 * `re` must not be global.
+	 */
+	export function locateMatches(text: string, re: RegExp): Picked[] | null {
+		let match = text.match(re)
+		if (!match) {
+			return null
+		}
+
+		return addOffsetToMatches(match)
+	}
+
+	/** 
+	 * Match string, add start offset to each match.
+	 * Note it may not 100% get correct result.
+	 * Note it will skip not captured matches, means `/(1)|(2)/` will always fill match[1].
+	 * Beware, captured group must capture at least one character.
+	 * `re` must be global.
+	 */
+	export function* locateAllMatches(text: string, re: RegExp): Iterable<Picked[]> {
+		let match: RegExpExecArray | null
+
+		while (match = re.exec(text)) {
+			yield addOffsetToMatches(match)
+		}
+	}
+
+	/** 
+	 * Match string to get match groups, add start offset to each grouped match.
+	 * Note it may not 100% get correct result.
+	 * `re` must not be global.
+	 */
+	export function locateMatchGroups(text: string, re: RegExp): Record<string, Picked> | null {
+		let match = text.match(re)
+		if (!match) {
+			return null
+		}
+
+		return addOffsetToMatchGroup(match)
+	}
+
+	/** 
+	 * Match string to get match groups, add start offset to each grouped match.
+	 * Note it may not 100% get correct result.
+	 * `re` must be global.
+	 */
+	export function* locateAllMatchGroups(text: string, re: RegExp): Iterable<Record<string, Picked>> {
+		let match: RegExpExecArray | null
+
+		while (match = re.exec(text)) {
+			yield addOffsetToMatchGroup(match)
+		}
+	}
+
+	/** 
 	 * Add start offset to each match item.
 	 * Note it may not 100% get correct result.
 	 * `re` must not be global.
 	 */
-	function addOffsetToMatch(match: RegExpMatchArray | RegExpExecArray): Picked[] {
+	function addOffsetToMatches(match: RegExpMatchArray | RegExpExecArray): Picked[] {
 		let o: Picked[] = []
 		let lastIndex = 0
 
@@ -177,62 +234,5 @@ export namespace Picker {
 		}
 
 		return o
-	}
-
-	/** 
-	 * Match string, add start offset to each match.
-	 * Note it may not 100% get correct result.
-	 * Note it will skip not captured matches, means `/(1)|(2)/` will always fill match[1].
-	 * `re` must not be global.
-	 */
-	export function locateMatches(text: string, re: RegExp): Picked[] | null {
-		let match = text.match(re)
-		if (!match) {
-			return null
-		}
-
-		return addOffsetToMatch(match)
-	}
-
-	/** 
-	 * Match string to get match groups, add start offset to each grouped match.
-	 * Note it may not 100% get correct result.
-	 * `re` must not be global.
-	 */
-	export function locateMatchGroups(text: string, re: RegExp): Record<string, Picked> | null {
-		let match = text.match(re)
-		if (!match) {
-			return null
-		}
-
-		return addOffsetToMatchGroup(match)
-	}
-
-	/** 
-	 * Match string, add start offset to each match.
-	 * Note it may not 100% get correct result.
-	 * Note it will skip not captured matches, means `/(1)|(2)/` will always fill match[1].
-	 * Beware, captured group must capture at least one character.
-	 * `re` must be global.
-	 */
-	export function* locateAllMatches(text: string, re: RegExp): Iterable<Picked[]> {
-		let match: RegExpExecArray | null
-
-		while (match = re.exec(text)) {
-			yield addOffsetToMatch(match)
-		}
-	}
-
-	/** 
-	 * Match string to get match groups, add start offset to each grouped match.
-	 * Note it may not 100% get correct result.
-	 * `re` must be global.
-	 */
-	export function* locateAllMatchGroups(text: string, re: RegExp): Iterable<Record<string, Picked>> {
-		let match: RegExpExecArray | null
-
-		while (match = re.exec(text)) {
-			yield addOffsetToMatchGroup(match)
-		}
 	}
 }
