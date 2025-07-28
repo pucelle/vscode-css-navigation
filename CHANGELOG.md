@@ -1,9 +1,14 @@
 # ChangeLog
 
 
+## [2.6.0]
+
+- For #107, supports class name diagnostic.
+
+
 ## [2.5.0]
 
-- Fix #106, supports css variable name completion when overwriting variable value.
+- For #106, supports css variable name completion when overwriting variable value.
 
 
 ## [2.4.0]

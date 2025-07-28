@@ -5,35 +5,60 @@ import {Part, PartConvertor, PartType, CSSSelectorWrapperPart, PartComparer, CSS
 import {groupBy, quickBinaryFind, quickBinaryFindIndex} from '../utils'
 import {URI} from 'vscode-uri'
 import {CompletionLabel} from './types'
+import {CSSSelectorDetailedPart} from '../parts/part-css-selector-detailed'
 
 
 /** Base of HTML or CSS service for one file. */
 export abstract class BaseService {
 
 	readonly document: TextDocument
+	readonly config: Configuration
+
 	protected parts: Part[]
 
 	/** Contains primary selector part, bot not all details. */
 	protected partMap: Map<PartType, Part[]>
 
+	/** Paths of imported css. */
 	protected resolvedImportedCSSPaths: string[] | undefined = undefined
 
-	constructor(document: TextDocument) {
+	/** All class names for diagnostic, names include identifier `.`. */
+	protected classNamesSet: Set<string> = new Set()
+
+	constructor(document: TextDocument, config: Configuration) {
 		this.document = document
+		this.config = config
 		
 		let tree = this.makeTree()
 		this.parts = [...tree.walkParts()]
 		this.partMap = groupBy(this.parts, part => [part.type, part])
 
-		let selectorParts = this.partMap.get(PartType.CSSSelectorWrapper) as CSSSelectorWrapperPart[] | undefined
-		if (selectorParts) {
-			this.partMap.set(PartType.CSSSelectorTag, [])
-			this.partMap.set(PartType.CSSSelectorClass, [])
-			this.partMap.set(PartType.CSSSelectorId, [])
+		this.initSelectorDetails()
+	}
 
-			for (let part of selectorParts) {
-				for (let detail of part.details) {
-					this.partMap.get(detail.type)!.push(detail)
+	private initSelectorDetails() {
+		let selectorParts = this.partMap.get(PartType.CSSSelectorWrapper) as CSSSelectorWrapperPart[] | undefined
+		if (!selectorParts) {
+			return
+		}
+
+		// Distinguish selector details.
+		this.partMap.set(PartType.CSSSelectorTag, [])
+		this.partMap.set(PartType.CSSSelectorClass, [])
+		this.partMap.set(PartType.CSSSelectorId, [])
+
+		for (let part of selectorParts) {
+			for (let detail of part.details) {
+				this.partMap.get(detail.type)!.push(detail)
+			}
+		}
+
+		// Get all class names.
+		if (this.config.enableClassNameDiagnostic) {
+			let classSelectorParts = this.partMap.get(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[]
+			for (let part of classSelectorParts) {
+				for (let formatted of part.formatted) {
+					this.classNamesSet.add(formatted)
 				}
 			}
 		}
@@ -49,7 +74,7 @@ export abstract class BaseService {
 	/** Get resolved import CSS file paths. */
 	async getImportedCSSPaths(): Promise<string[]> {
 
-		// How low rate to resolving for twice, no matter.
+		// Have low rate to resolving for twice, no matter.
 		if (this.resolvedImportedCSSPaths) {
 			return this.resolvedImportedCSSPaths
 		}
@@ -78,6 +103,19 @@ export abstract class BaseService {
 		let uris = paths.map(path => URI.file(path).toString())
 
 		return uris
+	}
+
+	/** Get all class names as a set. */
+	getClassNamesSet(): Set<string> {
+		return this.classNamesSet
+	}
+
+	/** 
+	 * Test whether class name existing.
+	 * `className` must have identifier `.`.
+	 */
+	hasClassName(className: string): boolean {
+		return this.classNamesSet.has(className)
 	}
 
 	/** 

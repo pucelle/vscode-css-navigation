@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Provides CSS Completion, Finding Definition, Finding References, Hover, Workspace Symbols services for HTML, JS, TS, JSX, Vue and more languages across whole workspace",
 	"icon": "images/logo.png",
-	"version": "2.5.0",
+	"version": "2.6.0",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -65,10 +65,15 @@
 					"default": true,
 					"description": "Whether to enable CSS selector hover comment message in HTML files."
 				},
-				"CSSNavigation.enableCSSVariableColor": {
+				"CSSNavigation.enableCSSVariableColorPreview": {
 					"type": "boolean",
 					"default": true,
 					"description": "Whether to enable CSS variable color preview. if enabled, will show a color preview box besides color type css variables."
+				},
+				"CSSNavigation.enableClassNameDiagnostic": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether to enable class name diagnostic - if can't find definition for a class name, will show a warn message."
 				},
 				"CSSNavigation.disableOwnCSSVariableCompletion": {
 					"type": "boolean",

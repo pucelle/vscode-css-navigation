@@ -6,6 +6,6 @@ import {BaseServiceMap} from './base-service-map'
 export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 
 	protected createService(document: TextDocument) {
-		return new HTMLService(document)
+		return new HTMLService(document, this.config)
 	}
 }

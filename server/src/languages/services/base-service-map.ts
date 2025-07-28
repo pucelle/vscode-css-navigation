@@ -1,17 +1,27 @@
-import {SymbolInformation, LocationLink, Hover, Location} from 'vscode-languageserver'
+import {SymbolInformation, LocationLink, Hover, Location, TextDocuments, RemoteWindow} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {FileTracker, Logger} from '../../core'
+import {FileTracker, FileTrackerOptions, Logger} from '../../core'
 import {Part} from '../parts'
 import {BaseService} from './base-service'
 import {URI} from 'vscode-uri'
 import {CompletionLabel} from './types'
 
 
-
 /** Gives HTML/CSS service for multiple files. */
 export abstract class BaseServiceMap<S extends BaseService> extends FileTracker {
 
 	protected serviceMap: Map<string, S> = new Map()
+	protected config: Configuration
+
+	constructor(
+		documents: TextDocuments<TextDocument>,
+		window: RemoteWindow,
+		options: FileTrackerOptions,
+		config: Configuration
+	) {
+		super(documents, window, options)
+		this.config = config
+	}
 
 	protected onFileExpired(uri: string) {
 		this.serviceMap.delete(uri)
@@ -27,7 +37,8 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 
 	protected async parseDocument(uri: string, document: TextDocument) {
 		try {
-			this.serviceMap.set(uri, this.createService(document))
+			let service = this.createService(document)
+			this.serviceMap.set(uri, service)
 		}
 		catch (err) {
 			Logger.error(`Failed to parse ${uri}, please contact me on github`)
@@ -43,16 +54,22 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		}
 	}
 
+	/** Test whether has CSS service by uri after becoming fresh. */
+	async hasFreshly(uri: string): Promise<boolean> {
+		await this.uriBeFresh(uri)
+		return this.serviceMap.has(uri)
+	}
+
 	/** 
 	 * Get CSS service by uri after becoming fresh.
 	 * Get undefined if not in cache.
 	 */
-	async get(uri: string): Promise<S | undefined> {
+	async getFreshly(uri: string): Promise<S | undefined> {
 		await this.uriBeFresh(uri)
 		return this.serviceMap.get(uri)
 	}
 
-	/** Force get a service by document, create it but not cache if not in service map. */
+	/** Force get a service by document, create it but not cache if it's not in service map. */
 	async forceGetServiceByDocument(document: TextDocument): Promise<S | undefined> {
 		let uri = document.uri
 
@@ -60,10 +77,10 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 			this.trackOpenedDocument(document)
 		}
 
-		return this.get(uri) as Promise<S | undefined>
+		return this.getFreshly(uri) as Promise<S | undefined>
 	}
 
-	/** Force get a service by file path, create it but not cache if not in service map. */
+	/** Force get a service by file path, create it but not cache if it's not in service map. */
 	async forceGetServiceByFilePath(fsPath: string): Promise<S | undefined> {
 		let uri = URI.file(fsPath).toString()
 		return this.forceGetServiceByURI(uri)
@@ -78,7 +95,7 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		}
 
 		// Already included.
-		return this.get(uri) as Promise<S | undefined>
+		return this.getFreshly(uri) as Promise<S | undefined>
 	}
 
 	/** Parse document to CSS service. */

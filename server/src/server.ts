@@ -16,11 +16,12 @@ import {
 	HoverParams,
 	Hover,
 	DocumentColorParams,
-	ColorInformation
+	ColorInformation,
+	Diagnostic
 } from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {HTMLServiceMap, CSSServiceMap} from './languages'
-import {generateGlobPatternByExtensions, generateGlobPatternByPatterns} from './utils'
+import {generateGlobPatternByExtensions, generateGlobPatternByPatterns, getPathExtension} from './utils'
 import {Ignore, Logger} from './core'
 import {findDefinitions} from './definition'
 import {getCompletionItems} from './completion'
@@ -28,6 +29,7 @@ import {findReferences} from './reference'
 import {findHover} from './hover'
 import '../../client/out/types'
 import {getCSSVariableColors} from './css-variable-color'
+import {getDiagnostics} from './diagnostic'
 
 
 let connection: Connection = createConnection(ProposedFeatures.all)
@@ -74,13 +76,13 @@ connection.onInitialize((params: InitializeParams) => {
 			referencesProvider: configuration.enableFindAllReferences,
 			workspaceSymbolProvider: configuration.enableWorkspaceSymbols,
 			hoverProvider: configuration.enableHover,
-			colorProvider: configuration.enableCSSVariableColor,
+			colorProvider: configuration.enableCSSVariableColorPreview,
 		}
 	}
 })
 
 // Listening events.
-connection.onInitialized(() => {
+connection.onInitialized(async () => {
 	if (configuration.enableGoToDefinition) {
 		connection.onDefinition(Logger.logQuerierExecutedTime(server.findDefinitions.bind(server), 'definition'))
 	}
@@ -101,11 +103,15 @@ connection.onInitialized(() => {
 		connection.onHover(Logger.logQuerierExecutedTime(server.findHover.bind(server), 'hover'))
 	}
 
-	if (configuration.enableCSSVariableColor) {
+	if (configuration.enableCSSVariableColorPreview) {
 		connection.onDocumentColor(Logger.logQuerierExecutedTime(server.getDocumentCSSVariableColors.bind(server), 'hover'))
 
 		// Just ensure no error happens.
 		connection.onColorPresentation(() => null)
+	}
+
+	if (configuration.enableClassNameDiagnostic) {
+		server.diagnoseAllClassNames()
 	}
 })
 
@@ -134,7 +140,7 @@ class CSSNavigationServer {
 
 			// Release resources if has not been used for 30 mins.
 			releaseTimeoutMs: 30 * 60 * 1000,
-		})
+		}, configuration)
 
 		this.cssServiceMap = new CSSServiceMap(documents, connection.window, {
 			includeFileGlobPattern: generateGlobPatternByExtensions(configuration.activeCSSFileExtensions)!,
@@ -145,15 +151,42 @@ class CSSNavigationServer {
 
 			// Track at most 1000 css files.
 			mostFileCount: 1000,
-		})
+		}, configuration)
 
 		let serviceMaps = [this.htmlServiceMap, this.cssServiceMap]
 
 
-		// All those events can't been registered for twice, or the first one will not work.
-		documents.onDidChangeContent((event: TextDocumentChangeEvent<TextDocument>) => {
-			for (let map of serviceMaps) {
-				map.onDocumentOpenOrContentChanged(event.document)
+		// All these events can't register for twice, or the first one will not work.
+
+		documents.onDidChangeContent(async (event: TextDocumentChangeEvent<TextDocument>) => {
+			let document = event.document
+			let uri = document.uri
+			let documentExtension = getPathExtension(uri)
+			let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+			let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+
+			if (isHTMLFile) {
+				this.htmlServiceMap.onDocumentOpenOrContentChanged(event.document)
+			}
+			else if (isCSSFile) {
+				this.cssServiceMap.onDocumentOpenOrContentChanged(event.document)
+			}
+
+			// Update diagnostic results.
+			if (configuration.enableClassNameDiagnostic) {
+				let beFresh = isHTMLFile ? this.htmlServiceMap.trackingMap.isFresh(uri)
+					: isCSSFile ? this.cssServiceMap.trackingMap.isFresh(uri)
+					: false
+
+				// Not re-diagnose after opened, only after change.
+				if (!beFresh) {
+					if (isHTMLFile) {
+						await server.diagnoseClassNames(event.document)
+					}
+					else if (isCSSFile) {
+						await server.diagnoseAllClassNames()
+					}
+				}
 			}
 		})
 
@@ -278,6 +311,40 @@ class CSSNavigationServer {
 		}
 	
 		return getCSSVariableColors(document, this.htmlServiceMap, this.cssServiceMap, configuration)
+	}
+
+	/** Diagnose class names for all documents. */
+	async diagnoseAllClassNames() {
+		Logger.timeStart('diagnostic')
+
+		let count = 0
+
+		for (let document of documents.all()) {
+			let diagnostics = await this.getClassNameDiagnostics(document)
+			if (diagnostics) {
+				connection.sendDiagnostics({uri: document.uri, diagnostics})
+				count++
+			}
+		}
+
+		Logger.timeEnd('diagnostic', `${count} files get diagnosed`)
+	}
+
+	/** Diagnose class names for a single document. */
+	async diagnoseClassNames(document: TextDocument) {
+		Logger.timeStart('diagnostic')
+
+		let diagnostics = await this.getClassNameDiagnostics(document)
+		if (diagnostics) {
+			connection.sendDiagnostics({uri: document.uri, diagnostics})
+		}
+
+		Logger.timeEnd('diagnostic', diagnostics ? `1 file get diagnosed` : null)
+	}
+
+	/** Get all class name diagnostics of a document. */
+	async getClassNameDiagnostics(document: TextDocument): Promise<Diagnostic[] | null> {
+		return getDiagnostics(document, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
 }
 

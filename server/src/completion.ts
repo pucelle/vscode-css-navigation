@@ -57,7 +57,6 @@ async function getCompletionItemsInHTML(
 	offset: number
 ): Promise<CompletionItem[] | null> {
 
-
 	// `#i` -> `i` to do completion is not working.
 	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 	let labels = new CompletionLabels()

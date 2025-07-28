@@ -61,9 +61,6 @@ export class FileTracker {
 	protected releaseImportedTimeout: NodeJS.Timeout | null = null
 	protected timestamp: number = 0
 
-	/** May push more promises when updating, so there is a property. */
-	protected updatePromises: Promise<void>[] = []
-
 	/**
 	 * update request may come from track, or beFresh, we cant make sure they will have no conflict
 	 * so we need a promise to lock it to avoid two update task are executed simultaneously.
@@ -344,8 +341,6 @@ export class FileTracker {
 			await this.loadStartData()
 		}
 
-		this.updatePromises = []
-
 		Logger.timeStart('update')
 
 		for (let uri of this.trackingMap.getURIs()) {
@@ -356,16 +351,21 @@ export class FileTracker {
 			this.trackingMap.setUseTime(uri, this.timestamp)
 		}
 
-		// May push more promises when updating.
-		for (let i = 0; i < this.updatePromises.length; i++) {
-			let promise = this.updatePromises[i]
-			await promise
+		let loopCount = 0
+		let updatedCount = 0
+
+		// May track more files and push more promises when updating.
+		while (this.updatePromiseMap.size > 0 && loopCount++ < 10) {
+			let allPromises = [...this.updatePromiseMap.values()]
+
+			for (let promise of allPromises) {
+				await promise
+			}
+
+			updatedCount += allPromises.length
 		}
 
-		let updatedCount = this.updatePromises.length
 		Logger.timeEnd('update', `${updatedCount > 0 ? updatedCount : 'No'} files loaded`)
-
-		this.updatePromises = []
 	}
 
 	/** Load all files inside `startPath` and `alwaysIncludeGlobPattern`, and also all opened documents. */
@@ -408,7 +408,6 @@ export class FileTracker {
 		else {
 			promise = this.doingUpdate(uri)
 			this.updatePromiseMap.set(uri, promise)
-			this.updatePromises.push(promise)
 
 			await promise
 			this.updatePromiseMap.delete(uri)
