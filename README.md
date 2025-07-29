@@ -13,7 +13,7 @@ Provides CSS **Completion**, **Finding Definition**, **Finding References**, **H
 
 Since v2.6.0, this plugin provides **Class Name Diagnostic** feature.
 
-But note this feature is not enabled by default, set `enableClassNameDiagnostic` option to `true` to enable it.
+But since stylesheets are mostly fragmented, one piece here and one piece there, so this feature is not enabled by default, set `enableClassNameDiagnostic` option to `true` to enable it.
 
 ![reference](images/class-name-diagnostic.jpg)
 
