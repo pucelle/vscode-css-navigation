@@ -20,7 +20,7 @@ export enum PartType {
 	CSSImportPath,
 
 
-	//// From HTML.
+	//// From HTML / JS / TS.
 
 	/** Excludes tags starts with A~Z like React or Lupos Component. */
 	Tag,

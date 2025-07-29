@@ -185,7 +185,7 @@ We are still looking for a way to exclude it, see https://github.com/pucelle/vsc
 
 ### Can I change definition order to make Sass files are always come before CSS files?
 
-No, VSCode always sort the definition results, seems in name order. If you don't like duplicate css definitions, you can remove the `css` in `activeCSSFileExtensions` option, or compile css file to the same folder, and keep `ignoreSameNameCSSFile` as `true`.
+No, VSCode always sort the definition results, seems in name order. If you don't like duplicate css definitions, you can remove the `css` in `activeCSSFileExtensions` option.
 
 There is a `ignoreFilesBy` option, you may specify to ignore css files listed in your `.gitignore`.
 
@@ -196,7 +196,7 @@ Firstly this plugin will search definitions within current document and all impo
 if nothing found, will search across whole workspace folder.
 
 
-### Can't get definitions across all workspace folders when there are multiple workspace folders
+### Can't get definitions across all workspace folders when there are multiple workspace folders in a project
 
 By default, definition searching is **limited in the same workspace folder**, that means when you choose `Go to definition` in a html file, the definitions you got are always come from the same workspace folder where the html file in. Searching references, completions also works like this.
 
@@ -205,14 +205,14 @@ If you have more than one folders in your workspace, and you definitely need to 
 
 ### Missed some workspace symbols
 
-Workspace symbols are always come from multiple workspace folders, but for each workspace folder, you need to open at least one HTML or CSS file to **activate** it, then will return results belong to it.
+Workspace symbols are always come from multiple workspace folders, but for each workspace folder, you need to open at least one HTML or CSS file to **activate** it (vscode mechanism), then will return results belong to it.
 
 Set `searchAcrossWorkspaceFolders` to `true` will also activate services for all workspace folders as soon as possible, then you will get full workspace symbols always.
 
 
 ### How the extension find selectors?
 
-This extension only compare the last **class / id / tag** part of the selector.
+This extension only compares the last **class / id / tag** part of a selector.
 
 So when you are trying to find definitions for `class="class1"`, these selectors will match: `p .class1`, `p.class1`,  `.class2.class1`, `.class1:hover`.
 

@@ -1,16 +1,8 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {FileTrackerOptions} from '../../core'
 import {CSSService} from './css-service'
 import {BaseServiceMap} from './base-service-map'
 import {URI} from 'vscode-uri'
 import {TwoWaySetMap} from '../../utils'
-
-
-export interface CSSServiceMapOptions extends FileTrackerOptions {
-
-	/** Whether ignore css when same name scss files exists. */
-	ignoreSameNameCSSFile: boolean
-}
 
 
 /** Gives CSS service for multiple files. */
