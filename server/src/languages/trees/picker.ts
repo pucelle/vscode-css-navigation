@@ -8,11 +8,17 @@ export namespace Picker {
 
 	/** "ab cd" => ["ab", "cd"]. */
 	export function pickWords(text: string): Picked[] {
-		let re = /[\w-]+/g
+		let re = /[\w\-${}]+/g
 		let match: RegExpExecArray | null
 		let words: Picked[] = []
 
 		while (match = re.exec(text)) {
+
+			// Have interpolation characters.
+			if (/[${}]/.test(match[0])) {
+				continue
+			}
+
 			let start = match.index
 
 			words.push({

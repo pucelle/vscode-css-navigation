@@ -438,7 +438,11 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 
 
 
-/** For parsing react elements. */
+/** 
+ * For parsing react elements.
+ * It try matches start and end tags, and make them to be
+ * recognized as tags only when found match pair.
+ */
 export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 
 	readonly whiteList: Set<string>

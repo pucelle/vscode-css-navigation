@@ -192,7 +192,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			if (attrValue) {
 				let value = attrValue.text
 
-				// Probably expression.
+				// Probably expression, and within template interpolation `${...}` or `{...}`.
 				if (this.isScriptSyntax() && mayBeExpression(value)) {
 					let cssParts: Part[] = []
 
