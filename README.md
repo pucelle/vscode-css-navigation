@@ -9,6 +9,16 @@ Provides CSS **Completion**, **Finding Definition**, **Finding References**, **H
 ## Features
 
 
+### Class Name Diagnostic - New in V2.6
+
+Since v2.6.0, this plugin provides **Class Name Diagnostic** feature.
+
+But note this feature is not enabled by default, set `enableClassNameDiagnostic` option to `true` to enable it.
+
+![reference](images/class-name-diagnostic.jpg)
+
+
+
 ### CSS Variable Services - New in V2.2
 
 Since v2.2.0, this plugin provides full **CSS Variable** service include **Definition / Completion / Reference / Hover**.
@@ -148,9 +158,9 @@ So please give your feedback, thanks.
 
 ### Should I reload this plugin after changed settings, or modified files?
 
-No need to, this plugin will automatically restart after settings get changed, and reload files after they get changed on VSCode or disk.
+No need to, this plugin will automatically restart after settings get changed, and reload the changed files after they get changed on VSCode or disk.
 
-But if an imported file is out of current workspace, change it outside of VSCode will cause this plugin can't detect and re-parse it. You may simply open it in VSCode to make current plugin can track it.
+But if an imported file is out of current workspace, change it outside of VSCode will cause this plugin can't detect and re-load it. You may simply open it in VSCode to make current plugin can track it.
 
 
 ### In embedded style content of ts or js files, input `--` can't cause css variable completions trigger

@@ -313,7 +313,7 @@ class CSSNavigationServer {
 		return getCSSVariableColors(document, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
 
-	/** Diagnose class names for all documents. */
+	/** Diagnose class names for all opened documents. */
 	async diagnoseAllClassNames() {
 		Logger.timeStart('diagnostic')
 

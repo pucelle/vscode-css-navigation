@@ -11,7 +11,7 @@ import {CompletionLabel} from './types'
 export abstract class BaseServiceMap<S extends BaseService> extends FileTracker {
 
 	protected serviceMap: Map<string, S> = new Map()
-	protected config: Configuration
+	readonly config: Configuration
 
 	constructor(
 		documents: TextDocuments<TextDocument>,

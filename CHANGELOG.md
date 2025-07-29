@@ -4,6 +4,7 @@
 ## [2.6.0]
 
 - For #107, supports class name diagnostic.
+- Change option `enableCSSVariableColor` to `enableCSSVariableColorPreview`.
 
 
 ## [2.5.0]
