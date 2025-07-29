@@ -38,7 +38,7 @@ export async function getDiagnostics(
 		if (currentHTMLService.hasClassName(className)) {
 			continue
 		}
-		
+
 		if (await cssServiceMap.hasClassName(className)) {
 			continue
 		}
@@ -46,7 +46,7 @@ export async function getDiagnostics(
 		diagnostics.push({
 			severity: DiagnosticSeverity.Warning,
             range: {start: document.positionAt(part.start), end: document.positionAt(part.end)},
-            message: `Can't find definition for class name "${className}".`,
+            message: `Can't find definition of class "${part.text}".`,
             source: 'CSS Navigation',
 		})
 	}
