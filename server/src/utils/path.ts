@@ -53,3 +53,8 @@ export function replacePathExtension(filePath: string, toExtension: string): str
 export function isCSSLikePath(filePath: string): boolean {
 	return ['css', 'less', 'scss', 'sass'].includes(getPathExtension(filePath))
 }
+
+
+export function isRelativePath(path: string): boolean {
+	return !/^\w+:/.test(path)
+}

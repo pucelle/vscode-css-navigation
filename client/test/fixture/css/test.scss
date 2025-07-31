@@ -1,4 +1,5 @@
 @import '~test-module/imported';
+@import 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';
 
 
 html{
@@ -25,9 +26,7 @@ custom-element{
 }
 
 
-#id1{
-	color: red;
-}
+#id1{color: red}
 
 .class1{
 	&-sub{

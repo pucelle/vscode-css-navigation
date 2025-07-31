@@ -1,56 +1,33 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {CSSService} from './css-service'
 import {BaseServiceMap} from './base-service-map'
-import {URI} from 'vscode-uri'
-import {TwoWaySetMap} from '../../utils'
 
 
 /** Gives CSS service for multiple files. */
 export class CSSServiceMap extends BaseServiceMap<CSSService> {
 
-	/** Class name <-> File URI, to dynamic update by a uri. */
-	protected classNamesMap: TwoWaySetMap<string, string> = new TwoWaySetMap()
+	protected identifier = 'css'
 
-	protected onFileExpired(uri: string) {
-		super.onFileExpired(uri)
+	/** Class name set to contains all the class names of whole service. */
+	protected definedClassNamesSet: Set<string> = new Set()
 
-		if (this.config.enableClassNameDiagnostic) {
-			this.deleteClassNamesOfURI(uri)
+	protected onAfterUpdated() {
+
+		// Make class name set.
+		if (this.config.enableClassNameDefinitionDiagnostic) {
+			this.definedClassNamesSet.clear()
+
+			for (let service of this.walkAvailableServices()) {
+				for (let className of service.getDefinedClassNamesSet()) {
+					this.definedClassNamesSet.add(className)
+				}
+			}
 		}
 	}
 
-	protected onFileUntracked(uri: string) {
-		super.onFileUntracked(uri)
-
-		if (this.config.enableClassNameDiagnostic) {
-			this.deleteClassNamesOfURI(uri)
-		}
-	}
-
-	protected onReleaseResources() {
-		super.onReleaseResources()
-
-		if (this.config.enableClassNameDiagnostic) {
-			this.classNamesMap.clear()
-		}
-	}
-
-	protected deleteClassNamesOfURI(uri: string) {
-		this.classNamesMap.deleteRight(uri)
-	}
-
-	protected addClassNamesOfService(uri: string, service: CSSService) {
-		let classNamesSet = service.getClassNamesSet()
-		this.classNamesMap.replaceRight(uri, classNamesSet)
-	}
-
-	/** 
-	 * Test whether class name existing.
-	 * `className` must have identifier `.`.
-	 */
-	async hasClassName(className: string): Promise<boolean> {
-		await this.beFresh()
-		return this.classNamesMap.hasLeft(className)
+	/** Test whether defined class name existing. */
+	hasDefinedClassName(className: string): boolean {
+		return this.definedClassNamesSet.has(className)
 	}
 
 	protected createService(document: TextDocument) {
@@ -66,18 +43,13 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 			return
 		}
 
-		if (this.config.enableClassNameDiagnostic) {
-			this.addClassNamesOfService(uri, cssService)
-		}
-
 		// If having `@import ...`, load it.
-		let importPaths = await cssService.getImportedCSSPaths()
-		let importedURIs = importPaths.map(path => URI.file(path).toString())
+		let importURIs = await cssService.getImportedCSSURIs()
 
-		for (let importPath of importPaths) {
-			this.trackMoreFile(importPath)
+		for (let importURI of importURIs) {
+			this.mayTrackMoreURI(importURI)
 		}
 
-		this.trackingMap.addImported(importedURIs, uri)
+		this.trackingMap.addImported(importURIs, uri)
 	}
 }

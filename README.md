@@ -13,7 +13,7 @@ Provides CSS **Completion**, **Finding Definition**, **Finding References**, **H
 
 Since v2.6.0, this plugin provides **Class Name Diagnostic** feature.
 
-But since stylesheets are mostly fragmented, one piece here and one piece there, so this feature is not enabled by default, set `enableClassNameDiagnostic` option to `true` to enable it.
+But since stylesheets are mostly fragmented, one piece here and one piece there, so this feature is not enabled by default, set `enableClassNameDefinitionDiagnostic` option to `true` to enable it.
 
 ![reference](images/class-name-diagnostic.jpg)
 
@@ -116,6 +116,7 @@ editor.quickSuggestions": {
 | `searchAcrossWorkspaceFolders`    | When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current workspace, you should set this to `true`.
 | `ignoreCustomAndComponentTagDefinition` | When `true` by default, Custom-Element or Component tag (like React Component) definition going from HTML to CSS will be ignored, such that it goes to it's custom-element or component definition place directly which has implemented by other plugins.
 | `ignoreFilesBy`                   | Specifies this to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions. Default value is `[".gitignore"]`.
+| `enableSharedCSSFragments`       | If your HTML codes contain imported CSS or CSS fragments which should be shared across whole workspace, you need set this option to `true`.
 | `maxHoverStylePropertyCount`      | When mouse hover at a class or id attribute, how many style properties at most should show. This option also affects the style properties in css selector completion description. Default value is `4`.
 | `enableLogLevelMessage`           | Whether to enable log level message, set it to `true` for debugging.
 | `enableGoToDefinition`            | Whether to enable goto definition service. Default value is `true`.
@@ -124,8 +125,9 @@ editor.quickSuggestions": {
 | `enableFindAllReferences`         | Whether to enable finding references service. Default value is `true`.
 | `enableHover`                     | Whether to enable id and class name hover service. Default value is `true`.
 | `enableCSSVariableColorPreview`   | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. Default value is `true`.
-| `enableClassNameDiagnostic`       | Whether to enable class name diagnostic - if can't find definition for a class name, will show a warn message. Default value is `false`.
-| `disableOwnCSSVariableCompletion` | Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. Note set it to `true` will also disable css variable completion within functions like `color-mix()`, and css variable value preview in completion list. default value is `false`.
+| `enableClassNameDefinitionDiagnostic`       | Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message. Default value is `false`.
+| `enableClassNameReferenceDiagnostic` | Whether to enable class name reference diagnostic - if can't find any reference for a class name in a CSS file, will show a warn message. Default value is `false`.
+| `disableOwnCSSVariableCompletion` | Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. Note set it to `true` will also disable css variable completion within functions like `color-mix()`, and css variable value preview in completion list. Default value is `false`.
 
 
 ## Why started this project

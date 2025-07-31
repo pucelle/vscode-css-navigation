@@ -9,6 +9,7 @@ import {glob} from 'glob'
 import {promisify} from 'util'
 import {TrackingMap, TrackingReasonMask} from './tracking-map'
 import {TrackingTest} from './tracking-test'
+import {fetchAsText} from '../../utils'
 
 
 /** Specifies whether ignoring files by things specified in these files. */
@@ -43,7 +44,7 @@ const CheckUnUsedTimeInterval =  5 * 60 * 1000
 
 
 /** Class to track one type of files in a directory. */
-export class FileTracker {
+export abstract class FileTracker {
 
 	readonly documents: TextDocuments<TextDocument>
 	readonly window: RemoteWindow
@@ -54,6 +55,7 @@ export class FileTracker {
 	readonly releaseTimeoutMs: number
 	readonly trackingMap: TrackingMap = new TrackingMap()
 
+	protected abstract identifier: string
 	protected test: TrackingTest
 	protected startDataLoaded: boolean = true
 	protected updating: Promise<void> | null = null
@@ -107,7 +109,7 @@ export class FileTracker {
 
 		// Since `onDidChangeWatchedFiles` event was triggered so frequently, we only do updating after saved.
 		if (!fresh && this.updating) {
-			this.updateFile(document.uri)
+			this.updateURI(document.uri)
 		}
 	}
 
@@ -143,8 +145,8 @@ export class FileTracker {
 				if (await fs.pathExists(fsPath)) {
 					let stat = await fs.stat(fsPath)
 					if (stat && stat.isFile()) {
-						if (this.test.shouldTrackFile(fsPath)) {
-							this.trackFile(fsPath, TrackingReasonMask.Included)
+						if (this.test.shouldTrackPath(fsPath)) {
+							this.trackPath(fsPath, TrackingReasonMask.Included)
 						}
 					}
 				}
@@ -160,7 +162,7 @@ export class FileTracker {
 
 	/** Track file or folder. */
 	private async tryTrackFileOrFolder(fsPath: string, reason: TrackingReasonMask) {
-		if (this.test.shouldExcludeFileOrFolder(fsPath)) {
+		if (this.test.shouldExcludePath(fsPath)) {
 			return
 		}
 
@@ -174,8 +176,8 @@ export class FileTracker {
 		}
 		else if (stat.isFile()) {
 			let filePath = fsPath
-			if (this.test.shouldTrackFile(filePath)) {
-				this.trackFile(filePath, reason)
+			if (this.test.shouldTrackPath(filePath)) {
+				this.trackPath(filePath, reason)
 			}
 		}
 	}
@@ -186,8 +188,8 @@ export class FileTracker {
 		let count = 0
 
 		for await (let absPath of filePathsGenerator) {
-			if (this.test.shouldTrackFile(absPath)) {
-				this.trackFile(absPath, reason)
+			if (this.test.shouldTrackPath(absPath)) {
+				this.trackPath(absPath, reason)
 				count++
 
 				if (count >= this.mostFileCount) {
@@ -199,21 +201,27 @@ export class FileTracker {
 	}
 
 	/** 
-	 * Track more file, normally imported file.
-	 * or should be excluded by exclude glob path.
+	 * Track more uri, normally imported file,
+	 * it may should be excluded by exclude glob patterns.
 	 * Note customized tracked document can't response to changes outside of vscode.
 	 */
-	trackMoreFile(filePath: string, reason: TrackingReasonMask = TrackingReasonMask.Imported) {
-		if (this.test.shouldIncludeFile(filePath)) {
-			this.trackFile(filePath, reason)
+	mayTrackMoreURI(uri: string, reason: TrackingReasonMask = TrackingReasonMask.Imported) {
+
+		// Not test excluding rules here.
+		if (this.test.shouldIncludeURI(uri)) {
+			this.trackURI(uri, reason)
 		}
 	}
 
-	/** Track or re-track file, not validate whether should track here. */
-	private trackFile(filePath: string, reason: TrackingReasonMask) {
+	/** Track or re-track file by file path, not validate whether should track here. */
+	private trackPath(filePath: string, reason: TrackingReasonMask) {
 		let uri = URI.file(filePath).toString()
-		let hasTracked = this.trackingMap.has(uri)
+		this.trackURI(uri, reason)
+	}
 
+	/** Track or re-track by uri, not validate whether should track here. */
+	private trackURI(uri: string, reason: TrackingReasonMask) {
+		let hasTracked = this.trackingMap.has(uri)
 		this.trackingMap.trackByReason(uri, reason)
 
 		if (!hasTracked) {
@@ -251,7 +259,7 @@ export class FileTracker {
 		this.onFileTracked(uri)
 
 		if (this.updating) {
-			this.updateFile(uri)
+			this.updateURI(uri)
 		}
 	}
 
@@ -270,7 +278,7 @@ export class FileTracker {
 		this.onFileExpired(uri)
 
 		if (this.updating) {
-			this.updateFile(uri)
+			this.updateURI(uri)
 		}
 	}
 
@@ -310,6 +318,7 @@ export class FileTracker {
 			await this.updating
 		}
 		else {
+	
 			this.updating = this.doUpdating()
 			await this.updating
 			this.updating = null
@@ -329,7 +338,7 @@ export class FileTracker {
 		}
 
 		if (!this.trackingMap.isFresh(uri)) {
-			await this.updateFile(uri)
+			await this.updateURI(uri)
 		}
 
 		this.trackingMap.setUseTime(uri, this.timestamp)
@@ -341,18 +350,19 @@ export class FileTracker {
 			await this.loadStartData()
 		}
 
-		Logger.timeStart('update')
+				
+		Logger.timeStart(this.identifier + '-update')
 
 		for (let uri of this.trackingMap.getURIs()) {
 			if (!this.trackingMap.isFresh(uri)) {
-				this.updateFile(uri)
+				this.updateURI(uri)
 			}
 
 			this.trackingMap.setUseTime(uri, this.timestamp)
 		}
 
 		let loopCount = 0
-		let updatedCount = 0
+		let updatedFileCount = 0
 
 		// May track more files and push more promises when updating.
 		while (this.updatePromiseMap.size > 0 && loopCount++ < 10) {
@@ -362,15 +372,20 @@ export class FileTracker {
 				await promise
 			}
 
-			updatedCount += allPromises.length
+			updatedFileCount += allPromises.length
+			await Promise.resolve()
 		}
 
-		Logger.timeEnd('update', `${updatedCount > 0 ? updatedCount : 'No'} files loaded`)
+		this.onAfterUpdated()
+		Logger.timeEnd(this.identifier + '-update', updatedFileCount > 0 ? `${updatedFileCount} files loaded` : null)
 	}
+
+	/** Do more after updated. */
+	protected onAfterUpdated() {}
 
 	/** Load all files inside `startPath` and `alwaysIncludeGlobPattern`, and also all opened documents. */
 	private async loadStartData() {
-		Logger.timeStart('track')
+		Logger.timeStart(this.identifier + '-track')
 
 		for (let document of this.documents.all()) {
 			if (this.test.shouldTrackURI(document.uri)) {
@@ -385,28 +400,30 @@ export class FileTracker {
 			})
 
 			for (let filePath of alwaysIncludePaths) {
+
+				// Normalize it.
 				filePath = URI.file(filePath).fsPath
 
-				if (this.test.shouldIncludeFile(filePath)) {
-					this.trackFile(filePath, TrackingReasonMask.Included)
+				if (this.test.shouldIncludePath(filePath)) {
+					this.trackPath(filePath, TrackingReasonMask.Included)
 				}
 			}
 		}
 
 		await this.tryTrackFileOrFolder(this.startPath!, TrackingReasonMask.Included)
 
-		Logger.timeEnd('track', `${this.trackingMap.size()} files tracked`)
+		Logger.timeEnd(this.identifier + '-track', `${this.trackingMap.size()} files tracked`)
 		this.startDataLoaded = true
 	}
 
 	/** Update one file, returns whether updated. */
-	private async updateFile(uri: string): Promise<boolean> {
+	private async updateURI(uri: string): Promise<boolean> {
 		let promise = this.updatePromiseMap.get(uri)
 		if (promise) {
 			await promise
 		}
 		else {
-			promise = this.doingUpdate(uri)
+			promise = this.doingUpdateURI(uri)
 			this.updatePromiseMap.set(uri, promise)
 
 			await promise
@@ -417,7 +434,7 @@ export class FileTracker {
 	}
 
 	/** Doing update and returns a promise. */
-	private async doingUpdate(uri: string) {
+	private async doingUpdateURI(uri: string) {
 		if (!this.trackingMap.has(uri)) {
 			return
 		}
@@ -438,22 +455,36 @@ export class FileTracker {
 	/** Load text content and create one document. */
 	protected async loadDocument(uri: string): Promise<TextDocument | null> {
 		let languageId = path.extname(uri).slice(1).toLowerCase()
-		let document = null
+		let document: TextDocument | null = null
+		let protocol = URI.parse(uri).scheme
 
-		try {
-			let text = (await fs.readFile(URI.parse(uri).fsPath)).toString('utf8')
-			
-			// Very low resource usage for creating one document.
-			document = TextDocument.create(uri, languageId, 1, text)
+		if (protocol === 'http' || protocol === 'https') {
+			try {
+				
+				// Use private uri protocol to open remote files.
+				let myURI = 'css-nav-uri:' + uri
+
+				let text = await fetchAsText(uri)
+				document = TextDocument.create(myURI, languageId, 1, text)
+			}
+			catch (err) {
+				console.error(err)
+			}
 		}
-		catch (err) {
-			console.error(err)
+		else if (protocol === 'file') {
+			try {
+				let text = (await fs.readFile(URI.parse(uri).fsPath)).toString('utf8')
+				document = TextDocument.create(uri, languageId, 1, text)
+			}
+			catch (err) {
+				console.error(err)
+			}
 		}
 
 		return document
 	}
 
-	/** Parsed document. */
+	/** Parsed document by the way you need. */
 	protected async parseDocument(_uri: string, _document: TextDocument) {}
 
 

@@ -109,10 +109,6 @@ connection.onInitialized(async () => {
 		// Just ensure no error happens.
 		connection.onColorPresentation(() => null)
 	}
-
-	if (configuration.enableClassNameDiagnostic) {
-		server.diagnoseAllClassNames()
-	}
 })
 
 documents.listen(connection)
@@ -125,6 +121,7 @@ class CSSNavigationServer {
 	private options: InitializationOptions
 	private cssServiceMap: CSSServiceMap
 	private htmlServiceMap: HTMLServiceMap
+	private diagnosingURIs: Set<string> = new Set()
 
 	constructor(options: InitializationOptions) {
 		this.options = options
@@ -172,21 +169,9 @@ class CSSNavigationServer {
 				this.cssServiceMap.onDocumentOpenOrContentChanged(event.document)
 			}
 
-			// Update diagnostic results.
-			if (configuration.enableClassNameDiagnostic) {
-				let beFresh = isHTMLFile ? this.htmlServiceMap.trackingMap.isFresh(uri)
-					: isCSSFile ? this.cssServiceMap.trackingMap.isFresh(uri)
-					: false
-
-				// Not re-diagnose after opened, only after change.
-				if (!beFresh) {
-					if (isHTMLFile) {
-						await server.diagnoseClassNames(event.document)
-					}
-					else if (isCSSFile) {
-						await server.diagnoseAllClassNames()
-					}
-				}
+			// Update class name diagnostic results.
+			if (configuration.enableClassNameDefinitionDiagnostic || configuration.enableClassNameReferenceDiagnostic) {
+				await server.diagnoseClassNamesOf(event.document)
 			}
 		})
 
@@ -313,37 +298,74 @@ class CSSNavigationServer {
 		return getCSSVariableColors(document, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
 
-	/** Diagnose class names for all opened documents. */
-	async diagnoseAllClassNames() {
-		Logger.timeStart('diagnostic')
-
-		let count = 0
-
-		for (let document of documents.all()) {
-			let diagnostics = await this.getClassNameDiagnostics(document)
-			if (diagnostics) {
-				connection.sendDiagnostics({uri: document.uri, diagnostics})
-				count++
-			}
+	private beforeDiagnosingURI(uri: string) {
+		if (this.diagnosingURIs.size === 0) {
+			setTimeout(() => {
+				this.diagnosingURIs.clear()
+			}, 0)
 		}
 
-		Logger.timeEnd('diagnostic', `${count} files get diagnosed`)
+		this.diagnosingURIs.add(uri)
 	}
 
-	/** Diagnose class names for a single document. */
-	async diagnoseClassNames(document: TextDocument) {
-		Logger.timeStart('diagnostic')
+	/** Diagnose class names for a changed document. */
+	async diagnoseClassNamesOf(document: TextDocument) {
+		let documentExtension = getPathExtension(document.uri)
+		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+
+		if (!isHTMLFile && !isCSSFile) {
+			return
+		}
+
+		Logger.timeStart('diagnostic-of-' + document.uri)
+		let fileCount = 0
 
 		let diagnostics = await this.getClassNameDiagnostics(document)
 		if (diagnostics) {
 			connection.sendDiagnostics({uri: document.uri, diagnostics})
+			fileCount++
 		}
 
-		Logger.timeEnd('diagnostic', diagnostics ? `1 file get diagnosed` : null)
+		if (isHTMLFile && configuration.enableClassNameReferenceDiagnostic) {
+			fileCount += await this.diagnoseClassNamesOfType('css')
+		}
+
+		if (isCSSFile && configuration.enableClassNameDefinitionDiagnostic) {
+			fileCount += await this.diagnoseClassNamesOfType('html')
+		}
+
+		Logger.timeEnd('diagnostic-of-' + document.uri, fileCount > 0 ? `${fileCount} files get diagnosed` : null)
+	}
+
+	private async diagnoseClassNamesOfType(type: 'html' | 'css'): Promise<number> {
+		let fileCount = 0
+		for (let document of documents.all()) {
+			let documentExtension = getPathExtension(document.uri)
+			let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+			let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+
+			if (type === 'html' && !isHTMLFile || type === 'css' && !isCSSFile) {
+				continue
+			}
+
+			if (this.diagnosingURIs.has(document.uri)) {
+				continue
+			}
+
+			let diagnostics = await this.getClassNameDiagnostics(document)
+			if (diagnostics) {
+				connection.sendDiagnostics({uri: document.uri, diagnostics})
+				fileCount++
+			}
+		}
+
+		return fileCount
 	}
 
 	/** Get all class name diagnostics of a document. */
 	async getClassNameDiagnostics(document: TextDocument): Promise<Diagnostic[] | null> {
+		this.beforeDiagnosingURI(document.uri)
 		return getDiagnostics(document, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
 }

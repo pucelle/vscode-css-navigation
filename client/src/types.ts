@@ -10,7 +10,8 @@ interface Configuration {
 	enableFindAllReferences: boolean
 	enableHover: boolean
 	enableCSSVariableColorPreview: boolean
-	enableClassNameDiagnostic: boolean
+	enableClassNameDefinitionDiagnostic: boolean
+	enableClassNameReferenceDiagnostic: boolean
 	disableOwnCSSVariableCompletion: boolean
 	enableLogLevelMessage: boolean
 
@@ -23,4 +24,5 @@ interface Configuration {
 	ignoreFilesBy: string[]
 
 	maxHoverStylePropertyCount: number
+	enableSharedCSSFragments: boolean
 }

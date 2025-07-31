@@ -3,7 +3,6 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {FileTracker, FileTrackerOptions, Logger} from '../../core'
 import {Part} from '../parts'
 import {BaseService} from './base-service'
-import {URI} from 'vscode-uri'
 import {CompletionLabel} from './types'
 
 
@@ -80,18 +79,12 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		return this.getFreshly(uri) as Promise<S | undefined>
 	}
 
-	/** Force get a service by file path, create it but not cache if it's not in service map. */
-	async forceGetServiceByFilePath(fsPath: string): Promise<S | undefined> {
-		let uri = URI.file(fsPath).toString()
-		return this.forceGetServiceByURI(uri)
-	}
-
 	/** Force get a service by uri, create it but not cache if not in service map. */
 	async forceGetServiceByURI(uri: string): Promise<S | undefined> {
 
 		// Path been included.
 		if (!this.trackingMap.has(uri)) {
-			this.trackMoreFile(URI.parse(uri).fsPath)
+			this.mayTrackMoreURI(uri)
 		}
 
 		// Already included.

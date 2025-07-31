@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Provides CSS Completion, Finding Definition, Finding References, Hover, Workspace Symbols services for HTML, JS, TS, JSX, Vue and more languages across whole workspace",
 	"icon": "images/logo.png",
-	"version": "2.6.0",
+	"version": "2.7.0",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -70,10 +70,20 @@
 					"default": true,
 					"description": "Whether to enable CSS variable color preview. if enabled, will show a color preview box besides color type css variables."
 				},
-				"CSSNavigation.enableClassNameDiagnostic": {
+				"CSSNavigation.enableClassNameDefinitionDiagnostic": {
 					"type": "boolean",
 					"default": false,
-					"description": "Whether to enable class name diagnostic - if can't find definition for a class name, will show a warn message."
+					"description": "Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message."
+				},
+				"CSSNavigation.enableClassNameReferenceDiagnostic": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether to enable class name reference diagnostic - if can't find any reference for a class name in a CSS file, will show a warn message."
+				},
+				"CSSNavigation.enableSharedCSSFragments": {
+					"type": "boolean",
+					"default": false,
+					"description": "If your HTML codes contain imported CSS or CSS fragments which should be shared across whole workspace, you need set this option to `true`."
 				},
 				"CSSNavigation.disableOwnCSSVariableCompletion": {
 					"type": "boolean",

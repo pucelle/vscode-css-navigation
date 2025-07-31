@@ -6,6 +6,7 @@ import {groupBy, quickBinaryFind, quickBinaryFindIndex} from '../utils'
 import {URI} from 'vscode-uri'
 import {CompletionLabel} from './types'
 import {CSSSelectorDetailedPart} from '../parts/part-css-selector-detailed'
+import {isRelativePath} from '../../utils'
 
 
 /** Base of HTML or CSS service for one file. */
@@ -19,11 +20,11 @@ export abstract class BaseService {
 	/** Contains primary selector part, bot not all details. */
 	protected partMap: Map<PartType, Part[]>
 
-	/** Paths of imported css. */
-	protected resolvedImportedCSSPaths: string[] | undefined = undefined
+	/** URIs of imported css. */
+	protected resolvedImportedCSSURIs: string[] | undefined = undefined
 
-	/** All class names for diagnostic, names include identifier `.`. */
-	protected classNamesSet: Set<string> = new Set()
+	/** All class names for diagnostic, names excluded identifier `.`. */
+	protected definedClassNamesSet: Set<string> = new Set()
 
 	constructor(document: TextDocument, config: Configuration) {
 		this.document = document
@@ -33,10 +34,11 @@ export abstract class BaseService {
 		this.parts = [...tree.walkParts()]
 		this.partMap = groupBy(this.parts, part => [part.type, part])
 
-		this.initSelectorDetails()
+		this.initAdditionalParts()
+		this.initDefinedClassNamesSet()
 	}
 
-	private initSelectorDetails() {
+	protected initAdditionalParts() {
 		let selectorParts = this.partMap.get(PartType.CSSSelectorWrapper) as CSSSelectorWrapperPart[] | undefined
 		if (!selectorParts) {
 			return
@@ -52,13 +54,18 @@ export abstract class BaseService {
 				this.partMap.get(detail.type)!.push(detail)
 			}
 		}
+	}
 
-		// Get all class names.
-		if (this.config.enableClassNameDiagnostic) {
-			let classSelectorParts = this.partMap.get(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[]
+	protected initDefinedClassNamesSet() {
+		if (!this.config.enableClassNameDefinitionDiagnostic) {
+			return
+		}
+
+		let classSelectorParts = this.partMap.get(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
+		if (classSelectorParts) {
 			for (let part of classSelectorParts) {
 				for (let formatted of part.formatted) {
-					this.classNamesSet.add(formatted)
+					this.definedClassNamesSet.add(formatted.slice(1))
 				}
 			}
 		}
@@ -71,51 +78,41 @@ export abstract class BaseService {
 		return this.partMap.get(type) || []
 	}
 
-	/** Get resolved import CSS file paths. */
-	async getImportedCSSPaths(): Promise<string[]> {
+	/** Get resolved import CSS uris. */
+	async getImportedCSSURIs(): Promise<string[]> {
 
 		// Have low rate to resolving for twice, no matter.
-		if (this.resolvedImportedCSSPaths) {
-			return this.resolvedImportedCSSPaths
+		if (this.resolvedImportedCSSURIs) {
+			return this.resolvedImportedCSSURIs
 		}
 
-		let paths: string[] = []
+		let uris: string[] = []
 
 		for (let part of this.getPartsByType(PartType.CSSImportPath)) {
+			let protocol = isRelativePath(part.text) ? '' : URI.parse(part.text).scheme
 
-			// Must have no protocol.
-			if (/^\w+:/.test(part.text)) {
+			// Relative path, or file, http or https.
+			if (protocol !== '' && protocol !== 'file' && protocol !== 'http' && protocol !== 'https') {
 				continue
 			}
 
-			let path = await PathResolver.resolveDocumentPath(part.text, this.document)
-			if (path) {
-				paths.push(path)
+			let uri = await PathResolver.resolveImportURI(part.text, this.document)
+			if (uri) {
+				uris.push(uri)
 			}
 		}
 
-		return this.resolvedImportedCSSPaths = paths
+		return this.resolvedImportedCSSURIs = uris
 	}
 
-	/** Get resolved import CSS uris. */
-	async getImportedCSSURIs(): Promise<string[]> {
-		let paths = await this.getImportedCSSPaths()
-		let uris = paths.map(path => URI.file(path).toString())
-
-		return uris
+	/** Get defined class names as a set. */
+	getDefinedClassNamesSet(): Set<string> {
+		return this.definedClassNamesSet
 	}
 
-	/** Get all class names as a set. */
-	getClassNamesSet(): Set<string> {
-		return this.classNamesSet
-	}
-
-	/** 
-	 * Test whether class name existing.
-	 * `className` must have identifier `.`.
-	 */
-	hasClassName(className: string): boolean {
-		return this.classNamesSet.has(className)
+	/** Test whether defined class name existing. */
+	hasDefinedClassName(className: string): boolean {
+		return this.definedClassNamesSet.has(className)
 	}
 
 	/** 

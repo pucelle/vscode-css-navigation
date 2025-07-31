@@ -96,10 +96,10 @@ async function findDefinitionsInHTML(
 
 	// When mouse locates at `styleName="class-name"`, search within default imported css module.
 	if (fromPart.type === PartType.ReactDefaultImportedCSSModuleClass) {
-		let filePaths = await ModuleResolver.resolveReactDefaultCSSModulePaths(document)
+		let filePaths = await ModuleResolver.resolveReactDefaultCSSModuleURIs(document)
 
 		for (let filePath of filePaths) {
-			let cssModuleService = await cssServiceMap.forceGetServiceByFilePath(filePath)
+			let cssModuleService = await cssServiceMap.forceGetServiceByURI(filePath)
 			if (!cssModuleService) {
 				return null
 			}
@@ -121,12 +121,12 @@ async function findDefinitionsInHTML(
 			return null
 		}
 
-		let filePath = await ModuleResolver.resolveReactCSSModuleByName(importedCSSModulePart.text, document)
-		if (!filePath) {
+		let uri = await ModuleResolver.resolveReactCSSModuleURIByName(importedCSSModulePart.text, document)
+		if (!uri) {
 			return null
 		}
 
-		let cssModuleService = await cssServiceMap.forceGetServiceByFilePath(filePath)
+		let cssModuleService = await cssServiceMap.forceGetServiceByURI(uri)
 		if (!cssModuleService) {
 			return null
 		}

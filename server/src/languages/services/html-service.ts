@@ -1,3 +1,5 @@
+import {TextDocument} from 'vscode-languageserver-textdocument'
+import {PartType} from '../parts'
 import {HTMLTokenTree, JSTokenTree} from '../trees'
 import {BaseService} from './base-service'
 
@@ -20,6 +22,43 @@ const HTMLLanguageIdMap: Record<string, HTMLLanguageId> = {
 
 /** Scan html code pieces in files that can include HTML codes, like html, js, jsx, ts, tsx. */
 export class HTMLService extends BaseService {
+
+	/** All class names references for diagnostic, names excluded identifier `.`. */
+	protected classNamesReferenceSet: Set<string> = new Set()
+
+	constructor(document: TextDocument, config: Configuration) {
+		super(document, config)
+		this.initClassNamesReferenceSet()
+	}
+
+	protected initClassNamesReferenceSet() {
+		if (!this.config.enableClassNameReferenceDiagnostic) {
+			return
+		}
+
+		let classTexts = [
+			...this.partMap.get(PartType.Class)?.map(p => p.text) || [],
+			...this.partMap.get(PartType.CSSSelectorQueryClass)?.map(p => p.text.slice(1)) || [],
+			...this.partMap.get(PartType.ReactDefaultImportedCSSModuleClass)?.map(p => p.text) || [],
+		]
+
+		for (let text of classTexts) {
+			this.classNamesReferenceSet.add(text)
+		}
+	}
+
+	/** Get all referenced class names as a set. */
+	getReferencedClassNamesSet(): Set<string> {
+		return this.classNamesReferenceSet
+	}
+
+	/** 
+	 * Test whether referenced class name existing.
+	 * `className` must not have identifier `.`.
+	 */
+	hasReferencedClassName(className: string): boolean {
+		return this.classNamesReferenceSet.has(className)
+	}
 
 	protected makeTree() {
 		let languageId = HTMLLanguageIdMap[this.document.languageId] ?? 'html'

@@ -37,8 +37,8 @@ export enum TrackingReasonMask {
 	/** As imported document. */
 	Imported = 4,
 
-	/** Any uri imported it get included. */
-	AncestralIncluded = 8,
+	/** Any ancestor in import chain which imported it get included. */
+	ImportAncestorIncluded = 8,
 }
 
 
@@ -79,6 +79,7 @@ export class TrackingMap {
 	resolveChainedImportedURIs(uris: string[]): Iterable<string> {
 		let set: Set<string> = new Set()
 		this.resolveChainedImportedCSSPathsBySet(uris, set)
+
 		return set
 	}
 
@@ -158,18 +159,18 @@ export class TrackingMap {
 		}
 
 		this.importMap.replaceLeft(from, imported)
-		this.updateImportedReasonOfURIs(changed)
+		this.upgradeImportReasonInChainOfURIs(changed)
 	}
 
 	/** Update a group of import uris. */
-	private updateImportedReasonOfURIs(importedURIs: Iterable<string>) {
+	private upgradeImportReasonInChainOfURIs(importedURIs: Iterable<string>) {
 		for (let importedURI of importedURIs) {
-			this.updateImportedReason(importedURI)
+			this.upgradeImportReasonInChain(importedURI)
 		}
 	}
 
-	/** `uri` must be an import uri. */
-	private updateImportedReason(imported: string, depth = 5) {
+	/** `imported` is an import uri. */
+	private upgradeImportReasonInChain(imported: string, depth = 5) {
 		let item = this.trackingMap.get(imported)
 		if (!item) {
 			return
@@ -178,18 +179,21 @@ export class TrackingMap {
 		let reason = item.reason
 		let changed = false
 
+		// A imports B, B imports C
+		// A gets Included, then B gets ImportAncestorIncluded, then C gets ImportAncestorIncluded
+
 		if (reason & TrackingReasonMask.Imported
 			&& (reason & TrackingReasonMask.Included) === 0
 		) {
-			if ((reason & TrackingReasonMask.AncestralIncluded) === 0) {
-				if (this.isURIIncluded(imported)) {
-					item.reason |= TrackingReasonMask.AncestralIncluded
+			if ((reason & TrackingReasonMask.ImportAncestorIncluded) === 0) {
+				if (this.isImportAncestorGetIncluded(imported)) {
+					item.reason |= TrackingReasonMask.ImportAncestorIncluded
 					changed = true
 				}
 			}
 			else {
-				if (!this.isURIIncluded(imported)) {
-					item.reason &= ~TrackingReasonMask.AncestralIncluded
+				if (!this.isImportAncestorGetIncluded(imported)) {
+					item.reason &= ~TrackingReasonMask.ImportAncestorIncluded
 					changed = true
 				}
 			}
@@ -200,14 +204,14 @@ export class TrackingMap {
 			let importedURIs = this.importMap.getByLeft(imported)
 			if (importedURIs) {
 				for (let imported of importedURIs) {
-					this.updateImportedReason(imported, depth - 1)
+					this.upgradeImportReasonInChain(imported, depth - 1)
 				}
 			}
 		}
 	}
 
-	/** URI be included, or any uri imported it be included. */
-	private isURIIncluded(uri: string, depth: number = 5): boolean {
+	/** Test whether import ancestor in import chain get included. */
+	private isImportAncestorGetIncluded(uri: string, depth: number = 5): boolean {
 		let item = this.trackingMap.get(uri)
 		if (!item) {
 			return false
@@ -227,7 +231,7 @@ export class TrackingMap {
 		}
 
 		for (let importFrom of importFromURIs) {
-			if (this.isURIIncluded(importFrom, depth - 1)) {
+			if (this.isImportAncestorGetIncluded(importFrom, depth - 1)) {
 				return true
 			}
 		}
@@ -243,7 +247,7 @@ export class TrackingMap {
 		this.importMap.deleteRight(uri)
 
 		if (importedURIs) {
-			this.updateImportedReasonOfURIs(importedURIs)
+			this.upgradeImportReasonInChainOfURIs(importedURIs)
 		}
 	}
 
@@ -255,7 +259,7 @@ export class TrackingMap {
 	
 	/** Walk all included and opened uris. */
 	*walkIncludedOrOpenedURIs(): Iterable<string> {
-		let includedOrOpened = TrackingReasonMask.Included | TrackingReasonMask.AncestralIncluded | TrackingReasonMask.Opened
+		let includedOrOpened = TrackingReasonMask.Included | TrackingReasonMask.ImportAncestorIncluded | TrackingReasonMask.Opened
 
 		for (let [uri, item] of this.trackingMap) {
 			if (item.reason & includedOrOpened) {
@@ -281,10 +285,7 @@ export class TrackingMap {
 				}
 			}
 
-			// Can't compare document, always become expire.
-			else {
-				this.makeExpire(uri)
-			}
+			// When can't compare document, treat as fresh.
 		}
 		else {
 			item = {
@@ -300,7 +301,10 @@ export class TrackingMap {
 			this.allFresh = false
 		}
 
-		this.updateImportedReason(uri)
+		let imported = this.importMap.getByLeft(uri)
+		if (imported) {
+			this.upgradeImportReasonInChainOfURIs(imported)
+		}
 	}
 
 	/** Track opened document. */
@@ -367,6 +371,6 @@ export class TrackingMap {
 		this.allFresh = false
 
 		// Will replace import mapping after reload, here no need to clear import mapping.
-		this.importMap.deleteLeft(uri)
+		// this.importMap.deleteLeft(uri)
 	}
 }

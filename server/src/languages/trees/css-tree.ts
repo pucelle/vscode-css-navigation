@@ -46,7 +46,11 @@ export class CSSTokenTree extends CSSTokenNode {
 					current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, latestComment))
 				}
 
-				// Skip content contains `:`.
+				// Content contains `:`, parse as property declaration.
+				else if (joint.text.includes(':')) {
+					parseAsPropertyDeclaration(joint)
+				}
+
 				// text may still have whitespaces on left, wait to be dropped in selector parser.
 				else if (!joint.text.includes(':')) {
 					current.children!.push(new CSSTokenNode(CSSTokenNodeType.Selector, joint, current, latestComment))
@@ -55,19 +59,23 @@ export class CSSTokenTree extends CSSTokenNode {
 
 			// Otherwise parse as property.
 			else {
-				let o = splitPropertyTokens(joint)
-				if (o) {
-					let [nameToken, valueToken] = o
-					let nameNode = new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, latestComment)
-					let valueNode = new CSSTokenNode(CSSTokenNodeType.PropertyValue, valueToken, current)
-
-					nameNode.defEnd = valueToken.end
-					current.children!.push(nameNode, valueNode)
-				}
+				parseAsPropertyDeclaration(joint)
 			}
 
 			notDetermined = []
 			latestComment = null
+		}
+
+		function parseAsPropertyDeclaration(token: CSSToken) {
+			let o = splitPropertyTokens(token)
+			if (o) {
+				let [nameToken, valueToken] = o
+				let nameNode = new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, latestComment)
+				let valueNode = new CSSTokenNode(CSSTokenNodeType.PropertyValue, valueToken, current)
+
+				nameNode.defEnd = valueToken.end
+				current.children!.push(nameNode, valueNode)
+			}
 		}
 
 
@@ -109,7 +117,9 @@ export class CSSTokenTree extends CSSTokenNode {
 			}
 
 			else if (token.type === CSSTokenType.CommentText) {
-				if (notDetermined.length === 0) {
+				
+				// Normally use `/*!...*/` as global comment.
+				if (notDetermined.length === 0 && !token.text.startsWith('!')) {
 					latestComment = token
 				}
 			}
@@ -316,10 +326,6 @@ export class CSSTokenTree extends CSSTokenNode {
 			if (selectorMatch) {
 				yield* this.parseSelectorString(selectorMatch[1].text, selectorMatch[1].start + node.token.start, node, true)
 			}
-		}
-
-		else if (commandName === 'keyframes') {
-			yield new Part(PartType.CSSImportPath, node.token.text, node.token.start, node.defEnd).trim()
 		}
 
 		this.commandWrappedMap.set(node, true)

@@ -1,11 +1,11 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} from 'vscode-languageclient'
-import {getOutmostWorkspaceURI, getPathExtension, generateGlobPatternFromExtensions, getTimeMarker} from './util'
+import {getOutmostWorkspaceURI, getPathExtension, generateGlobPatternFromExtensions, getTimeMarker, fetchAsText} from './utils'
 
 
 process.on('unhandledRejection', function(reason) {
-    console.log("Unhandled Rejection: ", reason)
+    console.log('Unhandled Rejection: ', reason)
 })
 
 
@@ -38,6 +38,18 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
     context.subscriptions.push(moveCursorForwardCommand)
 
 
+	// Register a content provider to open remote URI.
+	const httpProvider = new class implements vscode.TextDocumentContentProvider {
+		provideTextDocumentContent(myURI: vscode.Uri): Promise<string> {
+			let uri = myURI.path
+			return fetchAsText(uri)
+		}
+	}
+
+	context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('css-nav-uri', httpProvider))
+
+
+	// Register language server.
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration('CSSNavigation')) {
@@ -102,7 +114,8 @@ export class CSSNavigationExtension {
 			enableFindAllReferences: config.get('enableFindAllReferences', true),
 			enableHover: config.get('enableHover', true),
 			enableCSSVariableColorPreview: config.get('enableCSSVariableColorPreview', true),
-			enableClassNameDiagnostic: config.get('enableClassNameDiagnostic', true),
+			enableClassNameDefinitionDiagnostic: config.get('enableClassNameDefinitionDiagnostic', true),
+			enableClassNameReferenceDiagnostic: config.get('enableClassNameReferenceDiagnostic', true),
 
 			disableOwnCSSVariableCompletion: config.get('disableOwnCSSVariableCompletion', false),
 			enableLogLevelMessage: config.get('enableLogLevelMessage', false),
@@ -116,6 +129,7 @@ export class CSSNavigationExtension {
 			ignoreFilesBy: config.get('ignoreFilesBy', []),
 
 			maxHoverStylePropertyCount: config.get('maxHoverStylePropertyCount', 0),
+			enableSharedCSSFragments: config.get('enableSharedCSSFragments', false),
 		}
 	}
 

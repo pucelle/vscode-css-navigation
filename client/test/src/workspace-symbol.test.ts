@@ -28,7 +28,7 @@ describe('Test Workspace Symbol', () => {
 	})
 
 	it('Should find commands start with "@"', async () => {
-		assert.ok((await gws('@keyframes tag-not-match')).length > 0)
+		assert.ok((await gws('@keyframes')).length > 0)
 	})
 
 	it('Should not combine with parent selectors with space when inside "@at-root"', async () => {

@@ -3,14 +3,15 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {URI} from 'vscode-uri'
 import * as path from 'path'
 import * as fs from 'fs-extra'
-import {getPathExtension} from '../../utils'
+import {getPathExtension, isRelativePath} from '../../utils'
 import {Part, PartConvertor} from '../parts'
+import * as url from 'node:url'
 
 
 export namespace PathResolver {
 
-	/** Resolve import fs path, will search `node_modules` directory to find final import path. */
-	export async function resolveRelativePath(fromPath: string, toPath: string): Promise<string | null> {
+	/** Resolve relative path, will search `node_modules` directory to find final import path. */
+	export async function resolveModulePath(fromPath: string, toPath: string): Promise<string | null> {
 		let isModulePath = toPath.startsWith('~')
 		let fromDir = path.dirname(fromPath)
 		let beModuleImport = false
@@ -86,26 +87,41 @@ export namespace PathResolver {
 	 * Make a link which lick to current import location.
 	 * `part` must be in `Import` type.
 	 */
-	export async function resolveImportLocationLink(part: Part, document: TextDocument): Promise<LocationLink | null> {
-		let importPath = await resolveDocumentPath(part.text, document)
-		if (!importPath) {
+	export async function resolveImportLocationLink(part: Part, fromDocument: TextDocument): Promise<LocationLink | null> {
+		let uri = await resolveImportURI(part.text, fromDocument)
+		if (!uri) {
 			return null
 		}
 
-		let uri = URI.file(importPath).toString()
 		let targetRange = Range.create(0, 0, 0, 0)
 		let selectionRange = targetRange
-		let fromRange = PartConvertor.toRange(part, document)
+		let fromRange = PartConvertor.toRange(part, fromDocument)
 
 		return LocationLink.create(uri, targetRange, selectionRange, fromRange)
 	}
 
 	
-	/** Resolve import path to full path. */
-	export async function resolveDocumentPath(importPath: string, document: TextDocument): Promise<string | null> {
-		let currentPath = URI.parse(document.uri).fsPath
-		let fullPath = await resolveRelativePath(currentPath, importPath)
+	/** Resolve import path to full uri. */
+	export async function resolveImportURI(importPath: string, fromDocument: TextDocument): Promise<string | null> {
+		let importProtocol = isRelativePath(importPath) ? '' : URI.parse(importPath).scheme
+		if (importProtocol) {
+			return importPath
+		}
 
-		return fullPath
+		// File relative, try handle module path.
+		let fromURI = URI.parse(fromDocument.uri)
+		if (fromURI.scheme === 'file') {
+			let fullPath = await resolveModulePath(fromURI.fsPath, importPath)
+			if (!fullPath) {
+				return null
+			}
+
+			return URI.file(fullPath).toString()
+		}
+
+		// HTTP relative.
+		else {
+			return new url.URL(importPath, fromDocument.uri).toString()
+		}
 	}
 }
