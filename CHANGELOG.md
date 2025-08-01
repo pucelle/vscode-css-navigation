@@ -4,6 +4,7 @@
 ## [2.7.2]
 
 - Fix an issue which will cause wrong offset for embedded CSS .
+- Reduce re-diagnose frequency.
 
 
 ## [2.7.1]
