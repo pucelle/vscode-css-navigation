@@ -5,6 +5,7 @@
 
 - Provides `enableSharedCSSFragments` option, if your HTML codes contain imported CSS or CSS fragments which should be shared across whole workspace, you can set it to `true`.
 - Provides css class name reference diagnostic service, can set `enableClassNameReferenceDiagnostic=true` to enable it.
+- Supports loading remote css sources.
 - Changes `enableClassNameDiagnostic` to `enableClassNameDefinitionDiagnostic`.
 
 
