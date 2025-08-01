@@ -28,17 +28,21 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 		super.untrackURI(uri)
 
 		if (this.config.enableGlobalEmbeddedCSS) {
-			let importURIs = this.cssImportMap.getByLeft(uri)
+			let oldImportURIs = this.cssImportMap.getByLeft(uri)
 			this.cssImportMap.deleteLeft(uri)
 
-			if (importURIs) {
-				for (let importURI of importURIs) {
+			if (oldImportURIs) {
+				this.checkImportURIsImported(oldImportURIs)
+			}
+		}
+	}
 
-					// Have no import to it from any html file.
-					if (this.cssImportMap.countOfRight(importURI) === 0) {
-						this.cssServiceMap.trackingMap.removeReason(importURI, TrackingReasonMask.ForceImported)
-					}
-				}
+	private checkImportURIsImported(importURIs: string[]) {
+		for (let importURI of importURIs) {
+
+			// Have no import to it from any html file.
+			if (this.cssImportMap.countOfRight(importURI) === 0) {
+				this.cssServiceMap.trackingMap.removeReason(importURI, TrackingReasonMask.ForceImported)
 			}
 		}
 	}
@@ -98,6 +102,8 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 				return
 			}
 
+			let oldImportURIs = this.cssImportMap.getByLeft(uri)
+
 			// If having `@import ...`, load it.
 			let importURIs = await htmlService.getImportedCSSURIs()
 
@@ -107,6 +113,10 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 			}
 
 			this.cssImportMap.replaceLeft(uri, importURIs)
+
+			if (oldImportURIs) {
+				this.checkImportURIsImported(oldImportURIs)
+			}
 		}
 	}
 }

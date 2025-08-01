@@ -11,15 +11,13 @@ Provides CSS **Completion**, **Finding Definition**, **Finding References**, **H
 
 ### Class Name Diagnostics - New in V2.7
 
-Since v2.7.0, this plugin provides **Class Name Diagnostics** feature.
+Since v2.7.0, this plugin provides **Class Name Diagnostics** feature. But since stylesheets are sometimes fragmented, so this feature is not enabled by default, you may:
 
-But since stylesheets are mostly fragmented, so this feature is not enabled by default, you may:
+- Set `enableClassNameDefinitionDiagnostic` option to `true` to enable definition diagnostic.
+![class-name-definition-diagnostic](images/class-name-definition-diagnostic.jpg)
 
-- set `enableClassNameDefinitionDiagnostic` option to `true` to enable definition diagnostic.
-![reference](images/class-name-definition-diagnostic.jpg)
-
-- set `enableClassNameReferenceDiagnostic` option to `true` to enable reference diagnostic.
-![reference](images/class-name-reference-diagnostic.jpg)
+- Set `enableClassNameReferenceDiagnostic` option to `true` to enable reference diagnostic.
+![class-name-reference-diagnostic](images/class-name-reference-diagnostic.jpg)
 
 
 
@@ -29,16 +27,17 @@ Since v2.2.0, this plugin provides full **CSS Variable** service include **Defin
 
 And it provides color preview besides color type css variables, recently supported color formats: hex, rgb, rgba, hsl, hsla.
 
-![reference](images/css-variable.gif)
+![css-variable](images/css-variable.gif)
 
 
 
 ### Class Name and ID Hover Info - New in V2.0
 
 When mouse hover at a Class Name / Id / CSS Variable, will show it's description (leading comment) and first several style properties.
+
 You may configure `maxHoverStylePropertyCount` to specify **How Many Style Properties** to show. If you don't want style properties, set `maxHoverStylePropertyCount` to `0`.
 
-![definition](images/hover.jpg)
+![hover](images/hover.jpg)
 
 
 
