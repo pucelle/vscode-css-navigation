@@ -9,13 +9,17 @@ Provides CSS **Completion**, **Finding Definition**, **Finding References**, **H
 ## Features
 
 
-### Class Name Diagnostic - New in V2.6
+### Class Name Diagnostics - New in V2.7
 
-Since v2.6.0, this plugin provides **Class Name Diagnostic** feature.
+Since v2.7.0, this plugin provides **Class Name Diagnostics** feature.
 
-But since stylesheets are mostly fragmented, one piece here and one piece there, so this feature is not enabled by default, set `enableClassNameDefinitionDiagnostic` option to `true` to enable it.
+But since stylesheets are mostly fragmented, so this feature is not enabled by default, you may:
 
-![reference](images/class-name-diagnostic.jpg)
+- set `enableClassNameDefinitionDiagnostic` option to `true` to enable definition diagnostic.
+![reference](images/class-name-definition-diagnostic.jpg)
+
+- set `enableClassNameReferenceDiagnostic` option to `true` to enable reference diagnostic.
+![reference](images/class-name-reference-diagnostic.jpg)
 
 
 
@@ -126,7 +130,7 @@ editor.quickSuggestions": {
 | `enableCSSVariableColorPreview`         | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. Default value is `true`.
 | `enableClassNameDefinitionDiagnostic`   | Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message. Default value is `false`.
 | `enableClassNameReferenceDiagnostic`    | Whether to enable class name reference diagnostic - if can't find any reference for a class name in a CSS file, will show a warn message. Default value is `false`.
-| `enableSharedCSSFragments`              | If your HTML codes contain imported CSS or CSS fragments which should be shared across whole workspace, set this option to `true`. Default value is `false`.
+| `enableGlobalEmbeddedCSS`               | If your HTML codes contain imported CSS or embedded CSS fragments which should be shared across whole workspace, set this option to `true`. Default value is `false`.
 | `disableOwnCSSVariableCompletion`       | Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. Note set it to `true` will also disable css variable completion within functions like `color-mix()`, and css variable value preview in completion list. Default value is `false`.
 
 

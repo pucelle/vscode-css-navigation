@@ -236,7 +236,7 @@ class CSSNavigationServer {
 		let symbols: SymbolInformation[] = []
 		symbols.push(...await this.cssServiceMap.findSymbols(query))
 
-		if (configuration.enableSharedCSSFragments) {
+		if (configuration.enableGlobalEmbeddedCSS) {
 			symbols.push(...await this.htmlServiceMap.findSymbols(query))
 		}
 
@@ -321,7 +321,7 @@ class CSSNavigationServer {
 
 		Logger.timeStart('diagnostic-of-' + document.uri)
 		let fileCount = 0
-		let sharedCSSFragments = configuration.enableSharedCSSFragments
+		let sharedCSSFragments = configuration.enableGlobalEmbeddedCSS
 
 		let diagnostics = await this.getClassNameDiagnostics(document)
 		if (diagnostics) {

@@ -129,7 +129,7 @@ export class CSSNavigationExtension {
 			ignoreFilesBy: config.get('ignoreFilesBy', []),
 
 			maxHoverStylePropertyCount: config.get('maxHoverStylePropertyCount', 0),
-			enableSharedCSSFragments: config.get('enableSharedCSSFragments', false),
+			enableGlobalEmbeddedCSS: config.get('enableGlobalEmbeddedCSS', false),
 		}
 	}
 

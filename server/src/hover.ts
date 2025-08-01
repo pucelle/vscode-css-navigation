@@ -86,7 +86,7 @@ async function findHoverInHTML(
 
 
 		// Find across all html documents.
-		if (configuration.enableSharedCSSFragments) {
+		if (configuration.enableGlobalEmbeddedCSS) {
 			hover = await htmlServiceMap.findHover(matchPart, fromPart, document, configuration.maxHoverStylePropertyCount)
 			if (hover) {
 				return hover

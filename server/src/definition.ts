@@ -167,7 +167,7 @@ async function findDefinitionsInHTML(
 
 
 	// Find css fragments in HTML.
-	if (configuration.enableSharedCSSFragments) {
+	if (configuration.enableGlobalEmbeddedCSS) {
 		locations.push(...await htmlServiceMap.findDefinitions(matchPart, fromPart, document))
 	}
 

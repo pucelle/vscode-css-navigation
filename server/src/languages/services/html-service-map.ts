@@ -27,7 +27,7 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 	protected untrackURI(uri: string) {
 		super.untrackURI(uri)
 
-		if (this.config.enableSharedCSSFragments) {
+		if (this.config.enableGlobalEmbeddedCSS) {
 			let importURIs = this.cssImportMap.getByLeft(uri)
 			this.cssImportMap.deleteLeft(uri)
 
@@ -52,7 +52,7 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 
 		// Make definition class name set.
 		if (this.config.enableClassNameDefinitionDiagnostic
-			&& this.config.enableSharedCSSFragments
+			&& this.config.enableGlobalEmbeddedCSS
 		) {
 			this.definedClassNamesSet.clear()
 			
@@ -92,7 +92,7 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 	protected async parseDocument(uri: string, document: TextDocument) {
 		await super.parseDocument(uri, document)
 
-		if (this.config.enableSharedCSSFragments) {
+		if (this.config.enableGlobalEmbeddedCSS) {
 			let htmlService = this.serviceMap.get(uri)
 			if (!htmlService) {
 				return

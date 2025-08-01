@@ -1,9 +1,15 @@
 # ChangeLog
 
 
+## [2.7.1]
+
+- Update readme to provide detailed description about diagnostic feature.
+- Option `enableSharedCSSFragments` rename to `enableGlobalEmbeddedCSS`.
+
+
 ## [2.7.0]
 
-- Provides `enableSharedCSSFragments` option, if your HTML codes contain imported CSS or CSS fragments which should be shared across whole workspace, you can set it to `true`.
+- Provides `enableGlobalEmbeddedCSS` option, if your HTML codes contain imported CSS or CSS fragments which should be shared across whole workspace, you can set it to `true`.
 - Provides css class name reference diagnostic service, can set `enableClassNameReferenceDiagnostic=true` to enable it.
 - Supports loading remote css sources.
 - Changes `enableClassNameDiagnostic` to `enableClassNameDefinitionDiagnostic`.

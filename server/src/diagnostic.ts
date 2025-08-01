@@ -70,7 +70,7 @@ async function getDefinitionDiagnostics(
 
 	await cssServiceMap.beFresh()
 
-	if (configuration.enableSharedCSSFragments && isHTMLFile) {
+	if (configuration.enableGlobalEmbeddedCSS && isHTMLFile) {
 		await htmlServiceMap.beFresh()
 	}
 
@@ -87,7 +87,7 @@ async function getDefinitionDiagnostics(
 			continue
 		}
 
-		if (configuration.enableSharedCSSFragments && isHTMLFile) {
+		if (configuration.enableGlobalEmbeddedCSS && isHTMLFile) {
 			if (htmlServiceMap.hasDefinedClassName(className)) {
 				continue
 			}
@@ -129,7 +129,7 @@ async function getReferencedDiagnostics(
 			return diagnostics
 		}
 
-		if (configuration.enableSharedCSSFragments) {
+		if (configuration.enableGlobalEmbeddedCSS) {
 			await htmlServiceMap.beFresh()
 		}
 
@@ -153,7 +153,7 @@ async function getReferencedDiagnostics(
 					break
 				}
 
-				if (configuration.enableSharedCSSFragments) {
+				if (configuration.enableGlobalEmbeddedCSS) {
 					if (htmlServiceMap.hasReferencedClassName(nonIdentifierClassName)) {
 						break
 					}

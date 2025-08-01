@@ -24,5 +24,5 @@ interface Configuration {
 	ignoreFilesBy: string[]
 
 	maxHoverStylePropertyCount: number
-	enableSharedCSSFragments: boolean
+	enableGlobalEmbeddedCSS: boolean
 }
