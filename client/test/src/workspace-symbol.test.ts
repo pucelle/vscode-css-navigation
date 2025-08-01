@@ -33,7 +33,7 @@ describe('Test Workspace Symbol', () => {
 
 	it('Should not combine with parent selectors with space when inside "@at-root"', async () => {
 		assert.deepStrictEqual(await gws('.class6-sub6'), ['.class6-sub6'])
-		assert.deepStrictEqual(await gws('.class7-sub7'), ['.class7-sub7'])
+		assert.deepStrictEqual(await gws('.class7-sub7'), ['.class7-sub7', '@at-root .class7-sub7'])
 	})
 })
 

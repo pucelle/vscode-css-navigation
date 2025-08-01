@@ -83,7 +83,7 @@
 				"CSSNavigation.enableSharedCSSFragments": {
 					"type": "boolean",
 					"default": false,
-					"description": "If your HTML codes contain imported CSS or CSS fragments which should be shared across whole workspace, you need set this option to `true`."
+					"description": "If your HTML codes contain imported CSS or CSS fragments which should be shared across whole workspace, set this option to `true`."
 				},
 				"CSSNavigation.disableOwnCSSVariableCompletion": {
 					"type": "boolean",

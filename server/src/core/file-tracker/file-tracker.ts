@@ -39,7 +39,7 @@ export interface FileTrackerOptions {
 	releaseTimeoutMs?: number
 }
 
-/** Clean long-unused imported only sources every 5mins. */
+/** Clean long-unused imported only or no reason sources every 5 mins. */
 const CheckUnUsedTimeInterval =  5 * 60 * 1000
 
 
@@ -61,7 +61,6 @@ export abstract class FileTracker {
 	protected updating: Promise<void> | null = null
 	protected releaseTimeout: NodeJS.Timeout | null = null
 	protected releaseImportedTimeout: NodeJS.Timeout | null = null
-	protected timestamp: number = 0
 
 	/**
 	 * update request may come from track, or beFresh, we cant make sure they will have no conflict
@@ -86,11 +85,6 @@ export abstract class FileTracker {
 
 		// Clean long-unused imported only sources every 5mins.
 		setInterval(this.clearImportedOnlyResources.bind(this), CheckUnUsedTimeInterval)
-	}
-
-	/** Update timestamp. */
-	updateTimestamp(time: number) {
-		this.timestamp = time
 	}
 
 	/** When document opened or content changed from vscode editor. */
@@ -200,27 +194,19 @@ export abstract class FileTracker {
 		}
 	}
 
-	/** 
-	 * Track more uri, normally imported file,
-	 * it may should be excluded by exclude glob patterns.
-	 * Note customized tracked document can't response to changes outside of vscode.
-	 */
-	mayTrackMoreURI(uri: string, reason: TrackingReasonMask = TrackingReasonMask.Imported) {
-
-		// Not test excluding rules here.
-		if (this.test.shouldIncludeURI(uri)) {
-			this.trackURI(uri, reason)
-		}
+	/** Track more uri, normally imported uri. */
+	trackMoreURI(uri: string, reason: TrackingReasonMask | 0 = 0) {
+		this.trackURI(uri, reason)
 	}
 
 	/** Track or re-track file by file path, not validate whether should track here. */
-	private trackPath(filePath: string, reason: TrackingReasonMask) {
+	private trackPath(filePath: string, reason: TrackingReasonMask | 0) {
 		let uri = URI.file(filePath).toString()
 		this.trackURI(uri, reason)
 	}
 
 	/** Track or re-track by uri, not validate whether should track here. */
-	private trackURI(uri: string, reason: TrackingReasonMask) {
+	private trackURI(uri: string, reason: TrackingReasonMask | 0) {
 		let hasTracked = this.trackingMap.has(uri)
 		this.trackingMap.trackByReason(uri, reason)
 
@@ -229,8 +215,8 @@ export abstract class FileTracker {
 		}
 	}
 
-	/** Untrack a file. */
-	private untrackFileByURI(uri: string) {
+	/** Untrack a file by uri. */
+	protected untrackURI(uri: string) {
 		this.trackingMap.delete(uri)
 		this.afterFileUntracked(uri)
 	}
@@ -267,7 +253,7 @@ export abstract class FileTracker {
 	private afterDirDeleted(deletedURI: string) {
 		for (let uri of this.trackingMap.getURIs()) {
 			if (uri.startsWith(deletedURI)) {
-				this.untrackFileByURI(uri)
+				this.untrackURI(uri)
 			}
 		}
 	}
@@ -340,8 +326,6 @@ export abstract class FileTracker {
 		if (!this.trackingMap.isFresh(uri)) {
 			await this.updateURI(uri)
 		}
-
-		this.trackingMap.setUseTime(uri, this.timestamp)
 	}
 
 	/** Update all the contents that need to be updated. */
@@ -355,10 +339,10 @@ export abstract class FileTracker {
 
 		for (let uri of this.trackingMap.getURIs()) {
 			if (!this.trackingMap.isFresh(uri)) {
+
+				// Note here not wait it.
 				this.updateURI(uri)
 			}
-
-			this.trackingMap.setUseTime(uri, this.timestamp)
 		}
 
 		let loopCount = 0
@@ -519,16 +503,16 @@ export abstract class FileTracker {
 	/** Clean imported only resource. */
 	protected clearImportedOnlyResources() {
 		let timestamp = Logger.getTimestamp() - CheckUnUsedTimeInterval
-		let uris = this.trackingMap.getExpiredURIs(timestamp)
+		let uris = [...this.trackingMap.walkInActiveAndExpiredURIs(timestamp)]
 
 		if (uris.length === 0) {
 			return
 		}
 
 		for (let uri of uris) {
-			this.untrackFileByURI(uri)
+			this.untrackURI(uri)
 		}
 
-		Logger.log(`⏰ ${uris.length} long-unused imported resources released`)
+		Logger.log(`⏰ ${uris.length} long-unused imported only resources released`)
 	}
 }

@@ -34,11 +34,17 @@ export enum TrackingReasonMask {
 	/** As opened document. */
 	Opened = 2,
 
-	/** As imported document. */
+	/** 
+	 * As imported document.
+	 * When been imported, or ancestrally imported by any included or opened.
+	 */
 	Imported = 4,
 
-	/** Any ancestor in import chain which imported it get included. */
-	ImportAncestorIncluded = 8,
+	/** 
+	 * Force imported always.
+	 * Use it when been imported by a html document.
+	 */
+	ForceImported = 8,
 }
 
 
@@ -59,20 +65,23 @@ export class TrackingMap {
 	getURIs(): string[] {
 		return [...this.trackingMap.keys()]
 	}
-
-	/** Get imported only, or has no reason uris, which are also expired. */
-	getExpiredURIs(beforeTimestamp: number): string[] {
-		let uris: string[] = []
-
+	
+	/** Walk all included and opened, or imported uris. */
+	*walkActiveURIs(): Iterable<string> {
 		for (let [uri, item] of this.trackingMap) {
-			if (item.reason === TrackingReasonMask.Imported || item.reason === 0) {
-				if (item.latestUseTime < beforeTimestamp) {
-					uris.push(uri)
-				}
+			if (item.reason > 0) {
+				yield uri
 			}
 		}
+	}
 
-		return uris
+	/** Walk imported only, or has no reason uris, which are also expired. */
+	*walkInActiveAndExpiredURIs(beforeTimestamp: number): Iterable<string> {
+		for (let [uri, item] of this.trackingMap) {
+			if (item.reason === 0 && item.latestUseTime < beforeTimestamp) {
+				yield uri
+			}
+		}
 	}
 
 	/** Get resolved import uris, and all their imported recursively. */
@@ -151,7 +160,7 @@ export class TrackingMap {
 	}
 
 	/** Suggest to track both, then add import relationship. */
-	addImported(imported: string[], from: string) {
+	setImported(imported: string[], from: string) {
 		let changed = new Set(this.importMap.getByLeft(from))
 
 		for (let uri of imported) {
@@ -159,70 +168,49 @@ export class TrackingMap {
 		}
 
 		this.importMap.replaceLeft(from, imported)
-		this.upgradeImportReasonInChainOfURIs(changed)
-	}
 
-	/** Update a group of import uris. */
-	private upgradeImportReasonInChainOfURIs(importedURIs: Iterable<string>) {
-		for (let importedURI of importedURIs) {
-			this.upgradeImportReasonInChain(importedURI)
+		for (let uri of changed) {
+			this.checkImportedRecursively(uri)
 		}
 	}
 
-	/** `imported` is an import uri. */
-	private upgradeImportReasonInChain(imported: string, depth = 5) {
-		let item = this.trackingMap.get(imported)
+	/** Validate after reason of `uri`, or ancestrally imported changed. */
+	private checkImportedRecursively(uri: string, depth = 5) {
+		let item = this.trackingMap.get(uri)
 		if (!item) {
 			return
 		}
 
-		let reason = item.reason
-		let changed = false
-
 		// A imports B, B imports C
-		// A gets Included, then B gets ImportAncestorIncluded, then C gets ImportAncestorIncluded
+		// A gets Included, then B gets Imported, then C gets Imported
 
-		if (reason & TrackingReasonMask.Imported
-			&& (reason & TrackingReasonMask.Included) === 0
-		) {
-			if ((reason & TrackingReasonMask.ImportAncestorIncluded) === 0) {
-				if (this.isImportAncestorGetIncluded(imported)) {
-					item.reason |= TrackingReasonMask.ImportAncestorIncluded
-					changed = true
-				}
-			}
-			else {
-				if (!this.isImportAncestorGetIncluded(imported)) {
-					item.reason &= ~TrackingReasonMask.ImportAncestorIncluded
-					changed = true
-				}
-			}
+		if (this.isImportedAncestrally(uri)) {
+			item.reason |= TrackingReasonMask.Imported
+		}
+		else {
+			item.reason &= ~TrackingReasonMask.Imported
 		}
 
-		// Update all imported reason.
-		if (changed && depth > 0) {
-			let importedURIs = this.importMap.getByLeft(imported)
-			if (importedURIs) {
-				for (let imported of importedURIs) {
-					this.upgradeImportReasonInChain(imported, depth - 1)
+		// Validate all imported reason to imported recursively.
+		if (depth > 0) {
+			let importURIs = this.importMap.getByLeft(uri)
+			if (importURIs) {
+				for (let importURI of importURIs) {
+					this.checkImportedRecursively(importURI, depth - 1)
 				}
 			}
 		}
 	}
 
-	/** Test whether import ancestor in import chain get included. */
-	private isImportAncestorGetIncluded(uri: string, depth: number = 5): boolean {
+	/** Test whether been imported, or ancestrally imported by any included or opened. */
+	private isImportedAncestrally(uri: string, depth: number = 5): boolean {
 		let item = this.trackingMap.get(uri)
 		if (!item) {
 			return false
 		}
 
-		if (item.reason & TrackingReasonMask.Included) {
-			return true
-		}
-
-		let importFromURIs = this.importMap.getByRight(uri)
-		if (!importFromURIs) {
+		let fromURIs = this.importMap.getByRight(uri)
+		if (!fromURIs) {
 			return false
 		}
 
@@ -230,8 +218,17 @@ export class TrackingMap {
 			return false
 		}
 
-		for (let importFrom of importFromURIs) {
-			if (this.isImportAncestorGetIncluded(importFrom, depth - 1)) {
+		for (let fromURI of fromURIs) {
+			let fromItem = this.trackingMap.get(fromURI)!
+			if (!fromItem) {
+				continue
+			}
+
+			if (fromItem.reason & (TrackingReasonMask.Included | TrackingReasonMask.Opened)) {
+				return true
+			}
+
+			if (this.isImportedAncestrally(fromURI, depth - 1)) {
 				return true
 			}
 		}
@@ -242,12 +239,14 @@ export class TrackingMap {
 	delete(uri: string) {
 		this.trackingMap.delete(uri)
 
-		let importedURIs = this.importMap.getByLeft(uri)
+		let importURIs = this.importMap.getByLeft(uri)
 		this.importMap.deleteLeft(uri)
 		this.importMap.deleteRight(uri)
 
-		if (importedURIs) {
-			this.upgradeImportReasonInChainOfURIs(importedURIs)
+		if (importURIs) {
+			for (let importURI of importURIs) {
+				this.checkImportedRecursively(importURI)
+			}
 		}
 	}
 
@@ -256,23 +255,12 @@ export class TrackingMap {
 		this.importMap.clear()
 		this.allFresh = false
 	}
-	
-	/** Walk all included and opened uris. */
-	*walkIncludedOrOpenedURIs(): Iterable<string> {
-		let includedOrOpened = TrackingReasonMask.Included | TrackingReasonMask.ImportAncestorIncluded | TrackingReasonMask.Opened
-
-		for (let [uri, item] of this.trackingMap) {
-			if (item.reason & includedOrOpened) {
-				yield uri
-			}
-		}
-	}
 
 	/** 
 	 * Track or re-track by reason.
 	 * Can call it after file content changed.
 	 */
-	trackByReason(uri: string, reason: TrackingReasonMask) {
+	trackByReason(uri: string, reason: TrackingReasonMask | 0) {
 		let item = this.trackingMap.get(uri)
 
 		if (item) {
@@ -301,10 +289,7 @@ export class TrackingMap {
 			this.allFresh = false
 		}
 
-		let imported = this.importMap.getByLeft(uri)
-		if (imported) {
-			this.upgradeImportReasonInChainOfURIs(imported)
-		}
+		this.checkImportedRecursively(uri)
 	}
 
 	/** Track opened document. */
@@ -322,6 +307,8 @@ export class TrackingMap {
 			if (fileChanged) {
 				this.makeExpire(uri)
 			}
+
+			this.checkImportedRecursively(uri)
 		}
 		else {
 			item = {
@@ -351,7 +338,7 @@ export class TrackingMap {
 			item.document = null
 		}
 
-		// Not remove it immediately, wait to be recycled.
+		this.checkImportedRecursively(uri)
 	}
 
 	/** After knows that file get expired. */

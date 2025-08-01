@@ -33,7 +33,7 @@ export async function findDefinitions(
 			return null
 		}
 
-		locations = await findDefinitionsInHTML(fromPart, currentHTMLService, document, cssServiceMap, configuration)
+		locations = await findDefinitionsInHTML(fromPart, currentHTMLService, document, htmlServiceMap, cssServiceMap, configuration)
 	}
 	else if (isCSSFile) {
 		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
@@ -76,6 +76,7 @@ async function findDefinitionsInHTML(
 	fromPart: Part,
 	currentService: HTMLService,
 	document: TextDocument,
+	htmlServiceMap: HTMLServiceMap,
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<LocationLink[] | null> {
@@ -151,30 +152,8 @@ async function findDefinitionsInHTML(
 	}
 
 
-	// Try to find definition from split view, but can't visit `vscode` module from language server.
-	// let visibleEditors = vscode.window.visibleTextEditors
-
-	// let cssVisibleEditors = visibleEditors.filter(e => e.document.uri.toString() !== document.uri
-	// 	&& configuration.activeCSSFileExtensions.includes(getPathExtension(e.document.uri.toString()))
-	// )
-
-	// for (let cssEditor of cssVisibleEditors) {
-	// 	let cssURI = cssEditor.document.uri.toString()
-	// 	let cssService = await this.cssServiceMap.forceGetServiceByURI(cssURI)
-	// 	if (!cssService) {
-	// 		continue
-	// 	}
-
-	// 	locations.push(...cssService.findDefinitions(matchPart, fromPart, document))
-	// }
-
-	// if (locations.length > 0) {
-	// 	return locations
-	// }
-
-
 	// Find embedded style definitions or definitions from all imported css files, if any found, stop.
-	locations.push(...await findEmbeddedOrImported(currentService, matchPart, fromPart, document, cssServiceMap))
+	locations.push(...await findEmbeddedOrImported(matchPart, fromPart, currentService, document, cssServiceMap))
 	if (locations.length > 0) {
 		return locations
 	}
@@ -182,6 +161,15 @@ async function findDefinitionsInHTML(
 
 	// Search across all CSS files.
 	locations.push(...await cssServiceMap.findDefinitions(matchPart, fromPart, document))
+	if (locations.length > 0) {
+		return locations
+	}
+
+
+	// Find css fragments in HTML.
+	if (configuration.enableSharedCSSFragments) {
+		locations.push(...await htmlServiceMap.findDefinitions(matchPart, fromPart, document))
+	}
 
 
 	return locations
@@ -216,29 +204,27 @@ async function findDefinitionsInCSS(
 	let locations: LocationLink[] = []
 
 
-	// When mouse locates at `var(--variable-name)`, goto file start.
+	// For `var(--variable-name)`, find at current document or imported.
 	if (fromPart.isCSSVariableType()) {
-		
-		// Find embedded style definitions or definitions from all imported css files, if any found, stop.
-		locations.push(...await findEmbeddedOrImported(currentService, matchPart, fromPart, document, cssServiceMap))
+		locations.push(...await findEmbeddedOrImported(matchPart, fromPart, currentService, document, cssServiceMap))
 		
 		if (locations.length > 0) {
 			return locations
 		}
 
-
 		// Search across all css files.
 		locations.push(...await cssServiceMap.findDefinitions(matchPart, fromPart, document))
 	}
+
 
 	return locations
 }
 
 
 async function findEmbeddedOrImported(
-	currentService: HTMLService | CSSService,
 	matchPart: Part,
 	fromPart: Part,
+	currentService: HTMLService | CSSService,
 	document: TextDocument,
 	cssServiceMap: CSSServiceMap
 ): Promise<LocationLink[]> {

@@ -2,7 +2,7 @@ import {SymbolInformation, LocationLink, Location, Hover} from 'vscode-languages
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PathResolver} from '../resolver'
 import {Part, PartConvertor, PartType, CSSSelectorWrapperPart, PartComparer, CSSVariableDefinitionPart} from '../parts'
-import {groupBy, quickBinaryFind, quickBinaryFindIndex} from '../utils'
+import {groupBy, quickBinaryFindUpper, quickBinaryFindIndex} from '../utils'
 import {URI} from 'vscode-uri'
 import {CompletionLabel} from './types'
 import {CSSSelectorDetailedPart} from '../parts/part-css-selector-detailed'
@@ -120,7 +120,7 @@ export abstract class BaseService {
 	 * Note it never get detailed part.
 	 */
 	findPartAt(offset: number) {
-		let part = quickBinaryFind(this.parts, (part) => {
+		let part = quickBinaryFindUpper(this.parts, (part) => {
 			if (part.start > offset) {
 				return 1
 			}

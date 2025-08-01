@@ -8,7 +8,10 @@ export enum CSSTokenNodeType {
 	Command,
 	Selector,
 
-	/** Like `from`, `to` of `@keyframes{from{}, to{}}`. */
+	/** 
+	 * Like `from`, `to` of `@keyframes{from{}, to{}}`.
+	 * Or css template interpolation `${...}`.
+	 */
 	ClosureName,
 
 	PropertyName,

@@ -1,17 +1,52 @@
 import {HTMLService} from './html-service'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {BaseServiceMap} from './base-service-map'
+import {TwoWayListMap} from '../../utils'
+import {TrackingReasonMask} from '../../core'
+import {CSSServiceMap} from './css-service-map'
 
 
 export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 
 	protected identifier = 'html'
+	protected cssServiceMap!: CSSServiceMap
 
 	/** Class name set to contains all the defined class names of whole service. */
 	protected definedClassNamesSet: Set<string> = new Set()
 
 	/** Class name set to contains all the referenced class names of whole service. */
 	protected referencedClassNamesSet: Set<string> = new Set()
+
+	/** URI <-> CSS Imported URI. */
+	private cssImportMap: TwoWayListMap<string, string> = new TwoWayListMap()
+
+	bindCSSServiceMap(cssServiceMap: CSSServiceMap) {
+		this.cssServiceMap = cssServiceMap
+	}
+
+	protected untrackURI(uri: string) {
+		super.untrackURI(uri)
+
+		if (this.config.enableSharedCSSFragments) {
+			let importURIs = this.cssImportMap.getByLeft(uri)
+			this.cssImportMap.deleteLeft(uri)
+
+			if (importURIs) {
+				for (let importURI of importURIs) {
+
+					// Have no import to it from any html file.
+					if (this.cssImportMap.countOfRight(importURI) === 0) {
+						this.cssServiceMap.trackingMap.removeReason(importURI, TrackingReasonMask.ForceImported)
+					}
+				}
+			}
+		}
+	}
+
+	protected onReleaseResources() {
+		super.onReleaseResources()
+		this.cssImportMap.clear()
+	}
 
 	protected onAfterUpdated() {
 
@@ -51,5 +86,27 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 	
 	protected createService(document: TextDocument) {
 		return new HTMLService(document, this.config)
+	}
+
+	/** Parse document to HTML service, and analyze imported. */
+	protected async parseDocument(uri: string, document: TextDocument) {
+		await super.parseDocument(uri, document)
+
+		if (this.config.enableSharedCSSFragments) {
+			let htmlService = this.serviceMap.get(uri)
+			if (!htmlService) {
+				return
+			}
+
+			// If having `@import ...`, load it.
+			let importURIs = await htmlService.getImportedCSSURIs()
+
+			// Force import css uris.
+			for (let importURI of importURIs) {
+				this.cssServiceMap.trackMoreURI(importURI, TrackingReasonMask.ForceImported)
+			}
+
+			this.cssImportMap.replaceLeft(uri, importURIs)
+		}
 	}
 }

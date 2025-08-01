@@ -70,6 +70,10 @@ async function getDefinitionDiagnostics(
 
 	await cssServiceMap.beFresh()
 
+	if (configuration.enableSharedCSSFragments && isHTMLFile) {
+		await htmlServiceMap.beFresh()
+	}
+
 	for (let part of classNameParts) {
 
 		// Without identifier.
@@ -81,6 +85,12 @@ async function getDefinitionDiagnostics(
 
 		if (cssServiceMap.hasDefinedClassName(className)) {
 			continue
+		}
+
+		if (configuration.enableSharedCSSFragments && isHTMLFile) {
+			if (htmlServiceMap.hasDefinedClassName(className)) {
+				continue
+			}
 		}
 
 		diagnostics.push({
@@ -119,7 +129,17 @@ async function getReferencedDiagnostics(
 			return diagnostics
 		}
 
+		if (configuration.enableSharedCSSFragments) {
+			await htmlServiceMap.beFresh()
+		}
+
 		for (let part of classNameParts) {
+
+			// Totally reference parent, no need to diagnose.
+			if (part.text === '&') {
+				continue
+			}
+
 			let classNames = part.formatted
 
 			for (let className of classNames) {
@@ -133,12 +153,19 @@ async function getReferencedDiagnostics(
 					break
 				}
 
+				if (configuration.enableSharedCSSFragments) {
+					if (htmlServiceMap.hasReferencedClassName(nonIdentifierClassName)) {
+						break
+					}
+				}
+
 				diagnostics.push({
 					severity: DiagnosticSeverity.Warning,
 					range: {start: document.positionAt(part.start), end: document.positionAt(part.end)},
 					message: `Can't find reference for "${className}".`,
 					source: 'CSS Navigation',
 				})
+				break
 			}
 		}
 
@@ -176,6 +203,7 @@ async function getReferencedDiagnostics(
 					message: `Can't find reference for "${className}".`,
 					source: 'CSS Navigation',
 				})
+				break
 			}
 		}
 

@@ -78,14 +78,20 @@ export function quickBinaryFindIndex<T>(sortedList: ArrayLike<T>, fn: (v: T) => 
 /** 
  * Binary find an item from a list, which has been sorted.
  * Returns the found item, or `undefined` if nothing found.
+ * If two items match, pick the one have upper index.
  * 
  * @param fn used to know whether a value is larger or smaller,
  *   it returns negative value to move cursor right, and positive value to move cursor left.
  */
-export function quickBinaryFind<T>(sortedList: ArrayLike<T>, fn: (v: T) => number): T | undefined {
+export function quickBinaryFindUpper<T>(sortedList: ArrayLike<T>, fn: (v: T) => number): T | undefined {
 	let index = quickBinaryFindIndex(sortedList, fn)
 	if (index === -1) {
 		return undefined
+	}
+
+	// Pick upper one.
+	while (index < sortedList.length - 1 && fn(sortedList[index + 1]) === 0) {
+		index += 1
 	}
 
 	return sortedList[index]

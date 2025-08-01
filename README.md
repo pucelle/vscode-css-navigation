@@ -107,27 +107,27 @@ editor.quickSuggestions": {
 ## Configuration
 
 <!-- prettier-ignore -->
-| Name                              | Description
-| ---                               | ---
-| `activeHTMLFileExtensions`        | The languages of the html files, in where you can `go to definition`. Default value is `["html", "ejs", "erb", "php", "hbs", "js", "ts", "jsx", "tsx", "vue", "twig"]`.
-| `activeCSSFileExtensions`         | The extensions of the CSS files, only the matched files you can `go to` and `peek`. Default value is `["css", "less", "scss"]`. Currently not support other languages, you can specify more extensions, but the related files will be parsed as CSS.
-| `excludeGlobPatterns`             | A glob pattern, defines paths to exclude from when searching for CSS definitions. Default value is `["**/node_modules/**", "**/bower_components/**", "**/vendor/**", "**/coverage/**"]`.
-| `alwaysIncludeGlobPatterns`       | A glob pattern, which always use `/` as a path separator, files match will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`, or out of workspace directory. Strongly suggest you specifies the full start path, or relative path of current workspace, but should not specifies as start with `**/`. Otherwise, if you don't want specifying this, just open the files you want to import in vscode works too.
-| `searchAcrossWorkspaceFolders`    | When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current workspace, you should set this to `true`.
+| Name                                    | Description
+| ---                                     | ---
+| `activeHTMLFileExtensions`              | The languages of the html files, in where you can `go to definition`. Default value is `["html", "ejs", "erb", "php", "hbs", "js", "ts", "jsx", "tsx", "vue", "twig"]`.
+| `activeCSSFileExtensions`               | The extensions of the CSS files, only the matched files you can `go to` and `peek`. Default value is `["css", "less", "scss"]`. Currently not support other languages, you can specify more extensions, but the related files will be parsed as CSS.
+| `excludeGlobPatterns`                   | A glob pattern, defines paths to exclude from when searching for CSS definitions. Default value is `["**/node_modules/**", "**/bower_components/**", "**/vendor/**", "**/coverage/**"]`.
+| `alwaysIncludeGlobPatterns`             | A glob pattern, which always use `/` as a path separator, files match will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`, or out of workspace directory. Strongly suggest you specifies the full start path, or relative path of current workspace, but should not specifies as start with `**/`. Otherwise, if you don't want specifying this, just open the files you want to import in vscode works too.
+| `searchAcrossWorkspaceFolders`          | When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current workspace, you should set this to `true`.
 | `ignoreCustomAndComponentTagDefinition` | When `true` by default, Custom-Element or Component tag (like React Component) definition going from HTML to CSS will be ignored, such that it goes to it's custom-element or component definition place directly which has implemented by other plugins.
-| `ignoreFilesBy`                   | Specifies this to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions. Default value is `[".gitignore"]`.
-| `enableSharedCSSFragments`       | If your HTML codes contain imported CSS or CSS fragments which should be shared across whole workspace, you need set this option to `true`.
-| `maxHoverStylePropertyCount`      | When mouse hover at a class or id attribute, how many style properties at most should show. This option also affects the style properties in css selector completion description. Default value is `4`.
-| `enableLogLevelMessage`           | Whether to enable log level message, set it to `true` for debugging.
-| `enableGoToDefinition`            | Whether to enable goto definition service. Default value is `true`.
-| `enableWorkspaceSymbols`          | Whether to enable workspace symbol service. Default value is `true`.
-| `enableIdAndClassNameCompletion`  | Whether to enable id and class name completion service. Default value is `true`.
-| `enableFindAllReferences`         | Whether to enable finding references service. Default value is `true`.
-| `enableHover`                     | Whether to enable id and class name hover service. Default value is `true`.
-| `enableCSSVariableColorPreview`   | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. Default value is `true`.
-| `enableClassNameDefinitionDiagnostic`       | Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message. Default value is `false`.
-| `enableClassNameReferenceDiagnostic` | Whether to enable class name reference diagnostic - if can't find any reference for a class name in a CSS file, will show a warn message. Default value is `false`.
-| `disableOwnCSSVariableCompletion` | Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. Note set it to `true` will also disable css variable completion within functions like `color-mix()`, and css variable value preview in completion list. Default value is `false`.
+| `ignoreFilesBy`                         | Specifies this to ignore files and directories list in `.gitignore` or `.npmignore` when looking for css definitions. Default value is `[".gitignore"]`.
+| `maxHoverStylePropertyCount`            | When mouse hover at a class or id attribute, how many style properties at most should show. This option also affects the style properties in css selector completion description. Default value is `4`.
+| `enableLogLevelMessage`                 | Whether to enable log level message, set it to `true` for debugging.
+| `enableGoToDefinition`                  | Whether to enable goto definition service. Default value is `true`.
+| `enableWorkspaceSymbols`                | Whether to enable workspace symbol service. Default value is `true`.
+| `enableIdAndClassNameCompletion`        | Whether to enable id and class name completion service. Default value is `true`.
+| `enableFindAllReferences`               | Whether to enable finding references service. Default value is `true`.
+| `enableHover`                           | Whether to enable id and class name hover service. Default value is `true`.
+| `enableCSSVariableColorPreview`         | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. Default value is `true`.
+| `enableClassNameDefinitionDiagnostic`   | Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message. Default value is `false`.
+| `enableClassNameReferenceDiagnostic`    | Whether to enable class name reference diagnostic - if can't find any reference for a class name in a CSS file, will show a warn message. Default value is `false`.
+| `enableSharedCSSFragments`              | If your HTML codes contain imported CSS or CSS fragments which should be shared across whole workspace, set this option to `true`. Default value is `false`.
+| `disableOwnCSSVariableCompletion`       | Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. Note set it to `true` will also disable css variable completion within functions like `color-mix()`, and css variable value preview in completion list. Default value is `false`.
 
 
 ## Why started this project

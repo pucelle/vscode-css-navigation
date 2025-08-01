@@ -150,24 +150,14 @@ class CSSNavigationServer {
 			mostFileCount: 1000,
 		}, configuration)
 
-		let serviceMaps = [this.htmlServiceMap, this.cssServiceMap]
+		this.htmlServiceMap.bindCSSServiceMap(this.cssServiceMap)
 
 
 		// All these events can't register for twice, or the first one will not work.
 
 		documents.onDidChangeContent(async (event: TextDocumentChangeEvent<TextDocument>) => {
-			let document = event.document
-			let uri = document.uri
-			let documentExtension = getPathExtension(uri)
-			let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-			let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
-
-			if (isHTMLFile) {
-				this.htmlServiceMap.onDocumentOpenOrContentChanged(event.document)
-			}
-			else if (isCSSFile) {
-				this.cssServiceMap.onDocumentOpenOrContentChanged(event.document)
-			}
+			let map = this.pickServiceMap(event.document)
+			map?.onDocumentOpenOrContentChanged(event.document)
 
 			// Update class name diagnostic results.
 			if (configuration.enableClassNameDefinitionDiagnostic || configuration.enableClassNameReferenceDiagnostic) {
@@ -176,24 +166,38 @@ class CSSNavigationServer {
 		})
 
 		documents.onDidSave((event: TextDocumentChangeEvent<TextDocument>) => {
-			for (let map of serviceMaps) {
-				map.onDocumentSaved(event.document)
-			}
+			let map = this.pickServiceMap(event.document)
+			map?.onDocumentSaved(event.document)
 		})
 
 		documents.onDidClose((event: TextDocumentChangeEvent<TextDocument>) => {
-			for (let map of serviceMaps) {
-				map.onDocumentClosed(event.document)
-			}
+			let map = this.pickServiceMap(event.document)
+			map?.onDocumentClosed(event.document)
 		})
 
 		connection.onDidChangeWatchedFiles((params: any) => {
-			for (let map of serviceMaps) {
-				map.onWatchedFileOrFolderChanged(params)
-			}
+			this.htmlServiceMap.onWatchedFileOrFolderChanged(params)
+			this.cssServiceMap.onWatchedFileOrFolderChanged(params)
 		})
 
 		Logger.log(`📁 Server for workspace "${path.basename(this.options.workspaceFolderPath)}" started.`)
+	}
+
+	private pickServiceMap(document: TextDocument): HTMLServiceMap | CSSServiceMap | null {
+		let uri = document.uri
+		let documentExtension = getPathExtension(uri)
+		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+
+		if (isHTMLFile) {
+			return this.htmlServiceMap
+		}
+		else if (isCSSFile) {
+			return this.cssServiceMap
+		}
+		else {
+			return null
+		}
 	}
 
 	private updateTimestamp(time: number) {
@@ -229,7 +233,14 @@ class CSSNavigationServer {
 			return null
 		}
 
-		return await this.cssServiceMap.findSymbols(query)
+		let symbols: SymbolInformation[] = []
+		symbols.push(...await this.cssServiceMap.findSymbols(query))
+
+		if (configuration.enableSharedCSSFragments) {
+			symbols.push(...await this.htmlServiceMap.findSymbols(query))
+		}
+
+		return symbols
 	}
 
 	/** Provide auto completion service for HTML or CSS document. */
@@ -298,16 +309,6 @@ class CSSNavigationServer {
 		return getCSSVariableColors(document, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
 
-	private beforeDiagnosingURI(uri: string) {
-		if (this.diagnosingURIs.size === 0) {
-			setTimeout(() => {
-				this.diagnosingURIs.clear()
-			}, 0)
-		}
-
-		this.diagnosingURIs.add(uri)
-	}
-
 	/** Diagnose class names for a changed document. */
 	async diagnoseClassNamesOf(document: TextDocument) {
 		let documentExtension = getPathExtension(document.uri)
@@ -320,6 +321,7 @@ class CSSNavigationServer {
 
 		Logger.timeStart('diagnostic-of-' + document.uri)
 		let fileCount = 0
+		let sharedCSSFragments = configuration.enableSharedCSSFragments
 
 		let diagnostics = await this.getClassNameDiagnostics(document)
 		if (diagnostics) {
@@ -328,17 +330,17 @@ class CSSNavigationServer {
 		}
 
 		if (isHTMLFile && configuration.enableClassNameReferenceDiagnostic) {
-			fileCount += await this.diagnoseClassNamesOfType('css')
+			fileCount += await this.diagnoseClassNamesOfType(sharedCSSFragments ? 'any' : 'css')
 		}
 
 		if (isCSSFile && configuration.enableClassNameDefinitionDiagnostic) {
-			fileCount += await this.diagnoseClassNamesOfType('html')
+			fileCount += await this.diagnoseClassNamesOfType(sharedCSSFragments ? 'any' : 'html')
 		}
 
 		Logger.timeEnd('diagnostic-of-' + document.uri, fileCount > 0 ? `${fileCount} files get diagnosed` : null)
 	}
 
-	private async diagnoseClassNamesOfType(type: 'html' | 'css'): Promise<number> {
+	private async diagnoseClassNamesOfType(type: 'html' | 'css' | 'any'): Promise<number> {
 		let fileCount = 0
 		for (let document of documents.all()) {
 			let documentExtension = getPathExtension(document.uri)
@@ -346,10 +348,6 @@ class CSSNavigationServer {
 			let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
 			if (type === 'html' && !isHTMLFile || type === 'css' && !isCSSFile) {
-				continue
-			}
-
-			if (this.diagnosingURIs.has(document.uri)) {
 				continue
 			}
 
@@ -365,8 +363,24 @@ class CSSNavigationServer {
 
 	/** Get all class name diagnostics of a document. */
 	async getClassNameDiagnostics(document: TextDocument): Promise<Diagnostic[] | null> {
+		
+		// Recently diagnosed.
+		if (this.diagnosingURIs.has(document.uri)) {
+			return null
+		}
+
 		this.beforeDiagnosingURI(document.uri)
 		return getDiagnostics(document, this.htmlServiceMap, this.cssServiceMap, configuration)
+	}
+	
+	private beforeDiagnosingURI(uri: string) {
+		if (this.diagnosingURIs.size === 0) {
+			setTimeout(() => {
+				this.diagnosingURIs.clear()
+			}, 0)
+		}
+
+		this.diagnosingURIs.add(uri)
 	}
 }
 

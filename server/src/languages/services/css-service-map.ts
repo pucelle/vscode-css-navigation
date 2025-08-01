@@ -47,9 +47,9 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 		let importURIs = await cssService.getImportedCSSURIs()
 
 		for (let importURI of importURIs) {
-			this.mayTrackMoreURI(importURI)
+			this.trackMoreURI(importURI)
 		}
 
-		this.trackingMap.addImported(importURIs, uri)
+		this.trackingMap.setImported(importURIs, uri)
 	}
 }

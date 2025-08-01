@@ -8,9 +8,14 @@ import {CompletionLabel} from './types'
 
 /** Gives HTML/CSS service for multiple files. */
 export abstract class BaseServiceMap<S extends BaseService> extends FileTracker {
-
-	protected serviceMap: Map<string, S> = new Map()
+	
 	readonly config: Configuration
+
+	/** HTML or CSS Service map by uri. */
+	protected serviceMap: Map<string, S> = new Map()
+
+	/** The timestamp when last time using service. */
+	protected timestamp: number = 0
 
 	constructor(
 		documents: TextDocuments<TextDocument>,
@@ -20,6 +25,11 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	) {
 		super(documents, window, options)
 		this.config = config
+	}
+
+	/** Update timestamp. */
+	updateTimestamp(time: number) {
+		this.timestamp = time
 	}
 
 	protected onFileExpired(uri: string) {
@@ -46,17 +56,12 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	}
 
 	protected *walkAvailableServices(): IterableIterator<S> {
-		for (let uri of this.trackingMap.walkIncludedOrOpenedURIs()) {
+		for (let uri of this.trackingMap.walkActiveURIs()) {
 			if (this.serviceMap.has(uri)) {
+				this.trackingMap.setUseTime(uri, this.timestamp)
 				yield this.serviceMap.get(uri)!
 			}
 		}
-	}
-
-	/** Test whether has CSS service by uri after becoming fresh. */
-	async hasFreshly(uri: string): Promise<boolean> {
-		await this.uriBeFresh(uri)
-		return this.serviceMap.has(uri)
 	}
 
 	/** 
@@ -65,10 +70,12 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	 */
 	async getFreshly(uri: string): Promise<S | undefined> {
 		await this.uriBeFresh(uri)
+		this.trackingMap.setUseTime(uri, this.timestamp)
+
 		return this.serviceMap.get(uri)
 	}
 
-	/** Force get a service by document, create it but not cache if it's not in service map. */
+	/** Force get a service by document, create it and cache as opened document. */
 	async forceGetServiceByDocument(document: TextDocument): Promise<S | undefined> {
 		let uri = document.uri
 
@@ -79,12 +86,12 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		return this.getFreshly(uri) as Promise<S | undefined>
 	}
 
-	/** Force get a service by uri, create it but not cache if not in service map. */
+	/** Force get a service by uri, create it but not cache. */
 	async forceGetServiceByURI(uri: string): Promise<S | undefined> {
 
-		// Path been included.
+		// Cache it in map.
 		if (!this.trackingMap.has(uri)) {
-			this.mayTrackMoreURI(uri)
+			this.trackMoreURI(uri)
 		}
 
 		// Already included.

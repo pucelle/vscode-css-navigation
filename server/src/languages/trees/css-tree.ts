@@ -117,7 +117,7 @@ export class CSSTokenTree extends CSSTokenNode {
 			}
 
 			else if (token.type === CSSTokenType.CommentText) {
-				
+
 				// Normally use `/*!...*/` as global comment.
 				if (notDetermined.length === 0 && !token.text.startsWith('!')) {
 					latestComment = token
@@ -288,6 +288,11 @@ export class CSSTokenTree extends CSSTokenNode {
 	private *parseCommandPart(node: CSSTokenNode): Iterable<Part> {
 		let commandName = getCommandName(node.token.text)
 
+		// For workspace symbol searching.
+		if (commandName !== 'at-root') {
+			yield new Part(PartType.CSSCommand, node.token.text, node.token.start, node.defEnd).trim()
+		}
+
 		// See https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Nesting_at-rules
 		if (commandName === 'media'
 			|| commandName === 'supports'
@@ -328,6 +333,7 @@ export class CSSTokenTree extends CSSTokenNode {
 			}
 		}
 
+		
 		this.commandWrappedMap.set(node, true)
 	}
 }
@@ -341,12 +347,21 @@ function getCommandName(text: string): string | undefined {
 	return text.match(/@([\w-]+)/)?.[1]
 }
 
+function isTemplateInterpolatorStart(token: CSSToken): boolean {
+	return /\$$/.test(token.text)
+}
+
 function getSelectorLikeNodeType(token: CSSToken, current: CSSTokenNode): CSSTokenNodeType {
 	if (current.type === CSSTokenNodeType.Command && getCommandName(current.token.text) === 'keyframes') {
 		return CSSTokenNodeType.ClosureName
 	}
 	else if (isCommandToken(token)) {
 		return CSSTokenNodeType.Command
+	}
+
+	// `xx${`
+	else if (isTemplateInterpolatorStart(token)) {
+		return CSSTokenNodeType.ClosureName
 	}
 	else {
 		return CSSTokenNodeType.Selector

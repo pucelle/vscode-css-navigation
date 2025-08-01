@@ -16,21 +16,6 @@ export class TrackingTest {
 		this.alwaysIncludeMatcher = alwaysIncludeGlobPattern ? new minimatch.Minimatch(alwaysIncludeGlobPattern) : null
 	}
 
-	/** Returns whether should include uri, ignore exclude test. */
-	shouldIncludeURI(uri: string): boolean {
-		let parsed = URI.parse(uri)
-		if (parsed.scheme === 'file') {
-			return this.shouldIncludePath(parsed.fsPath)
-		}
-
-		// Always should track http or https uris.
-		if (parsed.scheme === 'http' || parsed.scheme === 'https') {
-			return true
-		}
-
-		return false
-	}
-
 	/** Returns whether should include path, ignore exclude test. */
 	shouldIncludePath(filePath: string): boolean {
 		return this.includeFileMatcher.match(filePath)

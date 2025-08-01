@@ -58,6 +58,9 @@ export enum PartType {
 	/** `style.setProperty('--variable-name', ...)` */
 	CSSVariableAssignment,
 
+	/** Like `@keyframes`. */
+	CSSCommand,
+
 	/**
 	 * `import style from 'xxx.css'`
 	 * `class={style.className}`
