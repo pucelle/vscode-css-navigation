@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.7.2]
+
+- Fix an issue when parsing embedded CSS.
+
+
 ## [2.7.1]
 
 - Update readme to provide detailed description about diagnostic feature.

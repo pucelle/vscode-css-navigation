@@ -28,7 +28,7 @@ export function mayBeExpression(text: string): boolean {
 
 
 /** Join several tokens to one. */
-export function joinTokens<T extends AnyToken<any>>(tokens: T[], string: string): T {
+export function joinTokens<T extends AnyToken<any>>(tokens: T[], string: string, tokenOffset: number): T {
 	if (tokens.length === 1) {
 		return tokens[0]
 	}
@@ -36,7 +36,7 @@ export function joinTokens<T extends AnyToken<any>>(tokens: T[], string: string)
 		let type = tokens[0].type
 		let start = tokens[0].start
 		let end = tokens[tokens.length - 1].end
-		let text = string.slice(start, end)
+		let text = string.slice(start - tokenOffset, end - tokenOffset)
 
 		return {
 			type,

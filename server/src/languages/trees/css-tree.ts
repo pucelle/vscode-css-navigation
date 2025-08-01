@@ -20,18 +20,18 @@ export class CSSTokenTree extends CSSTokenNode {
 			tokens = new CSSTokenScanner(string, scannerStart, languageId).parseToTokens()
 		}
 
-		return CSSTokenTree.fromTokens(tokens, string, languageId)
+		return CSSTokenTree.fromTokens(tokens, string, scannerStart, languageId)
 	}
 	
 	/** Make a CSS token tree by tokens. */
-	static fromTokens(tokens: Iterable<CSSToken>, string: string, languageId: CSSLanguageId): CSSTokenTree {
-		let tree = new CSSTokenTree(string, languageId)
+	static fromTokens(tokens: Iterable<CSSToken>, string: string, tokenOffset: number, languageId: CSSLanguageId): CSSTokenTree {
+		let tree = new CSSTokenTree(string, tokenOffset, languageId)
 		let current: CSSTokenNode = tree
 		let latestComment: CSSToken | null = null
 		let notDetermined: CSSToken[] = []
 
 		function parseNotDetermined(mayBeSelector: boolean) {
-			let joint = joinTokens(notDetermined, string)
+			let joint = joinTokens(notDetermined, string, tokenOffset)
 
 			if (isCommandToken(joint)) {
 				current.children!.push(new CSSTokenNode(CSSTokenNodeType.Command, joint, current))
@@ -95,7 +95,7 @@ export class CSSTokenTree extends CSSTokenNode {
 
 			else if (token.type === CSSTokenType.ClosureStart) {
 				if (notDetermined.length > 0) {
-					let joint = joinTokens(notDetermined, string)
+					let joint = joinTokens(notDetermined, string, tokenOffset)
 					let type = getSelectorLikeNodeType(joint, current)
 					let node: CSSTokenNode = new CSSTokenNode(type, joint, current, latestComment)
 
@@ -181,11 +181,15 @@ export class CSSTokenTree extends CSSTokenNode {
 
 
 	readonly string: string
+
+	/** When as embedded css, is the offset in parent document. */
+	readonly tokenOffset: number
+
 	readonly languageId: CSSLanguageId
 	private nodePartMap: ListMap<CSSTokenNode, CSSSelectorWrapperPart> = new ListMap()
 	private commandWrappedMap: Map<CSSTokenNode, boolean> = new Map()
 
-	constructor(string: string, languageId: CSSLanguageId) {
+	constructor(string: string, tokenOffset: number, languageId: CSSLanguageId) {
 		super(CSSTokenNodeType.Root, {
 			type: CSSTokenType.NotDetermined,
 			text: '',
@@ -194,6 +198,7 @@ export class CSSTokenTree extends CSSTokenNode {
 		}, null)
 
 		this.string = string
+		this.tokenOffset = tokenOffset
 		this.languageId = languageId
 	}
 
@@ -263,7 +268,7 @@ export class CSSTokenTree extends CSSTokenNode {
 		let commandWrapped = node.parent ? !!this.commandWrappedMap.get(node.parent) : false
 
 		for (let group of groups) {
-			let joint = joinTokens(group, this.string)
+			let joint = joinTokens(group, this.string, this.tokenOffset)
 
 			let part = CSSSelectorWrapperPart.parseFrom(
 				joint,
