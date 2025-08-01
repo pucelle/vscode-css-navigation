@@ -102,7 +102,7 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 				return
 			}
 
-			let oldImportURIs = this.cssImportMap.getByLeft(uri)
+			let oldImportURIs = [...this.cssImportMap.getByLeft(uri) ?? []]
 
 			// If having `@import ...`, load it.
 			let importURIs = await htmlService.getImportedCSSURIs()
@@ -113,10 +113,7 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 			}
 
 			this.cssImportMap.replaceLeft(uri, importURIs)
-
-			if (oldImportURIs) {
-				this.checkImportURIsImported(oldImportURIs)
-			}
+			this.checkImportURIsImported(oldImportURIs)
 		}
 	}
 }
