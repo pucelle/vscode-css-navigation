@@ -3,7 +3,7 @@
     CSS Navigation - VSCode Extension
 </h1>
 
-Provides CSS **Completion**, **Finding Definition**, **Finding References**, **Hover**, **Workspace Symbols** services for HTML, JS, TS, JSX, Vue and more languages across whole workspace.
+Provides CSS **Completion**, **Finding Definition**, **Finding References**, **Diagnostic**, **Hover**, **Workspace Symbols** services for HTML, JS, TS, JSX, Vue and more languages across whole workspace.
 
 
 ## Features
