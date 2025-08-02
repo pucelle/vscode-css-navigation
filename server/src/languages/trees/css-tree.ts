@@ -40,19 +40,19 @@ export class CSSTokenTree extends CSSTokenNode {
 			// Especially when inputting like `a{b|}`.
 			else if (mayBeSelector) {
 
+				// Content contains `:`, parse as property declaration.
+				if (joint.text.includes(':')) {
+					parseAsPropertyDeclaration(joint)
+				}
+
 				// Not complete variable definition.
-				if (/^\s*-/.test(joint.text)) {
+				else if (/^\s*-/.test(joint.text)) {
 					let nameToken = parsePropertyNameToken(joint)!
 					current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, latestComment))
 				}
 
-				// Content contains `:`, parse as property declaration.
-				else if (joint.text.includes(':')) {
-					parseAsPropertyDeclaration(joint)
-				}
-
 				// text may still have whitespaces on left, wait to be dropped in selector parser.
-				else if (!joint.text.includes(':')) {
+				else {
 					current.children!.push(new CSSTokenNode(CSSTokenNodeType.Selector, joint, current, latestComment))
 				}
 			}
@@ -69,11 +69,17 @@ export class CSSTokenTree extends CSSTokenNode {
 		function parseAsPropertyDeclaration(token: CSSToken) {
 			let o = splitPropertyTokens(token)
 			if (o) {
-				let [nameToken, valueToken] = o
-				let nameNode = new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, latestComment)
+				let [restNameToken, nameToken, valueToken] = o
+				let nameNode = new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, restNameToken ? null : latestComment)
 				let valueNode = new CSSTokenNode(CSSTokenNodeType.PropertyValue, valueToken, current)
 
 				nameNode.defEnd = valueToken.end
+
+				if (restNameToken) {
+					let restNameNode = new CSSTokenNode(CSSTokenNodeType.PropertyName, restNameToken, current, latestComment)
+					current.children!.push(restNameNode)
+				}
+
 				current.children!.push(nameNode, valueNode)
 			}
 		}
@@ -373,12 +379,25 @@ function getSelectorLikeNodeType(token: CSSToken, current: CSSTokenNode): CSSTok
 	}
 }
 
-function splitPropertyTokens(token: CSSToken): [CSSToken, CSSToken] | null {
+function splitPropertyTokens(token: CSSToken): [CSSToken | null, CSSToken, CSSToken] | null {
 
 	// Here ignores comments.
 	let match = Picker.locateMatches(token.text, /([\w-]+)\s*:\s*(.+?)\s*$/)
 	if (!match) {
 		return null
+	}
+
+	// Name before property name.
+	let restName: CSSToken | null = null
+	let restText = token.text.slice(0, match[1].start)
+	let restNameMatch = Picker.locateMatches(restText, /[\w-]+/)
+	if (restNameMatch) {
+		restName = {
+			type: CSSTokenType.NotDetermined,
+			text: restNameMatch[0].text,
+			start: token.start + restNameMatch[0].start,
+			end: token.start + restNameMatch[0].start + restNameMatch[0].text.length,
+		}
 	}
 
 	let name: CSSToken = {
@@ -395,7 +414,7 @@ function splitPropertyTokens(token: CSSToken): [CSSToken, CSSToken] | null {
 		end: token.start + match[2].start + match[2].text.length,
 	}
 	
-	return [name, value]
+	return [restName, name, value]
 }
 
 

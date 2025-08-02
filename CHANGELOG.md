@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.7.3]
+
+- Fix the issue where inputting `-` before property declarations can't trigger css variable name completion.
+
+
 ## [2.7.2]
 
 - Fix an issue which will cause wrong offset for embedded CSS .
