@@ -81,9 +81,7 @@ async function findReferencesInHTML(
 	// Find for both definition and reference parts by default.
 	else {
 		if (fromPart.isDefinitionType() || fromPart.isReferenceType()) {
-			if (fromPart.isReferenceType()) {
-				locations.push(...await cssServiceMap.findReferences(matchPart, fromPart))
-			}
+			locations.push(...await cssServiceMap.findReferences(matchPart, fromPart))
 
 			if (configuration.enableGlobalEmbeddedCSS) {
 				locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
