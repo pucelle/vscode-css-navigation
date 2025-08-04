@@ -178,7 +178,7 @@ async function getReferencedDiagnostics(
 		await htmlServiceMap.beFresh()
 
 		for (let part of classNameParts) {
-			
+
 			// Totally reference parent, no need to diagnose.
 			if (part.text === '&') {
 				continue

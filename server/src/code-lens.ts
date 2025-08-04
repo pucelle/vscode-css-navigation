@@ -3,6 +3,7 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {CSSServiceMap, HTMLServiceMap, PartType} from './languages'
 import {getPathExtension} from './utils'
 import {CSSSelectorDetailedPart} from './languages/parts/part-css-selector-detailed'
+import {URI} from 'vscode-uri'
 
 
 /** Provide class name CodeLens service. */
@@ -12,6 +13,12 @@ export async function getCodeLens(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<CodeLens[] | null> {
+	
+	// No code lens for remote source.
+	if (URI.parse(document.uri).scheme !== 'file') {
+		return null
+	}
+
 	let documentExtension = getPathExtension(document.uri)
 	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
 	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
