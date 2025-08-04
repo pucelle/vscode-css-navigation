@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Provides CSS Completion, Finding Definition, Finding References, Diagnostic, Hover, Workspace Symbols services for HTML, JS, TS, JSX, Vue and more languages across whole workspace",
 	"icon": "images/logo.png",
-	"version": "2.7.3",
+	"version": "2.8.0",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -43,7 +43,7 @@
 				"CSSNavigation.enableGoToDefinition": {
 					"type": "boolean",
 					"default": true,
-					"description": "Whether to enable `go to definition` by clicking `F12` in HTML files."
+					"description": "Whether to enable `go to definition` feature by clicking `F12` in HTML files."
 				},
 				"CSSNavigation.enableWorkspaceSymbols": {
 					"type": "boolean",
@@ -72,13 +72,23 @@
 				},
 				"CSSNavigation.enableClassNameDefinitionDiagnostic": {
 					"type": "boolean",
-					"default": false,
+					"default": true,
 					"description": "Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message."
 				},
 				"CSSNavigation.enableClassNameReferenceDiagnostic": {
 					"type": "boolean",
 					"default": false,
 					"description": "Whether to enable class name reference diagnostic - if can't find any reference for a class name in a CSS file, will show a warn message."
+				},
+				"CSSNavigation.enableDefinitionCodeLens": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether to enable CSS class name definition code lens, which will show class name definition count."
+				},
+				"CSSNavigation.enableReferenceCodeLens": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether to enable CSS class name reference code lens, which will show class name reference count."
 				},
 				"CSSNavigation.enableGlobalEmbeddedCSS": {
 					"type": "boolean",

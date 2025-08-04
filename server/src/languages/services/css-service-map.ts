@@ -8,8 +8,8 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 
 	protected identifier = 'css'
 
-	/** Class name set to contains all the class names of whole service. */
-	protected definedClassNamesSet: Set<string> = new Set()
+	/** Class map to contains all the class names and their count of whole service. */
+	protected definedClassNamesSet: Map<string, number> = new Map()
 
 	protected onAfterUpdated() {
 
@@ -18,8 +18,8 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 			this.definedClassNamesSet.clear()
 
 			for (let service of this.walkAvailableServices()) {
-				for (let className of service.getDefinedClassNamesSet()) {
-					this.definedClassNamesSet.add(className)
+				for (let [className, count] of service.getDefinedClassNames()) {
+					this.definedClassNamesSet.set(className, (this.definedClassNamesSet.get(className) ?? 0) + count)
 				}
 			}
 		}
@@ -28,6 +28,11 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 	/** Test whether defined class name existing. */
 	hasDefinedClassName(className: string): boolean {
 		return this.definedClassNamesSet.has(className)
+	}
+
+	/** Get defined class name count. */
+	getDefinedClassNameCount(className: string): number {
+		return this.definedClassNamesSet.get(className) ?? 0
 	}
 
 	protected createService(document: TextDocument) {

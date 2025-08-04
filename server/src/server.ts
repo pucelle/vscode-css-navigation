@@ -17,9 +17,11 @@ import {
 	Hover,
 	DocumentColorParams,
 	ColorInformation,
-	Diagnostic
+	Diagnostic,
+	CodeLens,
+	CodeLensParams
 } from 'vscode-languageserver'
-import {TextDocument} from 'vscode-languageserver-textdocument'
+import {Position, TextDocument} from 'vscode-languageserver-textdocument'
 import {HTMLServiceMap, CSSServiceMap} from './languages'
 import {generateGlobPatternByExtensions, generateGlobPatternByPatterns, getPathExtension} from './utils'
 import {Ignore, Logger} from './core'
@@ -27,9 +29,10 @@ import {findDefinitions} from './definition'
 import {getCompletionItems} from './completion'
 import {findReferences} from './reference'
 import {findHover} from './hover'
-import '../../client/out/types'
 import {getCSSVariableColors} from './css-variable-color'
 import {getDiagnostics} from './diagnostic'
+import {getCodeLens} from './code-lens'
+import '../../client/out/types'
 
 
 let connection: Connection = createConnection(ProposedFeatures.all)
@@ -42,6 +45,39 @@ let server: CSSNavigationServer
 //////// Debug Help
 // 1. How to inspect textmate tokens: Ctrl + Shift + P, then choose `Inspect Editor Tokens and Scopes`
 // 2. How to inspect completion details: Ctrl + /
+
+
+// Server side request handlers.
+connection.onRequest('definitions', async({uri, position}: {uri: string, position: Position}) => {
+	let document = documents.get(uri)
+	if (!document) {
+		return {
+			success: false,
+			data: null,
+		}
+	}
+
+	return {
+		success: true,
+		data: await server.getDefinitions(document, position),
+	}
+})
+
+// Server side request handlers.
+connection.onRequest('references', async({uri, position}: {uri: string, position: Position}) => {
+	let document = documents.get(uri)
+	if (!document) {
+		return {
+			success: false,
+			data: null,
+		}
+	}
+
+	return {
+		success: true,
+		data: await server.getReferences(document, position)
+	}
+})
 
 
 
@@ -76,6 +112,7 @@ connection.onInitialize((params: InitializeParams) => {
 			referencesProvider: configuration.enableFindAllReferences,
 			workspaceSymbolProvider: configuration.enableWorkspaceSymbols,
 			hoverProvider: configuration.enableHover,
+			codeLensProvider: configuration.enableDefinitionCodeLens || configuration.enableReferenceCodeLens ? {resolveProvider: true} : undefined,
 			colorProvider: configuration.enableCSSVariableColorPreview,
 		}
 	}
@@ -84,27 +121,31 @@ connection.onInitialize((params: InitializeParams) => {
 // Listening events.
 connection.onInitialized(async () => {
 	if (configuration.enableGoToDefinition) {
-		connection.onDefinition(Logger.logQuerierExecutedTime(server.findDefinitions.bind(server), 'definition'))
+		connection.onDefinition(Logger.logQuerierExecutedTime(server.provideDefinitions.bind(server), 'definition'))
 	}
 
 	if (configuration.enableWorkspaceSymbols) {
-		connection.onWorkspaceSymbol(Logger.logQuerierExecutedTime(server.findSymbols.bind(server), 'workspace symbol'))
+		connection.onWorkspaceSymbol(Logger.logQuerierExecutedTime(server.provideSymbols.bind(server), 'workspace symbol'))
 	}
 
 	if (configuration.enableIdAndClassNameCompletion) {
-		connection.onCompletion(Logger.logQuerierExecutedTime(server.getCompletionItems.bind(server), 'completion'))
+		connection.onCompletion(Logger.logQuerierExecutedTime(server.provideCompletionItems.bind(server), 'completion'))
 	}
 
 	if (configuration.enableFindAllReferences) {
-		connection.onReferences(Logger.logQuerierExecutedTime(server.findReferences.bind(server), 'reference'))
+		connection.onReferences(Logger.logQuerierExecutedTime(server.provideReferences.bind(server), 'reference'))
 	}
 
 	if (configuration.enableHover) {
-		connection.onHover(Logger.logQuerierExecutedTime(server.findHover.bind(server), 'hover'))
+		connection.onHover(Logger.logQuerierExecutedTime(server.provideHover.bind(server), 'hover'))
+	}
+
+	if (configuration.enableDefinitionCodeLens || configuration.enableReferenceCodeLens) {
+		connection.onCodeLens(Logger.logQuerierExecutedTime(server.provideCodeLens.bind(server), 'codeLens'))
 	}
 
 	if (configuration.enableCSSVariableColorPreview) {
-		connection.onDocumentColor(Logger.logQuerierExecutedTime(server.getDocumentCSSVariableColors.bind(server), 'hover'))
+		connection.onDocumentColor(Logger.logQuerierExecutedTime(server.provideDocumentCSSVariableColors.bind(server), 'hover'))
 
 		// Just ensure no error happens.
 		connection.onColorPresentation(() => null)
@@ -201,13 +242,25 @@ class CSSNavigationServer {
 		}
 	}
 
+	/** Get definitions by document and position. */
+	async getDefinitions(document: TextDocument, position: Position): Promise<Location[] | null> {
+		let offset = document.offsetAt(position)
+		return findDefinitions(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration)
+	}
+
+	/** Get references by document and position. */
+	async getReferences(document: TextDocument, position: Position): Promise<Location[] | null> {
+		let offset = document.offsetAt(position)
+		return findReferences(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration, true)
+	}
+
 	private updateTimestamp(time: number) {
 		this.htmlServiceMap.updateTimestamp(time)
 		this.cssServiceMap.updateTimestamp(time)
 	}
 
 	/** Provide finding definitions service. */
-	async findDefinitions(params: TextDocumentPositionParams, time: number): Promise<Location[] | null> {
+	async provideDefinitions(params: TextDocumentPositionParams, time: number): Promise<Location[] | null> {
 		this.updateTimestamp(time)
 
 		let documentIdentifier = params.textDocument
@@ -224,7 +277,7 @@ class CSSNavigationServer {
 	}
 
 	/** Provide finding symbol service. */
-	async findSymbols(symbol: WorkspaceSymbolParams, time: number): Promise<SymbolInformation[] | null> {
+	async provideSymbols(symbol: WorkspaceSymbolParams, time: number): Promise<SymbolInformation[] | null> {
 		this.updateTimestamp(time)
 
 		let query = symbol.query
@@ -245,7 +298,7 @@ class CSSNavigationServer {
 	}
 
 	/** Provide auto completion service for HTML or CSS document. */
-	async getCompletionItems(params: TextDocumentPositionParams, time: number): Promise<CompletionItem[] | null> {
+	async provideCompletionItems(params: TextDocumentPositionParams, time: number): Promise<CompletionItem[] | null> {
 		this.updateTimestamp(time)
 
 		let documentIdentifier = params.textDocument
@@ -263,7 +316,7 @@ class CSSNavigationServer {
 	}
 
 	/** Provide finding reference service. */
-	async findReferences(params: ReferenceParams, time: number): Promise<Location[] | null> {
+	async provideReferences(params: ReferenceParams, time: number): Promise<Location[] | null> {
 		this.updateTimestamp(time)
 
 		let documentIdentifier = params.textDocument
@@ -276,11 +329,11 @@ class CSSNavigationServer {
 		let position = params.position
 		let offset = document.offsetAt(position)
 
-		return findReferences(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration)
+		return findReferences(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration, false)
 	}
 
 	/** Provide finding hover service. */
-	async findHover(params: HoverParams, time: number): Promise<Hover | null> {
+	async provideHover(params: HoverParams, time: number): Promise<Hover | null> {
 		this.updateTimestamp(time)
 
 		let documentIdentifier = params.textDocument
@@ -296,8 +349,22 @@ class CSSNavigationServer {
 		return findHover(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
 
+	/** Provide finding code lens service. */
+	async provideCodeLens(params: CodeLensParams, time: number): Promise<CodeLens[] | null> {
+		this.updateTimestamp(time)
+
+		let documentIdentifier = params.textDocument
+		let document = documents.get(documentIdentifier.uri)
+
+		if (!document) {
+			return null
+		}
+
+		return getCodeLens(document, this.htmlServiceMap, this.cssServiceMap, configuration)
+	}
+
 	/** Provide document css variable color service. */
-	async getDocumentCSSVariableColors(params: DocumentColorParams, time: number): Promise<ColorInformation[] | null> {
+	async provideDocumentCSSVariableColors(params: DocumentColorParams, time: number): Promise<ColorInformation[] | null> {
 		this.updateTimestamp(time)
 
 		let documentIdentifier = params.textDocument

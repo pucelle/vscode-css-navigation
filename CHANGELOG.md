@@ -1,6 +1,12 @@
 # ChangeLog
 
 
+## [2.8.0]
+
+- Provides Class Name CodeLens feature.
+- Option `enableClassNameDefinitionDiagnostic` becomes `true` by default.
+
+
 ## [2.7.3]
 
 - Fix the issue where inputting `-` before property declarations can't trigger css variable name completion.

@@ -10,7 +10,8 @@ export async function findReferences(
 	offset: number,
 	htmlServiceMap: HTMLServiceMap,
 	cssServiceMap: CSSServiceMap,
-	configuration: Configuration
+	configuration: Configuration,
+	pureReference: boolean
 ): Promise<Location[] | null> {
 	let documentExtension = getPathExtension(document.uri)
 	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
@@ -33,7 +34,7 @@ export async function findReferences(
 			return null
 		}
 
-		locations = await findReferencesInHTML(fromPart, currentHTMLService, htmlServiceMap, cssServiceMap)
+		locations = await findReferencesInHTML(fromPart, currentHTMLService, htmlServiceMap, cssServiceMap, configuration, pureReference)
 	}
 	else if (isCSSFile) {
 		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
@@ -46,7 +47,7 @@ export async function findReferences(
 			return null
 		}
 
-		locations = await findReferencesInCSS(fromPart, currentCSSService, htmlServiceMap, cssServiceMap)
+		locations = await findReferencesInCSS(fromPart, currentCSSService, htmlServiceMap, cssServiceMap, pureReference)
 	}
 
 	return locations
@@ -56,18 +57,41 @@ export async function findReferences(
 /** In HTML files, or files that can include HTML codes. */
 async function findReferencesInHTML(
 	fromPart: Part,
-	_currentService: HTMLService,
+	currentService: HTMLService,
 	htmlServiceMap: HTMLServiceMap,
-	cssServiceMap: CSSServiceMap
+	cssServiceMap: CSSServiceMap,
+	configuration: Configuration,
+	pureReference: boolean
 ): Promise<Location[] | null> {
 	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 	let locations: Location[] = []
-	
 
-	// Find CSS Selector and CSS Variable across all HTML & CSS documents.
-	if (fromPart.isDefinitionType() || fromPart.isReferenceType()) {
-		locations.push(...await cssServiceMap.findReferences(matchPart, fromPart))
-		locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
+
+	if (pureReference) {
+		if (fromPart.isDefinitionType()) {
+			if (configuration.enableGlobalEmbeddedCSS) {
+				locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
+			}
+			else {
+				locations.push(...currentService.findReferences(matchPart, fromPart))
+			}
+		}
+	}
+
+	// Find for both definition and reference parts by default.
+	else {
+		if (fromPart.isDefinitionType() || fromPart.isReferenceType()) {
+			if (fromPart.isReferenceType()) {
+				locations.push(...await cssServiceMap.findReferences(matchPart, fromPart))
+			}
+
+			if (configuration.enableGlobalEmbeddedCSS) {
+				locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
+			}
+			else {
+				locations.push(...currentService.findReferences(matchPart, fromPart))
+			}
+		}
 	}
 
 
@@ -80,14 +104,21 @@ async function findReferencesInCSS(
 	fromPart: Part,
 	_currentService: HTMLService | CSSService,
 	htmlServiceMap: HTMLServiceMap,
-	cssServiceMap: CSSServiceMap
+	cssServiceMap: CSSServiceMap,
+	pureReference: boolean
 ): Promise<Location[] | null> {
 	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 	let locations: Location[] = []
 
 
-	// Find CSS Selector and CSS Variable across all HTML & CSS documents.
-	if (fromPart.isDefinitionType() || fromPart.isReferenceType()) {
+	if (pureReference) {
+		if (fromPart.isDefinitionType()) {
+			locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
+		}
+	}
+
+	// Find for both definition and reference parts by default.
+	else if (fromPart.isDefinitionType() || fromPart.isReferenceType()) {
 		locations.push(...await cssServiceMap.findReferences(matchPart, fromPart))
 		locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
 	}

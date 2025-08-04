@@ -9,6 +9,8 @@ interface Configuration {
 	enableIdAndClassNameCompletion: boolean
 	enableFindAllReferences: boolean
 	enableHover: boolean
+	enableDefinitionCodeLens: boolean
+	enableReferenceCodeLens: boolean
 	enableCSSVariableColorPreview: boolean
 	enableClassNameDefinitionDiagnostic: boolean
 	enableClassNameReferenceDiagnostic: boolean

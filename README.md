@@ -9,11 +9,23 @@ Provides CSS **Completion**, **Finding Definition**, **Finding References**, **D
 ## Features
 
 
+### Class Name CodeLens - New in V2.8
+
+Since v2.8.0, this plugin provides **Class Name CodeLens** feature. You should set following options to `true` to enable:
+
+- Set `enableDefinitionCodeLens` option to `true` to enable definition code lens.
+![code-lens-definition](images/code-lens-definition.jpg)
+
+- Set `enableReferenceCodeLens` option to `true` to enable reference code lens.
+![code-lens-reference](images/code-lens-reference.jpg)
+
+
+
 ### Class Name Diagnostics - New in V2.7
 
-Since v2.7.0, this plugin provides **Class Name Diagnostics** feature. But since stylesheets are sometimes fragmented, so this feature is not enabled by default, you may:
+Since v2.7.0, this plugin provides **Class Name Diagnostics** feature:
 
-- Set `enableClassNameDefinitionDiagnostic` option to `true` to enable definition diagnostic.
+- Definition diagnostic, get enabled by default. You may set `enableClassNameDefinitionDiagnostic` option to `false` to disable it.
 ![class-name-definition-diagnostic](images/class-name-definition-diagnostic.jpg)
 
 - Set `enableClassNameReferenceDiagnostic` option to `true` to enable reference diagnostic.
@@ -127,8 +139,10 @@ editor.quickSuggestions": {
 | `enableFindAllReferences`               | Whether to enable finding references service. Default value is `true`.
 | `enableHover`                           | Whether to enable id and class name hover service. Default value is `true`.
 | `enableCSSVariableColorPreview`         | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. Default value is `true`.
-| `enableClassNameDefinitionDiagnostic`   | Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message. Default value is `false`.
+| `enableClassNameDefinitionDiagnostic`   | Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message. Default value is `true`.
 | `enableClassNameReferenceDiagnostic`    | Whether to enable class name reference diagnostic - if can't find any reference for a class name in a CSS file, will show a warn message. Default value is `false`.
+| `enableDefinitionCodeLens`              | Whether to enable CSS class name definition code lens, which will show class name definition count. Default value is `false`.
+| `enableReferenceCodeLens`               | Whether to enable CSS class name reference code lens, which will show class name reference count. Default value is `false`.
 | `enableGlobalEmbeddedCSS`               | If your HTML codes contain imported CSS or embedded CSS fragments which should be shared across whole workspace, set this option to `true`. Default value is `false`.
 | `disableOwnCSSVariableCompletion`       | Whether to disable css variable completion within a single css document, to make it not repeat with vscode itself generated completions. Note set it to `true` will also disable css variable completion within functions like `color-mix()`, and css variable value preview in completion list. Default value is `false`.
 

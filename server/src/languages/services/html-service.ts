@@ -23,8 +23,8 @@ const HTMLLanguageIdMap: Record<string, HTMLLanguageId> = {
 /** Scan html code pieces in files that can include HTML codes, like html, js, jsx, ts, tsx. */
 export class HTMLService extends BaseService {
 
-	/** All class names references for diagnostic, names excluded identifier `.`. */
-	protected classNamesReferenceSet: Set<string> = new Set()
+	/** All class names references and their count for diagnostic, names excluded identifier `.`. */
+	protected classNamesReferenceSet: Map<string, number> = new Map()
 
 	constructor(document: TextDocument, config: Configuration) {
 		super(document, config)
@@ -43,12 +43,12 @@ export class HTMLService extends BaseService {
 		]
 
 		for (let text of classTexts) {
-			this.classNamesReferenceSet.add(text)
+			this.classNamesReferenceSet.set(text, (this.classNamesReferenceSet.get(text) ?? 0) + 1)
 		}
 	}
 
-	/** Get all referenced class names as a set. */
-	getReferencedClassNamesSet(): Set<string> {
+	/** Get all referenced class names and their count. */
+	getReferencedClassNamesSet(): Map<string, number> {
 		return this.classNamesReferenceSet
 	}
 
@@ -58,6 +58,11 @@ export class HTMLService extends BaseService {
 	 */
 	hasReferencedClassName(className: string): boolean {
 		return this.classNamesReferenceSet.has(className)
+	}
+
+	/** Get referenced class name count. */
+	getReferencedClassNameCount(className: string): number {
+		return this.classNamesReferenceSet.get(className) ?? 0
 	}
 
 	protected makeTree() {

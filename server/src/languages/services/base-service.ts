@@ -24,7 +24,7 @@ export abstract class BaseService {
 	protected resolvedImportedCSSURIs: string[] | undefined = undefined
 
 	/** All class names for diagnostic, names excluded identifier `.`. */
-	protected definedClassNamesSet: Set<string> = new Set()
+	protected definedClassNames: Map<string, number> = new Map()
 
 	constructor(document: TextDocument, config: Configuration) {
 		this.document = document
@@ -35,7 +35,7 @@ export abstract class BaseService {
 		this.partMap = groupBy(this.parts, part => [part.type, part])
 
 		this.initAdditionalParts()
-		this.initDefinedClassNamesSet()
+		this.initDefinedClassNames()
 	}
 
 	protected initAdditionalParts() {
@@ -56,7 +56,7 @@ export abstract class BaseService {
 		}
 	}
 
-	protected initDefinedClassNamesSet() {
+	protected initDefinedClassNames() {
 		if (!this.config.enableClassNameDefinitionDiagnostic) {
 			return
 		}
@@ -64,8 +64,13 @@ export abstract class BaseService {
 		let classSelectorParts = this.partMap.get(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
 		if (classSelectorParts) {
 			for (let part of classSelectorParts) {
+				if (part.text === '&') {
+					continue
+				}
+				
 				for (let formatted of part.formatted) {
-					this.definedClassNamesSet.add(formatted.slice(1))
+					let className = formatted.slice(1)
+					this.definedClassNames.set(className, (this.definedClassNames.get(className) ?? 0) + 1)
 				}
 			}
 		}
@@ -106,13 +111,18 @@ export abstract class BaseService {
 	}
 
 	/** Get defined class names as a set. */
-	getDefinedClassNamesSet(): Set<string> {
-		return this.definedClassNamesSet
+	getDefinedClassNames(): Map<string, number> {
+		return this.definedClassNames
 	}
 
 	/** Test whether defined class name existing. */
 	hasDefinedClassName(className: string): boolean {
-		return this.definedClassNamesSet.has(className)
+		return this.definedClassNames.has(className)
+	}
+
+	/** Test count of defined class name. */
+	getDefinedClassNameCount(className: string): number {
+		return this.definedClassNames.get(className) ?? 0
 	}
 
 	/** 

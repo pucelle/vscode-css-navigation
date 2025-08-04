@@ -11,11 +11,11 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 	protected identifier = 'html'
 	protected cssServiceMap!: CSSServiceMap
 
-	/** Class name set to contains all the defined class names of whole service. */
-	protected definedClassNamesSet: Set<string> = new Set()
+	/** All the defined class names and their count of whole service. */
+	protected definedClassNamesSet: Map<string, number> = new Map()
 
-	/** Class name set to contains all the referenced class names of whole service. */
-	protected referencedClassNamesSet: Set<string> = new Set()
+	/** All the referenced class names and their count of whole service. */
+	protected referencedClassNamesSet: Map<string, number> = new Map()
 
 	/** URI <-> CSS Imported URI. */
 	private cssImportMap: TwoWayListMap<string, string> = new TwoWayListMap()
@@ -61,8 +61,8 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 			this.definedClassNamesSet.clear()
 			
 			for (let service of this.walkAvailableServices()) {
-				for (let className of service.getDefinedClassNamesSet()) {
-					this.definedClassNamesSet.add(className)
+				for (let [className, count] of service.getDefinedClassNames()) {
+					this.definedClassNamesSet.set(className, (this.definedClassNamesSet.get(className) ?? 0) + count)
 				}
 			}
 		}
@@ -71,8 +71,8 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 			this.referencedClassNamesSet.clear()
 
 			for (let service of this.walkAvailableServices()) {
-				for (let className of service.getReferencedClassNamesSet()) {
-					this.referencedClassNamesSet.add(className)
+				for (let [className, count] of service.getReferencedClassNamesSet()) {
+					this.referencedClassNamesSet.set(className, (this.referencedClassNamesSet.get(className) ?? 0) + count)
 				}
 			}
 		}
@@ -86,6 +86,16 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 	/** Test whether referenced class name existing. */
 	hasReferencedClassName(className: string): boolean {
 		return this.referencedClassNamesSet.has(className)
+	}
+
+	/** Get defined class name count. */
+	getDefinedClassName(className: string): number {
+		return this.definedClassNamesSet.get(className) ?? 0
+	}
+
+	/** Get referenced class name count. */
+	getReferencedClassNameCount(className: string): number {
+		return this.referencedClassNamesSet.get(className) ?? 0
 	}
 	
 	protected createService(document: TextDocument) {
