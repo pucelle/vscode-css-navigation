@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.8.1]
+
+- Option `enableClassNameDefinitionDiagnostic` changes back to `false` because not work with like taiwindcss.
+
+
 ## [2.8.0]
 
 - Provides Class Name CodeLens feature.

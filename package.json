@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Provides CSS Completion, Finding Definition, Finding References, Diagnostic, Hover, Workspace Symbols services for HTML, JS, TS, JSX, Vue and more languages across whole workspace",
 	"icon": "images/logo.png",
-	"version": "2.8.0",
+	"version": "2.8.1",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -72,7 +72,7 @@
 				},
 				"CSSNavigation.enableClassNameDefinitionDiagnostic": {
 					"type": "boolean",
-					"default": true,
+					"default": false,
 					"description": "Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message."
 				},
 				"CSSNavigation.enableClassNameReferenceDiagnostic": {

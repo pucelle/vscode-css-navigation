@@ -25,7 +25,7 @@ Since v2.8.0, this plugin provides **Class Name CodeLens** feature. You should s
 
 Since v2.7.0, this plugin provides **Class Name Diagnostics** feature:
 
-- Definition diagnostic, get enabled by default. You may set `enableClassNameDefinitionDiagnostic` option to `false` to disable it.
+- Set `enableClassNameDefinitionDiagnostic` option to `true` to enable definition diagnostic.
 ![class-name-definition-diagnostic](images/class-name-definition-diagnostic.jpg)
 
 - Set `enableClassNameReferenceDiagnostic` option to `true` to enable reference diagnostic.
@@ -139,7 +139,7 @@ editor.quickSuggestions": {
 | `enableFindAllReferences`               | Whether to enable finding references service. Default value is `true`.
 | `enableHover`                           | Whether to enable id and class name hover service. Default value is `true`.
 | `enableCSSVariableColorPreview`         | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. Default value is `true`.
-| `enableClassNameDefinitionDiagnostic`   | Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message. Default value is `true`.
+| `enableClassNameDefinitionDiagnostic`   | Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message. Default value is `false`.
 | `enableClassNameReferenceDiagnostic`    | Whether to enable class name reference diagnostic - if can't find any reference for a class name in a CSS file, will show a warn message. Default value is `false`.
 | `enableDefinitionCodeLens`              | Whether to enable CSS class name definition code lens, which will show class name definition count. Default value is `false`.
 | `enableReferenceCodeLens`               | Whether to enable CSS class name reference code lens, which will show class name reference count. Default value is `false`.
@@ -173,6 +173,10 @@ So please give your feedback, thanks.
 
 
 ## FAQ
+
+### Not work with taiwindcss?
+
+taiwindcss doesn't have any built css files included in it's npm package, so if the CSS Navigation service for taiwindcss not work, you should include the final built css files, like `dist/styles.css`, to option `alwaysIncludeGlobPatterns`.
 
 
 ### Should I reload this plugin after changed settings, or modified files?
