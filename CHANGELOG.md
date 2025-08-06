@@ -1,9 +1,14 @@
 # ChangeLog
 
 
+## [2.8.2]
+
+- Reduce bundle size.
+
+
 ## [2.8.1]
 
-- Option `enableClassNameDefinitionDiagnostic` changes back to `false` because not work with like taiwindcss.
+- Option `enableClassNameDefinitionDiagnostic` changes back to `false` because not work with some css modules.
 
 
 ## [2.8.0]

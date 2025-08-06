@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Provides CSS Completion, Finding Definition, Finding References, Diagnostic, Hover, Workspace Symbols services for HTML, JS, TS, JSX, Vue and more languages across whole workspace",
 	"icon": "images/logo.png",
-	"version": "2.8.1",
+	"version": "2.8.2",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",

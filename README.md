@@ -19,6 +19,8 @@ Since v2.8.0, this plugin provides **Class Name CodeLens** feature. You should s
 - Set `enableReferenceCodeLens` option to `true` to enable reference code lens.
 ![code-lens-reference](images/code-lens-reference.jpg)
 
+Otherwise, you should also ensure vscode settings `editor.codeLens` to be `true`.
+
 
 
 ### Class Name Diagnostics - New in V2.7
