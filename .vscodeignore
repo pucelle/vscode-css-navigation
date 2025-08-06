@@ -13,6 +13,7 @@ client/node_modules/!(vscode-*)/**
 client/node_modules/vscode-test
 client/test/**
 images/!(logo.png)
+.VSCodeCounter/**
 
 # under node_modules
 **/.github/**
