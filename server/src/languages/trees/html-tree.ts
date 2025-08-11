@@ -196,11 +196,10 @@ export class HTMLTokenTree extends HTMLTokenNode {
 				// `:class="variable ? '' : ''"`
 				if (name.endsWith(':class') && hasQuotes(value) && hasInternalQuotes(value.slice(1, -1))) {
 					let unQuoted = value.slice(1, -1)
-					let matches = Picker.locateAllMatches(unQuoted, /(['"])(.*?)\1/g)
+					let matches = Picker.locateAllMatches(unQuoted, /(['"]).*?\1/g, [0])
 					for (let match of matches) {
-						let item = match[2]
-						for (let word of Picker.pickWords(item.text)) {
-							yield new Part(PartType.Class, word.text, attrValue.start + 1 + item.start + word.start)
+						for (let word of Picker.pickWords(match[0].text)) {
+							yield new Part(PartType.Class, word.text, attrValue.start + 1 + match[0].start + word.start)
 						}
 					}
 				}
@@ -312,7 +311,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 	/** Parse style property content for parts. */
 	protected *parseStylePropertyParts(text: string, start: number): Iterable<Part> {
-		let matches = Picker.locateAllMatches(text, /([\w-]+)\s*:\s*(.+?)\s*(?:[;'"]|$)/g)
+		let matches = Picker.locateAllMatches(text, /([\w-]+)\s*:\s*(.+?)\s*(?:[;'"]|$)/g, [1, 2])
 
 		for (let match of matches) {
 			let name = match[1]

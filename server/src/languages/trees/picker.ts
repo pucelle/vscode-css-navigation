@@ -128,13 +128,13 @@ export namespace Picker {
 	 * Note it will skip not captured matches, means `/(1)|(2)/` will always fill match[1].
 	 * `re` must not be global.
 	 */
-	export function locateMatches(text: string, re: RegExp): Picked[] | null {
+	export function locateMatches<I extends number>(text: string, re: RegExp, matchIndices: I[]): Record<I, Picked> | null {
 		let match = text.match(re)
 		if (!match) {
 			return null
 		}
 
-		return addOffsetToMatches(match)
+		return addOffsetToMatches(match, matchIndices)
 	}
 
 	/** 
@@ -144,11 +144,11 @@ export namespace Picker {
 	 * Beware, captured group must capture at least one character.
 	 * `re` must be global.
 	 */
-	export function* locateAllMatches(text: string, re: RegExp): Iterable<Picked[]> {
+	export function* locateAllMatches<I extends number>(text: string, re: RegExp, matchIndices: I[]): Iterable<Record<I, Picked>> {
 		let match: RegExpExecArray | null
 
 		while (match = re.exec(text)) {
-			yield addOffsetToMatches(match)
+			yield addOffsetToMatches(match, matchIndices)
 		}
 	}
 
@@ -182,26 +182,25 @@ export namespace Picker {
 	/** 
 	 * Add start offset to each match item.
 	 * Note it may not 100% get correct result.
-	 * `re` must not be global.
 	 */
-	function addOffsetToMatches(match: RegExpMatchArray | RegExpExecArray): Picked[] {
-		let o: Picked[] = []
+	function addOffsetToMatches(match: RegExpMatchArray | RegExpExecArray, matchIndices: number[]): Record<number, Picked> {
+		let o: Record<number, Picked> = {}
 		let lastIndex = 0
 
-		for (let i = 0; i < match.length; i++) {
-			let m = match[i]
+		for (let matchIndex of matchIndices) {
+			let m = match[matchIndex]
 			if (!m) {
 				continue
 			}
 			
-			let start = i === 0 ? 0 : match[0].indexOf(m, lastIndex)
+			let start = matchIndex === 0 ? 0 : match[0].indexOf(m, lastIndex)
 
-			o.push({
+			o[matchIndex] = {
 				text: m,
 				start: match.index! + start,
-			})
+			}
 
-			if (i > 0) {
+			if (matchIndex > 0) {
 				lastIndex = start + m.length
 			}
 		}

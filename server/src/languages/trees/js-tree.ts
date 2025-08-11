@@ -208,7 +208,8 @@ export class JSTokenTree extends JSTokenNode{
 	 	// `$('.class-name')`
 		let matches = Picker.locateAllMatches(
 			text,
-			/(?:\$|\.querySelector|\.querySelectorAll)\s*\(\s*['"`](.*?)['"`]/g
+			/(?:\$|\.querySelector|\.querySelectorAll)\s*\(\s*['"`](.*?)['"`]/g,
+			[1]
 		)
 
 		for (let match of matches) {
@@ -233,7 +234,8 @@ export class JSTokenTree extends JSTokenNode{
 		// setProperty('--variable-name')
 		matches = Picker.locateAllMatches(
 			text,
-			/\.setProperty\s*\(\s*['"`](-[\w-]*)['"`]/g
+			/\.setProperty\s*\(\s*['"`](-[\w-]*)['"`]/g,
+			[1]
 		)
 
 		for (let match of matches) {
@@ -246,7 +248,8 @@ export class JSTokenTree extends JSTokenNode{
 		// `import '...'`
 		matches = Picker.locateAllMatches(
 			text,
-			/import\s+(?:\w+\s+from\s+)?['"`](.+?)['"`]/g
+			/import\s+(?:\w+\s+from\s+)?['"`](.+?)['"`]/g,
+			[1]
 		)
 
 		for (let match of matches) {

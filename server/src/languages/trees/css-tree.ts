@@ -165,7 +165,7 @@ export class CSSTokenTree extends CSSTokenNode {
 	 * Be static for the usage parsing inline style.
 	 */
 	static *parsePropertyValuePart(text: string, start: number): Iterable<Part> {
-		let varMatches = Picker.locateAllMatches(text, /var\(\s*([\w-]*)\s*\)|^\s*(-[\w-]*)|(--[\w-]*)/g)
+		let varMatches = Picker.locateAllMatches(text, /var\(\s*([\w-]*)\s*\)|^\s*(-[\w-]*)|(--[\w-]*)/g, [0, 1])
 
 		for (let match of varMatches) {
 
@@ -323,7 +323,8 @@ export class CSSTokenTree extends CSSTokenNode {
 			// `class={style['class-name']}`.
 			let match = Picker.locateMatches(
 				node.token.text,
-				/@import\s+['"](.+?)['"]/
+				/@import\s+['"](.+?)['"]/,
+				[1]
 			)
 
 			if (match) {
@@ -336,7 +337,8 @@ export class CSSTokenTree extends CSSTokenNode {
 			// `@at-root .class`.
 			let selectorMatch = Picker.locateMatches(
 				node.token.text,
-				/@at-root\s+(.+)/
+				/@at-root\s+(.+)/,
+				[1]
 			)
 
 			if (selectorMatch) {
@@ -382,7 +384,7 @@ function getSelectorLikeNodeType(token: CSSToken, current: CSSTokenNode): CSSTok
 function splitPropertyTokens(token: CSSToken): [CSSToken | null, CSSToken, CSSToken] | null {
 
 	// Here ignores comments.
-	let match = Picker.locateMatches(token.text, /([\w-]+)\s*:\s*(.+?)\s*$/)
+	let match = Picker.locateMatches(token.text, /([\w-]+)\s*:\s*(.+?)\s*$/, [1, 2])
 	if (!match) {
 		return null
 	}
@@ -390,7 +392,7 @@ function splitPropertyTokens(token: CSSToken): [CSSToken | null, CSSToken, CSSTo
 	// Name before property name.
 	let restName: CSSToken | null = null
 	let restText = token.text.slice(0, match[1].start)
-	let restNameMatch = Picker.locateMatches(restText, /[\w-]+/)
+	let restNameMatch = Picker.locateMatches(restText, /[\w-]+/, [0])
 	if (restNameMatch) {
 		restName = {
 			type: CSSTokenType.NotDetermined,
@@ -419,7 +421,7 @@ function splitPropertyTokens(token: CSSToken): [CSSToken | null, CSSToken, CSSTo
 
 
 function parsePropertyNameToken(token: CSSToken): CSSToken | null {
-	let match = Picker.locateMatches(token.text, /[\w-_]+/)
+	let match = Picker.locateMatches(token.text, /[\w-_]+/, [0])
 	if (!match) {
 		return null
 	}
