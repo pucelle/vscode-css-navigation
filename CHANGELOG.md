@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.8.3]
+
+- Fix a parsing issue for #109.
+
+
 ## [2.8.2]
 
 - Reduce bundle size.
