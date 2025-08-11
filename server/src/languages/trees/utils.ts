@@ -21,6 +21,12 @@ export function hasQuotes(text: string): boolean {
 }
 
 
+/** Returns whether has internal quotes inside. */
+export function hasInternalQuotes(text: string): boolean {
+	return /['"]/.test(text)
+}
+
+
 /** Returns whether has expression. */
 export function mayBeExpression(text: string): boolean {
 	return !hasQuotes(text) && text.includes('{')

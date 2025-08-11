@@ -1,6 +1,6 @@
 import {HTMLToken, HTMLTokenScanner, HTMLTokenType} from '../scanners/html'
 import {Part, PartType} from '../parts'
-import {mayBeExpression} from './utils'
+import {hasInternalQuotes, hasQuotes, mayBeExpression} from './utils'
 import {Picker} from './picker'
 import {CSSTokenTree} from './css-tree'
 import {HTMLTokenNode} from './html-node'
@@ -187,13 +187,26 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			yield new Part(PartType.CSSVariableAssignment, attrName.text.slice(7), attrName.start + 7)
 		}
 
-		// For normal class attribute, or for `JSX`, `Lupos.js`, `Vue.js`
-		else if (name === 'class' || name === 'className' || name === ':class') {
+		// For normal class attribute, or for `JSX`, `Lupos.js`, `Vue.js`,
+		// or for `:class`, `v-bind:class`, `x-bind:class`
+		else if (name === 'class' || name === 'className' || name === ':class' || name.endsWith('-bind:class')) {
 			if (attrValue) {
 				let value = attrValue.text
 
+				// `:class="variable ? '' : ''"`
+				if (name.endsWith(':class') && hasQuotes(value) && hasInternalQuotes(value.slice(1, -1))) {
+					let unQuoted = value.slice(1, -1)
+					let matches = Picker.locateAllMatches(unQuoted, /(['"])(.*?)\1/g)
+					for (let match of matches) {
+						let item = match[2]
+						for (let word of Picker.pickWords(item.text)) {
+							yield new Part(PartType.Class, word.text, attrValue.start + 1 + item.start + word.start)
+						}
+					}
+				}
+
 				// Probably expression, and within template interpolation `${...}` or `{...}`.
-				if (this.isScriptSyntax() && mayBeExpression(value)) {
+				else if (this.isScriptSyntax() && mayBeExpression(value)) {
 					let cssParts: Part[] = []
 
 					for (let word of Picker.pickWordsFromExpression(value)) {

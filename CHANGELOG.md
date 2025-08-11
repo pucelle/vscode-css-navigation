@@ -4,6 +4,7 @@
 ## [2.8.2]
 
 - Reduce bundle size.
+- Fix #109, resolve syntaxes like `:class="a ? 'b' : 'c'"`.
 
 
 ## [2.8.1]
