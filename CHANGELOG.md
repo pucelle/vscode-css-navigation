@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.8.4]
+
+- Fix #111, and will treat react imported class names `className={style.className}` as class name reference.
+
+
 ## [2.8.3]
 
 - Fix a parsing issue for #109.
