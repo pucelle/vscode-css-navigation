@@ -180,3 +180,9 @@ div.class-match10{
 	list-style: none;
 	left: 0px;
 }
+
+@media (min-width: 1280px) {
+    .xl\:w-1\/6{
+        width: 16.666667%;
+    }
+}

@@ -14,7 +14,7 @@ export namespace PartComparer {
 			return part.formatted
 		}
 		else {
-			return [part.text]
+			return [part.escapedText]
 		}
 	}
 
@@ -31,16 +31,16 @@ export namespace PartComparer {
 
 	/** Whether text of a part is totally match another part. */
 	export function isTextMatch(part1: Part, part2: Part): boolean {
-		return part1.text === part2.text
+		return part1.escapedText === part2.escapedText
 	}
 
 	/** Whether one part text list matches another part. */
 	export function isMayFormattedListMatch(testPart: Part, matchPart: Part): boolean {
 		if (testPart.hasFormattedList()) {
-			return testPart.formatted.some(text => text === matchPart.text)
+			return testPart.formatted.some(text => text === matchPart.escapedText)
 		}
 		else {
-			return testPart.text === matchPart.text
+			return testPart.escapedText === matchPart.escapedText
 		}
 	}
 
@@ -49,7 +49,7 @@ export namespace PartComparer {
 	 * Use it for finding workspace symbol.
 	 */
 	export function isTextExpMatch(testPart: Part, re: RegExp): boolean {
-		return re.test(testPart.text)
+		return re.test(testPart.escapedText)
 	}
 
 	/** Whether one part text list matches another part. */
@@ -58,7 +58,7 @@ export namespace PartComparer {
 			return testPart.formatted.some(text => re.test(text))
 		}
 		else {
-			return re.test(testPart.text)
+			return re.test(testPart.escapedText)
 		}
 	}
 

@@ -2,6 +2,7 @@ import {CSSSelectorToken, CSSSelectorTokenType} from '../scanners'
 import {Part, PartType} from './part'
 import {PartConvertor} from './part-convertor'
 import {CSSSelectorWrapperPart} from './part-css-selector-wrapper'
+import {escapedCSSSelector} from './utils'
 
 
 /** Detailed part, normally contains a tag/class/id selector. */
@@ -39,8 +40,12 @@ export class CSSSelectorDetailedPart extends Part {
 		this.independent = independent
 	}
 
+	protected escapeText(text: string): string {
+		return escapedCSSSelector(text)
+	}
+
 	isTextMatch(matchPart: Part) {
-		return this.formatted.some(text => text === matchPart.text)
+		return this.formatted.some(text => text === matchPart.escapedText)
 	}
 
 	isTextExpMatch(re: RegExp) {
@@ -92,6 +97,8 @@ export function parseDetailedParts(
 		if (formatted.length === 0) {
 			continue
 		}
+
+		formatted = formatted.map(escapedCSSSelector)
 
 		let type = getDetailedPartType(token.type, formatted)
 		let primary = token === primaryToken
@@ -150,3 +157,4 @@ function getDetailedPartType(type: CSSSelectorTokenType, formatted: string[]): P
 		return PartConvertor.getCSSSelectorDetailedTypeByText(formatted[0])
 	}
 }
+

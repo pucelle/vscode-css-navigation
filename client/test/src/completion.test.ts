@@ -33,5 +33,9 @@ describe('Test Completion', () => {
 		assert.ok((await sc(['class="a ', '', '  b"']))!.length > 10)
 		assert.ok((await sc(['class="a  ', '', ' b"']))!.length > 10)
 	})
+
+	it('Should find completion for escaped class names', async () => {
+		assert.ok((await sc(['class="', 'xl', '"']))!.length > 0)
+	})
 })
 

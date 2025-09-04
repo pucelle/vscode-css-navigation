@@ -44,7 +44,7 @@ async function getCSSVariableColorsInAny(
 ): Promise<ColorInformation[]> {
 	let parts = currentService.getPartsByType(PartType.CSSVariableReference)
 
-	let variableNames = new Set(parts.map(part => part.text))
+	let variableNames = new Set(parts.map(part => part.escapedText))
 	if (variableNames.size === 0) {
 		return []
 	}
@@ -65,7 +65,7 @@ function makeColorInformation(parts: Part[], variableMap: Map<string, string>, d
 	let items: ColorInformation[] = []
 
 	for (let part of parts) {
-		let value = variableMap.get(part.text)
+		let value = variableMap.get(part.escapedText)
 		if (!value) {
 			continue
 		}

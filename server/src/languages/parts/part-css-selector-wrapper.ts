@@ -1,6 +1,7 @@
 import {CSSSelectorToken} from '../scanners'
 import {Part, PartType} from './part'
 import {CSSSelectorDetailedPart, parseDetailedParts} from './part-css-selector-detailed'
+import {escapedCSSSelector} from './utils'
 
 
 /** 
@@ -56,6 +57,10 @@ export class CSSSelectorWrapperPart extends Part {
 		this.primary = details.find(d => d.primary)
 	}
 
+	protected escapeText(text: string): string {
+		return escapedCSSSelector(text)
+	}
+
 	get textList(): string[] {
 		return this.formatted
 	}
@@ -64,7 +69,10 @@ export class CSSSelectorWrapperPart extends Part {
 
 /** Join parent selectors. */
 function parseFormatted(jointToken: CSSSelectorToken, parents: CSSSelectorWrapperPart[] | undefined, breaksSeparatorNesting: boolean): string[] {
-	return joinSelectorWithParent(jointToken, parents, breaksSeparatorNesting)
+	let formatted = joinSelectorWithParent(jointToken, parents, breaksSeparatorNesting)
+	formatted = formatted.map(escapedCSSSelector)
+
+	return formatted
 }
 
 

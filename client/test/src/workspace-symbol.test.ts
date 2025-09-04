@@ -9,6 +9,10 @@ describe('Test Workspace Symbol', () => {
 		assert.ok((await gws('class')).length > 0)
 	})
 
+	it('Should find symbol for class name `xl:w-1/6`', async () => {
+		assert.ok((await gws('xl')).length > 0)
+	})
+
 	it('Should find any symbol when left word boundary match in the middle', async () => {
 		assert.ok((await gws('sub')).length > 0)
 	})

@@ -64,7 +64,7 @@ export abstract class BaseService {
 		let classSelectorParts = this.partMap.get(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
 		if (classSelectorParts) {
 			for (let part of classSelectorParts) {
-				if (part.text === '&') {
+				if (part.escapedText === '&') {
 					continue
 				}
 				
@@ -94,14 +94,14 @@ export abstract class BaseService {
 		let uris: string[] = []
 
 		for (let part of this.getPartsByType(PartType.CSSImportPath)) {
-			let protocol = isRelativePath(part.text) ? '' : URI.parse(part.text).scheme
+			let protocol = isRelativePath(part.escapedText) ? '' : URI.parse(part.escapedText).scheme
 
 			// Relative path, or file, http or https.
 			if (protocol !== '' && protocol !== 'file' && protocol !== 'http' && protocol !== 'https') {
 				continue
 			}
 
-			let uri = await PathResolver.resolveImportURI(part.text, this.document)
+			let uri = await PathResolver.resolveImportURI(part.escapedText, this.document)
 			if (uri) {
 				uris.push(uri)
 			}
@@ -206,7 +206,7 @@ export abstract class BaseService {
 			}
 
 			// `.a{&:hover}`, `&` not match `.a` because it reference parent completely.
-			if (part.text === '&') {
+			if (part.escapedText === '&') {
 				continue
 			}
 
@@ -248,7 +248,7 @@ export abstract class BaseService {
 	 */
 	getCompletionLabels(matchPart: Part, fromPart: Part, maxStylePropertyCount: number): Map<string, CompletionLabel | null> {
 		let labelMap: Map<string, CompletionLabel | null> = new Map()
-		let re = PartConvertor.makeStartsMatchExp(matchPart.text)
+		let re = PartConvertor.makeStartsMatchExp(matchPart.escapedText)
 
 		for (let part of this.getPartsByType(matchPart.type)) {
 
@@ -264,7 +264,7 @@ export abstract class BaseService {
 			// Show variable details.
 			if (part.type === PartType.CSSVariableDefinition) {
 				let labelText = (part as CSSVariableDefinitionPart).value
-				labelMap.set(part.text, labelText ? {text: labelText, markdown: undefined} : null)
+				labelMap.set(part.escapedText, labelText ? {text: labelText, markdown: undefined} : null)
 			}
 			else {
 				let label: CompletionLabel | null = null
@@ -323,7 +323,7 @@ export abstract class BaseService {
 				for (let text of PartComparer.mayFormatted(part)) {
 
 					// Replace back from `a-b` to `&-b`.
-					let mayNestedText = PartConvertor.textToType(text, part.type, fromPart.type).replace(re, fromPart.text)
+					let mayNestedText = PartConvertor.textToType(text, part.type, fromPart.type).replace(re, fromPart.escapedText)
 
 					if (mayNestedText === text) {
 						labelMap.set(mayNestedText, null)
@@ -346,7 +346,7 @@ export abstract class BaseService {
 		let locations: Location[] = []
 
 		// Important, use may formatted text, and also must use definition text.
-		let texts = fromPart.hasFormattedList() ? PartComparer.mayFormatted(fromPart) : [matchDefPart.text]
+		let texts = fromPart.hasFormattedList() ? PartComparer.mayFormatted(fromPart) : [matchDefPart.escapedText]
 
 		for (let type of this.partMap.keys()) {
 
@@ -423,7 +423,7 @@ export abstract class BaseService {
 		let map: Map<string, string> = new Map()
 
 		for (let part of this.getPartsByType(PartType.CSSVariableDefinition) as CSSVariableDefinitionPart[]) {
-			if (!names.has(part.text)) {
+			if (!names.has(part.escapedText)) {
 				continue
 			}
 
@@ -431,7 +431,7 @@ export abstract class BaseService {
 				continue
 			}
 
-			map.set(part.text, part.value)
+			map.set(part.escapedText, part.value)
 		}
 
 		return map

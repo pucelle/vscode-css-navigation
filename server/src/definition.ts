@@ -122,7 +122,7 @@ async function findDefinitionsInHTML(
 			return null
 		}
 
-		let uri = await ModuleResolver.resolveReactCSSModuleURIByName(importedCSSModulePart.text, document)
+		let uri = await ModuleResolver.resolveReactCSSModuleURIByName(importedCSSModulePart.escapedText, document)
 		if (!uri) {
 			return null
 		}
@@ -145,7 +145,7 @@ async function findDefinitionsInHTML(
 	// If custom tag, and should ignore.
 	if (fromPart.type === PartType.Tag) {
 		if (configuration.ignoreCustomAndComponentTagDefinition &&
-			fromPart.text.includes('-')
+			fromPart.escapedText.includes('-')
 		) {
 			return null
 		}

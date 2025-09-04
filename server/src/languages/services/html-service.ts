@@ -37,10 +37,10 @@ export class HTMLService extends BaseService {
 		}
 
 		let classTexts = [
-			...this.partMap.get(PartType.Class)?.map(p => p.text) || [],
-			...this.partMap.get(PartType.ReactImportedCSSModuleProperty)?.map(p => p.text) || [],
-			...this.partMap.get(PartType.CSSSelectorQueryClass)?.map(p => p.text.slice(1)) || [],
-			...this.partMap.get(PartType.ReactDefaultImportedCSSModuleClass)?.map(p => p.text) || [],
+			...this.partMap.get(PartType.Class)?.map(p => p.escapedText) || [],
+			...this.partMap.get(PartType.ReactImportedCSSModuleProperty)?.map(p => p.escapedText) || [],
+			...this.partMap.get(PartType.CSSSelectorQueryClass)?.map(p => p.escapedText.slice(1)) || [],
+			...this.partMap.get(PartType.ReactDefaultImportedCSSModuleClass)?.map(p => p.escapedText) || [],
 		]
 
 		for (let text of classTexts) {

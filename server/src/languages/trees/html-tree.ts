@@ -1,6 +1,6 @@
 import {HTMLToken, HTMLTokenScanner, HTMLTokenType} from '../scanners/html'
 import {Part, PartType} from '../parts'
-import {hasInternalQuotes, hasQuotes, mayBeExpression} from './utils'
+import {hasInternalQuotes, hasQuotes, mayBeExpression, removeQuotesFromToken} from './utils'
 import {Picker} from './picker'
 import {CSSTokenTree} from './css-tree'
 import {HTMLTokenNode} from './html-node'
@@ -165,9 +165,13 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	protected *parseAttrPart(attrName: HTMLToken, attrValue: HTMLToken | null): Iterable<Part> {
 		let name = attrName.text
 
+		if (attrValue) {
+			attrValue = removeQuotesFromToken(attrValue)
+		}
+
 		if (name === 'id') {
 			if (attrValue) {
-				yield new Part(PartType.Id, attrValue.text, attrValue.start).removeQuotes()
+				yield new Part(PartType.Id, attrValue.text, attrValue.start)
 			}
 		}
 
@@ -198,7 +202,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 					let unQuoted = value.slice(1, -1)
 					let matches = Picker.locateAllMatches(unQuoted, /(['"]).*?\1/g, [0])
 					for (let match of matches) {
-						for (let word of Picker.pickWords(match[0].text)) {
+						for (let word of Picker.pickClassNames(match[0].text)) {
 							yield new Part(PartType.Class, word.text, attrValue.start + 1 + match[0].start + word.start)
 						}
 					}
@@ -208,7 +212,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 				else if (this.isScriptSyntax() && mayBeExpression(value)) {
 					let cssParts: Part[] = []
 
-					for (let word of Picker.pickWordsFromExpression(value)) {
+					for (let word of Picker.pickClassNamesFromExpression(value)) {
 						cssParts.push(new Part(PartType.Class, word.text, attrValue.start + word.start))
 					}
 
@@ -222,7 +226,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 					yield* moduleParts
 				}
 				else {
-					for (let word of Picker.pickWords(value)) {
+					for (let word of Picker.pickClassNames(value)) {
 						yield new Part(PartType.Class, word.text, attrValue.start + word.start)
 					}
 				}
@@ -239,7 +243,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		// `styleName="class-name"`
 		else if (this.isScriptSyntax() && name === 'styleName') {
 			if (attrValue) {
-				yield new Part(PartType.ReactDefaultImportedCSSModuleClass, attrValue.text, attrValue.start).removeQuotes()
+				yield new Part(PartType.ReactDefaultImportedCSSModuleClass, attrValue.text, attrValue.start)
 			}
 		}
 	}
@@ -250,7 +254,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			if (node.getAttributeValue('rel') === 'stylesheet') {
 				let href = node.getAttribute('href')
 				if (href) {
-					yield new Part(PartType.CSSImportPath, href.text, href.start).removeQuotes()
+					yield new Part(PartType.CSSImportPath, href.text, href.start)
 				}
 			}
 		}
@@ -259,7 +263,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		else if (node.tagName === 'style') {
 			let src = node.getAttribute('src')
 			if (src) {
-				yield new Part(PartType.CSSImportPath, src.text, src.start).removeQuotes()
+				yield new Part(PartType.CSSImportPath, src.text, src.start)
 			}
 		}
 	}

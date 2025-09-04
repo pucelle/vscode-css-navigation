@@ -1,5 +1,6 @@
 import {LanguageIds} from '../language-ids'
 
+
 /** Parsed Any token. */
 export interface AnyToken<T extends number> {
 	type: T
@@ -54,19 +55,32 @@ export class AnyTokenScanner<T extends number> {
 	}
 
 	/** 
-	 * Peek chars from current offset until expression.
-	 * Will not move offset.
+	 * It reads matches one by one, and requires each match must connect end to start.
+	 * Moves `offset` to before first not match position.
+	 * Note the `re` must have `g` flag set.
+	 * Returns whether had read some characters.
 	 */
-	protected peekUntil(re: RegExp): string {
+	protected readUntilNot(re: RegExp): boolean {
 		re.lastIndex = this.offset
-		let m = re.exec(this.string)
+		let readSome = false
 
-		if (m) {
-			return this.string.slice(this.offset, m.index)
+		while (true) {
+			let m = re.exec(this.string)
+			if (m) {
+				if (m.index > this.offset) {
+					break
+				}
+				else {
+					this.offset = m.index + m[0].length
+					readSome = true
+				}
+			}
+			else {
+				break
+			}
 		}
-		else {
-			return ''
-		}
+
+		return readSome
 	}
 
 	/** 
@@ -348,12 +362,13 @@ export class AnyTokenScanner<T extends number> {
 	protected makeToken(type: T): AnyToken<T> {
 		let start = this.start
 		let end = this.offset
+		let text = this.string.slice(start, end)
 
 		this.sync()
 
 		return {
 			type,
-			text: this.string.slice(start, end),
+			text: text,
 			start: start + this.scannerStart,
 			end: end + this.scannerStart,
 		}

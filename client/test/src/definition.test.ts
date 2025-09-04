@@ -104,6 +104,15 @@ describe('Test Embedded', () => {
 })
 
 
+describe('Test class name escaped', () => {
+	before(prepare)
+
+	it('Should find definition for `xl:w-1/6`', async () => {
+		assert.deepStrictEqual(await gs(['class="', 'xl:w-1/6', '"']), ['.xl\\:w-1\\/6'])
+	})
+})
+
+
 describe('Test html & css Template', () => {
 	before(prepare)
 

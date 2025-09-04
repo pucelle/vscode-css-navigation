@@ -1,6 +1,26 @@
 import {AnyToken} from '../scanners'
 
 
+/** Remove quotes from token. */
+export function removeQuotesFromToken<T extends number>(token: AnyToken<T>): AnyToken<T> {
+	let text = token.text
+
+	if (hasQuotes(text)) {
+		text = text.slice(1, -1)
+
+		return {
+			type: token.type,
+			text,
+			start: token.start + 1,
+			end: token.end - 1,
+		}
+	}
+	else {
+		return token
+	}
+}
+
+
 /** `"ab"` => `ab`. */
 export function removeQuotes(text: string): string {
 	if (/^['"]/.test(text)) {

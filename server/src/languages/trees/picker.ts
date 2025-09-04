@@ -6,16 +6,19 @@ export interface Picked {
 
 export namespace Picker {
 
-	/** "ab cd" => ["ab", "cd"]. */
-	export function pickWords(text: string): Picked[] {
-		let re = /[\w\-${}]+/g
+	/** 
+	 * "ab cd" => ["ab", "cd"].
+	 * Starts with `a-z` or `_`, but can follow any non-whitespace characters.
+	 */
+	export function pickClassNames(text: string): Picked[] {
+		let re = /\w[^\s"'`]*/g
 		let match: RegExpExecArray | null
 		let words: Picked[] = []
 
 		while (match = re.exec(text)) {
 
 			// Have interpolation characters.
-			if (/[${}]/.test(match[0])) {
+			if (/\$\{/.test(match[0])) {
 				continue
 			}
 
@@ -31,8 +34,11 @@ export namespace Picker {
 	}
 
 
-	/** ["ab", {cd: ef}] => ["ab", "cd"]. */
-	export function pickWordsFromExpression(text: string): Picked[] {
+	/** 
+	 * ["ab", {cd: ef}] => ["ab", "cd"].
+	 * Starts with `a-z` or `_`, but can follow any non-whitespace characters.
+	 */
+	export function pickClassNamesFromExpression(text: string): Picked[] {
 		let re = /"(?:\\"|.)*?"|'(?:\\'|.)*?'|`(?:\\`|.)*?`|(\w+)\s*:/g
 		let match: RegExpExecArray | null
 		let words: Picked[] = []
@@ -47,7 +53,7 @@ export namespace Picker {
 				})
 			}
 			else {
-				for (let item of pickWords(match[0])) {
+				for (let item of pickClassNames(match[0])) {
 					words.push({
 						start: start + item.start,
 						text: item.text,

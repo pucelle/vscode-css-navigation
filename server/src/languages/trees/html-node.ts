@@ -1,5 +1,5 @@
 import {HTMLToken, HTMLTokenType} from '../scanners'
-import {removeQuotes} from './utils'
+import {removeQuotesFromToken} from './utils'
 import {AnyTokenNode} from './any-node'
 
 
@@ -51,28 +51,26 @@ export class HTMLTokenNode extends AnyTokenNode<HTMLToken> {
 		return this.defEnd > -1 ? this.defEnd : this.token.end
 	}
 
-	/** Attribute value text, with quotes removed. */
-	getAttributeValue(name: string): string | null {
-		if (!this.attrs) {
-			return null
-		}
-
-		let attr = this.attrs.find(attr => attr.name.text === name)
-		if (attr && attr.value) {
-			return removeQuotes(attr.value.text)
-		}
-
-		return null
-	}
-
+	/** Get attribute value token by name, with quotes removed. */
 	getAttribute(name: string): HTMLToken | null {
 		if (!this.attrs) {
 			return null
 		}
 
 		let attr = this.attrs.find(attr => attr.name.text === name)
+		if (attr && attr.value) {
+			return removeQuotesFromToken(attr.value)
+		}
+
+		return null
+	}
+
+	
+	/** Attribute value text, with quotes removed. */
+	getAttributeValue(name: string): string | null {
+		let attr = this.getAttribute(name)
 		if (attr) {
-			return attr.value
+			return attr.text
 		}
 
 		return null

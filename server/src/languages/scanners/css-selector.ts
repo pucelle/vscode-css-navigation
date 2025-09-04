@@ -71,11 +71,11 @@ enum ScanState {
 }
 
 
-/** Match selector name. */
+/** Match tag name. */
 const IsName = /[\w&-]/g
 
-/** Match not selector name. */
-const IsNotName = /[^\w&-]/g
+/** Match escapable selector class or id name. */
+const IsEscapableName = /[\w&-]|\\./g
 
 function isName(char: string): boolean {
 	IsName.lastIndex = 0
@@ -121,7 +121,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 	*parseToTokens(): Iterable<CSSSelectorToken> {
 		while (this.state !== ScanState.EOF) {
 			if (this.state === ScanState.AnyContent) {
-				if (!this.readUntil(/[\w&.#\[:+>|~,\/*]/g)) {
+				if (!this.readUntil(/[\w&.#\[:+>|~,\/*\\]/g)) {
 					break
 				}
 
@@ -250,7 +250,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinTag) {
 
 				// `abc|`
-				this.readUntil(IsNotName)
+				this.readUntilNot(IsName)
 				yield this.makeToken(CSSSelectorTokenType.Tag)
 				this.state = ScanState.AnyContent
 				this.needToSeparate = true
@@ -259,7 +259,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinNesting) {
 
 				// `&abc|`
-				this.readUntil(IsNotName)
+				this.readUntilNot(IsEscapableName)
 				yield this.makeToken(CSSSelectorTokenType.Nesting)
 				this.state = ScanState.AnyContent
 				this.needToSeparate = true
@@ -268,7 +268,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinClassName) {
 
 				// `.abc|`
-				this.readUntil(IsNotName)
+				this.readUntilNot(IsEscapableName)
 				yield this.makeToken(CSSSelectorTokenType.Class)
 				this.state = ScanState.AnyContent
 				this.needToSeparate = true
@@ -277,7 +277,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinIdName) {
 
 				// `#abc|`
-				this.readUntil(IsNotName)
+				this.readUntilNot(IsEscapableName)
 				yield this.makeToken(CSSSelectorTokenType.Id)
 				this.state = ScanState.AnyContent
 				this.needToSeparate = true
@@ -298,7 +298,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinPseudo) {
 
 				// `:hover|`
-				this.readUntil(IsNotName)
+				this.readUntilNot(IsName)
 
 				// `:has(...)|`
 				if (this.peekChar() === '(') {
@@ -315,7 +315,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinPseudoElement) {
 
 				// `::before|`
-				this.readUntil(IsNotName)
+				this.readUntilNot(IsName)
 
 				// `::highlight(...)|`
 				if (this.peekChar() === '(') {

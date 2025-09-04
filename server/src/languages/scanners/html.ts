@@ -60,9 +60,6 @@ enum ScanState {
 /** Match tag name, Add `$` to match template interpolation. */
 const IsTagName = /[\w:-]/g
 
-/** Match not tag name. */
-const IsNotTagName = /[^\w:-]/g
-
 /** Match attribute name. */
 const IsAttrName = /[\w@:.?$-]/g
 
@@ -206,7 +203,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	protected *onWithinStartTag(): Iterable<HTMLToken> {
 		
 		// `<abc|`
-		if (!this.readUntil(IsNotTagName)) {
+		if (!this.readUntilNot(IsTagName)) {
 			return
 		}
 
@@ -224,7 +221,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	protected *onWithinEndTag(): Iterable<HTMLToken> {
 
 		// `</abc|>` or `</|>`
-		if (!this.readUntil(IsNotTagName)) {
+		if (!this.readUntilNot(IsTagName)) {
 			return
 		}
 
@@ -455,7 +452,7 @@ export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 	protected *onWithinStartTag(): Iterable<HTMLToken> {
 		
 		// `<abc|`
-		if (!this.readUntil(IsNotTagName)) {
+		if (!this.readUntilNot(IsTagName)) {
 			return
 		}
 
@@ -479,7 +476,7 @@ export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 	protected *onWithinEndTag(): Iterable<HTMLToken> {
 
 		// `</abc|>` or `</|>`
-		if (!this.readUntil(IsNotTagName)) {
+		if (!this.readUntilNot(IsTagName)) {
 			return
 		}
 

@@ -1,4 +1,3 @@
-import {hasQuotes} from '../trees/utils'
 import {CSSSelectorWrapperPart} from './part-css-selector-wrapper'
 import {CSSSelectorDetailedPart} from './part-css-selector-detailed'
 import {CSSVariableDefinitionPart} from './part-css-variable-definition'
@@ -114,11 +113,14 @@ export class Part {
 	readonly type: PartType
 
 	/** 
-	 * Label, it may or may not include identifiers like `.`, `#` from raw text.
+	 * Text label, it may or may not include identifiers like `.`, `#` from raw text.
 	 * For `<div class="|name|">`, it doesn't include identifier
 	 * For `|.class|{}`, it includes identifier.
 	 */
-	readonly text: string
+	readonly rawText: string
+
+	/** Text label after escaped. */
+	readonly escapedText: string
 
 	/** Start offset. */
 	start: number
@@ -126,16 +128,22 @@ export class Part {
 	/** End of Definition. */
 	defEnd: number
 
-	constructor(type: PartType, label: string, start: number, declarationEnd: number = -1) {
+	constructor(type: PartType, text: string, start: number, declarationEnd: number = -1) {
 		this.type = type
-		this.text = label
+		this.rawText = text
 		this.start = start
 		this.defEnd = declarationEnd
+		this.escapedText = this.escapeText(text)
+	}
+
+	/** Overwrite to escape text. */
+	protected escapeText(text: string) {
+		return text
 	}
 
 	/** End offset. */
 	get end() {
-		return this.start + this.text.length
+		return this.start + this.rawText.length
 	}
 
 	/** HTML class and id attribute. */
@@ -214,30 +222,14 @@ export class Part {
 			|| this.type === PartType.CSSSelectorClass
 	}
 
-	/** `"ab"` => `ab`. */
-	removeQuotes(): Part {
-		let text = this.text
-		let start = this.start
-
-		if (hasQuotes(text)) {
-			text = text.slice(1, -1)
-			start++
-			
-			return new Part(this.type, text, start, this.defEnd)
-		}
-		else {
-			return this
-		}
-	}
-
 	/** Trim text. */
 	trim(): Part {
-		let text = this.text
+		let text = this.escapedText
 		let start = this.start
 
 		if (/^\s+/.test(text)) {
 			text = text.trimStart()
-			start += this.text.length - text.length
+			start += this.escapedText.length - text.length
 			
 			return new Part(this.type, text, start, this.defEnd)
 		}
@@ -246,7 +238,7 @@ export class Part {
 			text = text.trimEnd()
 		}
 
-		if (text !== this.text) {
+		if (text !== this.escapedText) {
 			return new Part(this.type, text, start, this.defEnd)
 		}
 		else {

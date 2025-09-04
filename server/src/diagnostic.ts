@@ -70,7 +70,7 @@ async function getDefinitionDiagnostics(
 	for (let part of classNameParts) {
 
 		// Without identifier.
-		let className = part.text
+		let className = part.escapedText
 
 		if (currentHTMLService.hasDefinedClassName(className)) {
 			continue
@@ -129,7 +129,7 @@ async function getReferencedDiagnostics(
 		for (let part of classNameParts) {
 
 			// Totally reference parent, no need to diagnose.
-			if (part.text === '&') {
+			if (part.escapedText === '&') {
 				continue
 			}
 
@@ -180,7 +180,7 @@ async function getReferencedDiagnostics(
 		for (let part of classNameParts) {
 
 			// Totally reference parent, no need to diagnose.
-			if (part.text === '&') {
+			if (part.escapedText === '&') {
 				continue
 			}
 

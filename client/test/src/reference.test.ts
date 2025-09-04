@@ -23,6 +23,10 @@ describe('Test Reference from CSS', () => {
 		assert.deepStrictEqual(await searchReferences('.class7-sub7'), ['class7-sub7'])
 	})
 
+	it('Should find references for escaped class name `xl:w-1/6`', async () => {
+		assert.deepStrictEqual(await searchReferences('.xl\\:w-1\\/6'), ['xl:w-1/6'])
+	})
+
 	it('Should find reference in current HTML document', async () => {
 		assert.ok((await searchReferences('.css-class-in-style', htmlDocument))!.includes('css-class-in-style'))
 		assert.ok((await searchReferences('&-in-style', htmlDocument))!.includes('scss-class-in-style'))

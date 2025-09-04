@@ -88,7 +88,7 @@ export namespace PathResolver {
 	 * `part` must be in `Import` type.
 	 */
 	export async function resolveImportLocationLink(part: Part, fromDocument: TextDocument): Promise<LocationLink | null> {
-		let uri = await resolveImportURI(part.text, fromDocument)
+		let uri = await resolveImportURI(part.escapedText, fromDocument)
 		if (!uri) {
 			return null
 		}

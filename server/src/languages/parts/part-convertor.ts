@@ -159,7 +159,7 @@ export namespace PartConvertor {
 	 */
 	export function toDefinitionMode(part: Part): Part {
 		let type = PartConvertor.typeToDefinition(part.type)
-		let text = PartConvertor.textToType(part.text, part.type, type)
+		let text = PartConvertor.textToType(part.escapedText, part.type, type)
 
 		return new Part(type, text, -1, -1)
 	}

@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.9.0]
+
+- For #112, and support escaped class name like `xl:w-1/6` in Tailwind.
+
+
 ## [2.8.4]
 
 - Fix #111, and will treat react imported class names `className={style.className}` as class name reference.
