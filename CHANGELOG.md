@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.9.1]
+
+- Try to fix a plugin hang-on problem.
+
+
 ## [2.9.0]
 
 - For #112, and support escaped class name like `xl:w-1/6` in Tailwind.

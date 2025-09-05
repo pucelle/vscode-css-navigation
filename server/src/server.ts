@@ -394,20 +394,25 @@ class CSSNavigationServer {
 
 		Logger.timeStart('diagnostic-of-' + document.uri)
 
-		let diagnostics = await this.getClassNameDiagnostics(document)
-		if (diagnostics) {
-			connection.sendDiagnostics({uri: document.uri, diagnostics})
-			fileCount++
-		}
+		try {
+			let diagnostics = await this.getClassNameDiagnostics(document)
+			if (diagnostics) {
+				connection.sendDiagnostics({uri: document.uri, diagnostics})
+				fileCount++
+			}
 
-		// Only when document content changed.
-		if (isChanged) {
-			if (isHTMLFile && configuration.enableClassNameReferenceDiagnostic) {
-				fileCount += await this.diagnoseMoreOfType(sharedCSSFragments ? 'any' : 'css')
+			// Only when document content changed.
+			if (isChanged) {
+				if (isHTMLFile && configuration.enableClassNameReferenceDiagnostic) {
+					fileCount += await this.diagnoseMoreOfType(sharedCSSFragments ? 'any' : 'css')
+				}
+				else if (isCSSFile && configuration.enableClassNameDefinitionDiagnostic) {
+					fileCount += await this.diagnoseMoreOfType(sharedCSSFragments ? 'any' : 'html')
+				}
 			}
-			else if (isCSSFile && configuration.enableClassNameDefinitionDiagnostic) {
-				fileCount += await this.diagnoseMoreOfType(sharedCSSFragments ? 'any' : 'html')
-			}
+		}
+		catch (err) {
+			Logger.error(String(err))
 		}
 
 		Logger.timeEnd('diagnostic-of-' + document.uri, fileCount > 0 ? `${fileCount} files get diagnosed` : null)
@@ -435,7 +440,7 @@ class CSSNavigationServer {
 	}
 
 	/** Get all class name diagnostics of a document. */
-	async getClassNameDiagnostics(document: TextDocument): Promise<Diagnostic[] | null> {
+	private async getClassNameDiagnostics(document: TextDocument): Promise<Diagnostic[] | null> {
 		this.diagnosedVersionMap.set(document.uri, document.version)
 		return getDiagnostics(document, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}

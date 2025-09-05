@@ -66,18 +66,16 @@ export class AnyTokenScanner<T extends number> {
 
 		while (true) {
 			let m = re.exec(this.string)
-			if (m) {
-				if (m.index > this.offset) {
-					break
-				}
-				else {
-					this.offset = m.index + m[0].length
-					readSome = true
-				}
-			}
-			else {
+			if (!m) {
 				break
 			}
+
+			if (m.index !== this.offset) {
+				break
+			}
+
+			this.offset = m.index + m[0].length
+			readSome = true
 		}
 
 		return readSome

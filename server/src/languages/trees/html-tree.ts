@@ -164,20 +164,17 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	/** For attribute part. */
 	protected *parseAttrPart(attrName: HTMLToken, attrValue: HTMLToken | null): Iterable<Part> {
 		let name = attrName.text
-
-		if (attrValue) {
-			attrValue = removeQuotesFromToken(attrValue)
-		}
+		let unQuotedAttrValue = attrValue ? removeQuotesFromToken(attrValue) : null
 
 		if (name === 'id') {
-			if (attrValue) {
-				yield new Part(PartType.Id, attrValue.text, attrValue.start)
+			if (unQuotedAttrValue) {
+				yield new Part(PartType.Id, unQuotedAttrValue.text, unQuotedAttrValue.start)
 			}
 		}
 
 		else if (name === 'style') {
-			if (attrValue) {
-				yield* this.parseStylePropertyParts(attrValue.text, attrValue.start)
+			if (unQuotedAttrValue) {
+				yield* this.parseStylePropertyParts(unQuotedAttrValue.text, unQuotedAttrValue.start)
 			}
 		}
 
@@ -194,30 +191,28 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		// For normal class attribute, or for `JSX`, `Lupos.js`, `Vue.js`,
 		// or for `:class`, `v-bind:class`, `x-bind:class`
 		else if (name === 'class' || name === 'className' || name === ':class' || name.endsWith('-bind:class')) {
-			if (attrValue) {
-				let value = attrValue.text
+			if (attrValue && unQuotedAttrValue) {
 
 				// `:class="variable ? '' : ''"`
-				if (name.endsWith(':class') && hasQuotes(value) && hasInternalQuotes(value.slice(1, -1))) {
-					let unQuoted = value.slice(1, -1)
-					let matches = Picker.locateAllMatches(unQuoted, /(['"]).*?\1/g, [0])
+				if (name.endsWith(':class') && hasQuotes(attrValue.text) && hasInternalQuotes(unQuotedAttrValue.text)) {
+					let matches = Picker.locateAllMatches(unQuotedAttrValue.text, /(['"]).*?\1/g, [0])
 					for (let match of matches) {
 						for (let word of Picker.pickClassNames(match[0].text)) {
-							yield new Part(PartType.Class, word.text, attrValue.start + 1 + match[0].start + word.start)
+							yield new Part(PartType.Class, word.text, unQuotedAttrValue.start + match[0].start + word.start)
 						}
 					}
 				}
 
 				// Probably expression, and within template interpolation `${...}` or `{...}`.
-				else if (this.isScriptSyntax() && mayBeExpression(value)) {
+				else if (this.isScriptSyntax() && mayBeExpression(attrValue.text)) {
 					let cssParts: Part[] = []
 
-					for (let word of Picker.pickClassNamesFromExpression(value)) {
-						cssParts.push(new Part(PartType.Class, word.text, attrValue.start + word.start))
+					for (let word of Picker.pickClassNamesFromExpression(unQuotedAttrValue.text)) {
+						cssParts.push(new Part(PartType.Class, word.text, unQuotedAttrValue.start + word.start))
 					}
 
 					// May a same word get recognized as CSS part, later as react module part also.
-					let moduleParts = [...this.parseReactModulePart(attrValue)]
+					let moduleParts = [...this.parseReactModulePart(unQuotedAttrValue)]
 					if (moduleParts.length > 0) {
 						cssParts = cssParts.filter(p => !moduleParts.find(mp => mp.start === p.start))
 					}
@@ -226,14 +221,14 @@ export class HTMLTokenTree extends HTMLTokenNode {
 					yield* moduleParts
 				}
 				else {
-					for (let word of Picker.pickClassNames(value)) {
-						yield new Part(PartType.Class, word.text, attrValue.start + word.start)
+					for (let word of Picker.pickClassNames(unQuotedAttrValue.text)) {
+						yield new Part(PartType.Class, word.text, unQuotedAttrValue.start + word.start)
 					}
 				}
 
 				// Also provide completions for `class="|"`, or `class="abc |"`, or `class="abc | def"`.
-				for (let word of Picker.pickPotentialEmptyWords(value)) {
-					yield new Part(PartType.ClassPotential, word.text, attrValue.start + word.start)
+				for (let word of Picker.pickPotentialEmptyWords(unQuotedAttrValue.text)) {
+					yield new Part(PartType.ClassPotential, word.text, unQuotedAttrValue.start + word.start)
 				}
 			}
 		}
@@ -242,8 +237,8 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		// import 'xx.css'
 		// `styleName="class-name"`
 		else if (this.isScriptSyntax() && name === 'styleName') {
-			if (attrValue) {
-				yield new Part(PartType.ReactDefaultImportedCSSModuleClass, attrValue.text, attrValue.start)
+			if (unQuotedAttrValue) {
+				yield new Part(PartType.ReactDefaultImportedCSSModuleClass, unQuotedAttrValue.text, unQuotedAttrValue.start)
 			}
 		}
 	}
@@ -315,7 +310,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 	/** Parse style property content for parts. */
 	protected *parseStylePropertyParts(text: string, start: number): Iterable<Part> {
-		let matches = Picker.locateAllMatches(text, /([\w-]+)\s*:\s*(.+?)\s*(?:[;'"]|$)/g, [1, 2])
+		let matches = Picker.locateAllMatches(text, /([\w-]+)\s*:\s*(.+?)\s*(?:;|$)/g, [1, 2])
 
 		for (let match of matches) {
 			let name = match[1]

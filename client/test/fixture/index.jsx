@@ -30,6 +30,7 @@ class App {
 				<div className={`any-other-class ` + any_variable_or_expression + ` class5`} />
 				<div className={style.class6} />
 				<div className={style['class7']} />
+				<div x-bind:class="variable ? 'class8' : ''" />
 				<Image class={['class8', { class9: this.show }, 'class10']} />
 				<ReactComponent />
 			</div>
