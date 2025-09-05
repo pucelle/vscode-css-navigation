@@ -78,6 +78,10 @@ export class AnyTokenScanner<T extends number> {
 			readSome = true
 		}
 
+		if (this.offset === this.string.length) {
+			this.state = ScanState.EOF
+		}
+
 		return readSome
 	}
 

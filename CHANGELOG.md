@@ -1,9 +1,9 @@
 # ChangeLog
 
 
-## [2.9.1]
+## [2.9.2]
 
-- Try to fix a plugin hang-on problem.
+- Fixes a plugin hang-on problem.
 
 
 ## [2.9.0]

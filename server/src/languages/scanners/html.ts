@@ -203,9 +203,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	protected *onWithinStartTag(): Iterable<HTMLToken> {
 		
 		// `<abc|`
-		if (!this.readUntilNot(IsTagName)) {
-			return
-		}
+		this.readUntilNot(IsTagName)
 
 		let tagName = this.peekText()
 		let lowerTagName = tagName.toLowerCase()
@@ -221,9 +219,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	protected *onWithinEndTag(): Iterable<HTMLToken> {
 
 		// `</abc|>` or `</|>`
-		if (!this.readUntilNot(IsTagName)) {
-			return
-		}
+		this.readUntilNot(IsTagName)
 
 		let tagName = this.peekText()
 		let lowerTagName = tagName.toLowerCase()
@@ -452,9 +448,8 @@ export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 	protected *onWithinStartTag(): Iterable<HTMLToken> {
 		
 		// `<abc|`
-		if (!this.readUntilNot(IsTagName)) {
-			return
-		}
+		this.readUntilNot(IsTagName)
+		
 
 		let tagName = this.peekText()
 
@@ -476,9 +471,7 @@ export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 	protected *onWithinEndTag(): Iterable<HTMLToken> {
 
 		// `</abc|>` or `</|>`
-		if (!this.readUntilNot(IsTagName)) {
-			return
-		}
+		this.readUntilNot(IsTagName)
 
 		let tagName = this.peekText()
 
