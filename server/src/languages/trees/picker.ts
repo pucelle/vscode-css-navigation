@@ -11,7 +11,7 @@ export namespace Picker {
 	 * Starts with `a-z` or `_`, but can follow any non-whitespace characters.
 	 */
 	export function pickClassNames(text: string): Picked[] {
-		let re = /\w[^\s"'`]*/g
+		let re = /\w[^\s"'`}]*/g
 		let match: RegExpExecArray | null
 		let words: Picked[] = []
 

@@ -267,14 +267,19 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	protected *parseReactModulePart(attrValue: HTMLToken): Iterable<Part> {
 		let start = attrValue.start
 
-		// `class={style.className}`.
-		// `class={style['class-name']}`.
-		let match = Picker.locateMatchGroups(
+		// `class={...}`.
+		if (!/^\s*\{[\s\S]*?\}\s*$/.test(attrValue.text)) {
+			return
+		}
+
+		// `style.className`.
+		// `style['class-name']`.
+		let matches = Picker.locateAllMatchGroups(
 			attrValue.text,
-			/^\s*\{\s*(?<moduleName>\w+)(?:\.(?<propertyName1>\w+)|\[\s*['"`](?<propertyName2>\w+)['"`]\s*\])\s*\}\s*$/
+			/(?<moduleName>\w+)(?:\.(?<propertyName1>\w+)|\[\s*['"`](?<propertyName2>\w[\w-]*)['"`]\s*\])/g
 		)
 
-		if (match) {
+		for (let match of matches) {
 			yield new Part(PartType.ReactImportedCSSModuleName, match.moduleName.text, match.moduleName.start + start)
 
 			let propertyName = match.propertyName1 ?? match.propertyName2

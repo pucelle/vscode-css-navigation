@@ -56,7 +56,12 @@ async function getDefinitionCodeLens(
 
 	let codeLens: CodeLens[] = []
 
-	let classNameParts = currentHTMLService.getPartsByType(PartType.Class)
+	let classNameParts = [
+		...currentHTMLService.getPartsByType(PartType.Class),
+		...currentHTMLService.getPartsByType(PartType.ReactDefaultImportedCSSModuleClass),
+		...currentHTMLService.getPartsByType(PartType.ReactImportedCSSModuleProperty),
+	]
+
 	if (!classNameParts || classNameParts.length === 0) {
 		return codeLens
 	}
