@@ -5,11 +5,10 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {Logger} from '../logger'
 import {URI} from 'vscode-uri'
 import {walkDirectoryToMatchFiles} from './file-walker'
-import {glob} from 'glob'
-import {promisify} from 'util'
 import {TrackingMap, TrackingReasonMask} from './tracking-map'
 import {TrackingTest} from './tracking-test'
 import {fetchAsText} from '../../utils'
+import {GlobPathSharer} from './glob-path-sharer'
 
 
 /** Specifies whether ignoring files by things specified in these files. */
@@ -24,7 +23,7 @@ export interface FileTrackerOptions {
 	excludeGlobPattern?: string
 
 	/** Glob pattern that files matched will always be included even they match `excludeGlobPatterns` or listed in `.gitignore` or `.npmignore`. */
-	alwaysIncludeGlobPattern?: string
+	alwaysIncludeGlobSharer?: GlobPathSharer
 
 	/** Ignore files by `.gitignore` or `.npmignore`. */
 	ignoreFilesBy?: Ignore[]
@@ -49,7 +48,7 @@ export abstract class FileTracker {
 	readonly documents: TextDocuments<TextDocument>
 	readonly window: RemoteWindow
 	readonly startPath: string | null
-	readonly alwaysIncludeGlobPattern: string | null
+	readonly alwaysIncludeGlobSharer: GlobPathSharer | null
 	readonly ignoreFilesBy: Ignore[]
 	readonly mostFileCount: number
 	readonly releaseTimeoutMs: number
@@ -72,7 +71,7 @@ export abstract class FileTracker {
 		this.documents = documents
 		this.window = window
 		this.startPath = options.startPath || null
-		this.alwaysIncludeGlobPattern = options.alwaysIncludeGlobPattern || null
+		this.alwaysIncludeGlobSharer = options.alwaysIncludeGlobSharer || null
 		this.ignoreFilesBy = options.ignoreFilesBy || []
 		this.mostFileCount = options.mostFileCount ?? Infinity
 		this.releaseTimeoutMs = options.releaseTimeoutMs ?? Infinity
@@ -377,11 +376,8 @@ export abstract class FileTracker {
 			}
 		}
 
-		if (this.alwaysIncludeGlobPattern) {
-			let alwaysIncludePaths = await promisify(glob)(this.alwaysIncludeGlobPattern, {
-				cwd: this.startPath || undefined,
-				absolute: true,
-			})
+		if (this.alwaysIncludeGlobSharer) {
+			let alwaysIncludePaths = await this.alwaysIncludeGlobSharer.get()
 
 			for (let filePath of alwaysIncludePaths) {
 

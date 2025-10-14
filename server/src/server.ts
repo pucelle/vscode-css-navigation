@@ -33,6 +33,7 @@ import {getCSSVariableColors} from './css-variable-color'
 import {getDiagnostics} from './diagnostic'
 import {getCodeLens} from './code-lens'
 import '../../client/out/types'
+import {GlobPathSharer} from './core/file-tracker/glob-path-sharer'
 
 
 let connection: Connection = createConnection(ProposedFeatures.all)
@@ -167,10 +168,19 @@ class CSSNavigationServer {
 	constructor(options: InitializationOptions) {
 		this.options = options
 
+		let startPath = options.workspaceFolderPath
+		let alwaysIncludeGlobPattern = configuration.alwaysIncludeGlobPatterns
+			? generateGlobPatternByPatterns(configuration.alwaysIncludeGlobPatterns)
+			: undefined
+
+		// Shared glob querying.
+		let alwaysIncludeGlobSharer = alwaysIncludeGlobPattern ? new GlobPathSharer(alwaysIncludeGlobPattern, startPath) : undefined
+
 		this.htmlServiceMap = new HTMLServiceMap(documents, connection.window, {
 			includeFileGlobPattern: generateGlobPatternByExtensions(configuration.activeHTMLFileExtensions)!,
 			excludeGlobPattern: generateGlobPatternByPatterns(configuration.excludeGlobPatterns) || undefined,
-			startPath: options.workspaceFolderPath,
+			alwaysIncludeGlobSharer,
+			startPath,
 			ignoreFilesBy: configuration.ignoreFilesBy as Ignore[],
 
 			// Track at most 1000 html like files.
@@ -183,8 +193,8 @@ class CSSNavigationServer {
 		this.cssServiceMap = new CSSServiceMap(documents, connection.window, {
 			includeFileGlobPattern: generateGlobPatternByExtensions(configuration.activeCSSFileExtensions)!,
 			excludeGlobPattern: generateGlobPatternByPatterns(configuration.excludeGlobPatterns) || undefined,
-			alwaysIncludeGlobPattern: generateGlobPatternByPatterns(configuration.alwaysIncludeGlobPatterns) || undefined,
-			startPath: options.workspaceFolderPath,
+			alwaysIncludeGlobSharer,
+			startPath,
 			ignoreFilesBy: configuration.ignoreFilesBy as Ignore[],
 
 			// Track at most 1000 css files.

@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.9.4]
+
+- `alwaysIncludeGlobPatterns` can include html files.
+
+
 ## [2.9.3]
 
 - Fixes #114, supports more react class module syntax, otherwise support definition code-lens for css module.

@@ -1,19 +1,19 @@
 import * as minimatch from 'minimatch'
 import {FileTrackerOptions} from './file-tracker'
 import {URI} from 'vscode-uri'
+import {GlobPathSharer} from './glob-path-sharer'
 
 
 export class TrackingTest {
 
 	private includeFileMatcher: minimatch.IMinimatch
 	private excludeMatcher: minimatch.IMinimatch | null
-	private alwaysIncludeMatcher: minimatch.IMinimatch | null
+	private alwaysIncludeGlobSharer: GlobPathSharer | null
 
 	constructor(options: FileTrackerOptions) {
-		let alwaysIncludeGlobPattern = options.alwaysIncludeGlobPattern || null
 		this.includeFileMatcher = new minimatch.Minimatch(options.includeFileGlobPattern)
 		this.excludeMatcher = options.excludeGlobPattern ? new minimatch.Minimatch(options.excludeGlobPattern) : null
-		this.alwaysIncludeMatcher = alwaysIncludeGlobPattern ? new minimatch.Minimatch(alwaysIncludeGlobPattern) : null
+		this.alwaysIncludeGlobSharer = options.alwaysIncludeGlobSharer || null
 	}
 
 	/** Returns whether should include path, ignore exclude test. */
@@ -25,7 +25,7 @@ export class TrackingTest {
 	shouldExcludePath(fsPath: string): boolean {
 
 		// Not always include.
-		if (this.alwaysIncludeMatcher && this.alwaysIncludeMatcher.match(fsPath)) {
+		if (this.alwaysIncludeGlobSharer?.match(fsPath)) {
 			return false
 		}
 
