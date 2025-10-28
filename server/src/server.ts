@@ -428,8 +428,10 @@ class CSSNavigationServer {
 		Logger.timeEnd('diagnostic-of-' + document.uri, fileCount > 0 ? `${fileCount} files get diagnosed` : null)
 	}
 
+	/** After a css file changed, you may need to re-diagnostic all html files. */
 	private async diagnoseMoreOfType(type: 'html' | 'css' | 'any'): Promise<number> {
 		let fileCount = 0
+
 		for (let document of documents.all()) {
 			let documentExtension = getPathExtension(document.uri)
 			let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
