@@ -106,7 +106,7 @@ connection.onInitialize((params: InitializeParams) => {
 				openClose: true,
 				change: TextDocumentSyncKind.Full
 			},
-			completionProvider: configuration.enableCompletions || configuration.enableCustomTagCompletion ? {
+			completionProvider: configuration.enableCompletions ? {
 				resolveProvider: false
 			} : undefined,
 			definitionProvider: configuration.enableGoToDefinition,
