@@ -58,7 +58,7 @@
 				"CSSNavigation.enableCustomTagCompletion": {
 					"type": "boolean",
 					"default": true,
-					"description": "Whether to enable custom tag completion in HTML and CSS files."
+					"description": "Whether to enable custom tag completion in HTML and CSS files, also needs `enableCompletions` to be `true` to enable."
 				},
 				"CSSNavigation.disableOwnCSSVariableCompletion": {
 					"type": "boolean",
