@@ -27,6 +27,12 @@ export async function getCompletionItems(
 			return null
 		}
 
+		if (fromPart.isTagType() && !configuration.enableCustomTagCompletion) {
+			return null
+		}
+
+		
+
 		return await getCompletionItemsInHTML(fromPart, currentHTMLService, document, cssServiceMap, configuration, offset)
 	}
 	else if (isCSSFile) {
@@ -37,6 +43,10 @@ export async function getCompletionItems(
 
 		let fromPart = currentCSSService.findDetailedPartAt(offset)
 		if (!fromPart) {
+			return null
+		}
+
+		if (fromPart.isTagType() && !configuration.enableCustomTagCompletion) {
 			return null
 		}
 

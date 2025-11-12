@@ -47,9 +47,9 @@ export function hasInternalQuotes(text: string): boolean {
 }
 
 
-/** Returns whether has expression. */
+/** Returns whether like expression. */
 export function mayBeExpression(text: string): boolean {
-	return !hasQuotes(text) && text.includes('{')
+	return !hasQuotes(text) && /\{.*?\}/.test(text)
 }
 
 

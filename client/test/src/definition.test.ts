@@ -117,7 +117,7 @@ describe('Test html & css Template', () => {
 	before(prepare)
 
 	it('Should find definition inside html and css template', async () => {
-		assert.deepStrictEqual(await gs(['class="', 'class-in-html-template', '"'], jsxDocument), ['.class-in-html-template'])
+		assert.deepStrictEqual(await gs(['class="', 'class-in-html-template', ' '], jsxDocument), ['.class-in-html-template'])
 	})
 })
 
@@ -199,10 +199,10 @@ describe('Test Finding Definition for Vue Files', () => {
 	before(prepare)
 
 	it('Should find inner class definition', async () => {
-		assert.deepStrictEqual(await gs(['"', 'test-vue-scoped-class', '"'], vueDocument), ['.test-vue-scoped-class'])
+		assert.deepStrictEqual(await gs(['"', 'test-vue-scoped-class', '"'], vueDocument), ['.test-vue-scoped-class', '.test-vue-scoped-class', '.test-vue-scoped-class'])
 		assert.deepStrictEqual(await gs(['"', 'test-vue-scoped-class-css', '"'], vueDocument), ['.test-vue-scoped-class-css'])
-		assert.deepStrictEqual(await gs(['"', 'test-vue-scoped-class-scss', '"'], vueDocument), ['.test-vue-scoped-class-scss'])
-		assert.deepStrictEqual(await gs(['"', 'test-vue-scoped-class-less', '"'], vueDocument), ['.test-vue-scoped-class-less'])
+		assert.deepStrictEqual(await gs(['"', 'test-vue-scoped-class-scss', '"'], vueDocument), ['&-scss'])
+		assert.deepStrictEqual(await gs(["'", 'test-vue-scoped-class-less', "'"], vueDocument), ['&-less'])
 	})
 
 	it('Should find imported class definition', async () => {
@@ -211,5 +211,14 @@ describe('Test Finding Definition for Vue Files', () => {
 
 	it('Should find imported class definition inside node_modules by style tag', async () => {
 		assert.deepStrictEqual(await gs(['"', 'class-style-imported', '"'], vueDocument), ['.class-style-imported'])
+	})
+
+	it('Should find keyed class', async () => {
+		assert.deepStrictEqual(await gs(["'", 'test-vue-class-keyed', "'"], vueDocument), ['.test-vue-class-keyed'])
+		assert.deepStrictEqual(await gs(["{", 'test_vue_class_keyed', ":"], vueDocument), ['.test_vue_class_keyed'])
+	})
+
+	it('Should ignore vue variable', async () => {
+		assert.deepStrictEqual(await gs(['"', 'vue_variable_not_class', '"'], vueDocument), [])
 	})
 })

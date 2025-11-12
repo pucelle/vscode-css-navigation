@@ -189,6 +189,12 @@ export class Part {
 			|| this.type === PartType.ReactImportedCSSModuleProperty
 	}
 
+	/** HTML tag and selector tag. */
+	isTagType() {
+		return this.type === PartType.Tag
+			|| this.type === PartType.CSSSelectorTag
+	}
+
 	isSelectorWrapperType(): this is CSSSelectorWrapperPart {
 		return this.type === PartType.CSSSelectorWrapper
 	}

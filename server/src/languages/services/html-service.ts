@@ -2,21 +2,25 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PartType} from '../parts'
 import {HTMLTokenTree, JSTokenTree} from '../trees'
 import {BaseService} from './base-service'
+import path = require('node:path')
+import {LanguageIds} from '../language-ids'
 
 
+/** If document opened. */
 const HTMLLanguageIdMap: Record<string, HTMLLanguageId> = {
-
-	// If document opened.
 	'javascriptreact': 'jsx',
 	'typescriptreact': 'tsx',
 	'javascript': 'js',
 	'typescript': 'ts',
+}
 
-	// If document closed.
+/** If document closed, or language plugin not installed. */
+const HTMLLanguageExtensionMap: Record<string, HTMLLanguageId> = {
 	'jsx': 'jsx',
 	'js': 'js',
 	'tsx': 'tsx',
 	'ts': 'ts',
+	'vue': 'vue',
 }
 
 
@@ -67,8 +71,10 @@ export class HTMLService extends BaseService {
 	}
 
 	protected makeTree() {
-		let languageId = HTMLLanguageIdMap[this.document.languageId] ?? 'html'
-		if (languageId === 'html') {
+		let extension = path.extname(this.document.uri).slice(1).toLowerCase()
+		let languageId = HTMLLanguageIdMap[this.document.languageId] ?? HTMLLanguageExtensionMap[extension] ?? 'html'
+		
+		if (LanguageIds.isHTMLSyntax(languageId)) {
 			return HTMLTokenTree.fromString(this.document.getText(), 0, languageId)
 		}
 		else {

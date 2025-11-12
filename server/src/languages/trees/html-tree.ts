@@ -5,6 +5,7 @@ import {Picker} from './picker'
 import {CSSTokenTree} from './css-tree'
 import {HTMLTokenNode} from './html-node'
 import {JSTokenTree} from './js-tree'
+import {LanguageIds} from '../language-ids'
 
 
 /** 
@@ -124,10 +125,6 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		this.languageId = languageId
 	}
 
-	isScriptSyntax(): boolean {
-		return this.languageId !== 'html'
-	}
-
 	*walkParts(): Iterable<Part> {
 		for (let node of this.walk()) {
 			yield* this.parseNodeParts(node)
@@ -179,12 +176,12 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		}
 
 		// For `Lupos.js`, complete `:class.|name|` with class names.
-		else if (this.isScriptSyntax() && name.startsWith(':class.')) {
+		else if (LanguageIds.isScriptSyntax(this.languageId) && name.startsWith(':class.')) {
 			yield new Part(PartType.Class, attrName.text.slice(7), attrName.start + 7)
 		}
 
 		// For `Lupos.js`, complete `:style.-` with CSS Variables.
-		else if (this.isScriptSyntax() && name.startsWith(':style.-')) {
+		else if (LanguageIds.isScriptSyntax(this.languageId) && name.startsWith(':style.-')) {
 			yield new Part(PartType.CSSVariableAssignment, attrName.text.slice(7), attrName.start + 7)
 		}
 
@@ -204,7 +201,11 @@ export class HTMLTokenTree extends HTMLTokenNode {
 				}
 
 				// Probably expression, and within template interpolation `${...}` or `{...}`.
-				else if (this.isScriptSyntax() && mayBeExpression(attrValue.text)) {
+				// :class="expression" always includes an expression in vue.
+				else if (LanguageIds.isScriptSyntax(this.languageId) &&
+					(this.languageId === 'vue' && name === ':class'
+						|| mayBeExpression(attrValue.text))
+				) {
 					let cssParts: Part[] = []
 
 					for (let word of Picker.pickClassNamesFromExpression(unQuotedAttrValue.text)) {
@@ -220,6 +221,8 @@ export class HTMLTokenTree extends HTMLTokenNode {
 					yield* cssParts
 					yield* moduleParts
 				}
+
+				// Normal class names, but also exclude `${...}`.
 				else {
 					for (let word of Picker.pickClassNames(unQuotedAttrValue.text)) {
 						yield new Part(PartType.Class, word.text, unQuotedAttrValue.start + word.start)
@@ -236,7 +239,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		// https://github.com/gajus/babel-plugin-react-css-modules and issue #60.
 		// import 'xx.css'
 		// `styleName="class-name"`
-		else if (this.isScriptSyntax() && name === 'styleName') {
+		else if (LanguageIds.isScriptSyntax(this.languageId) && name === 'styleName') {
 			if (unQuotedAttrValue) {
 				yield new Part(PartType.ReactDefaultImportedCSSModuleClass, unQuotedAttrValue.text, unQuotedAttrValue.start)
 			}
@@ -292,7 +295,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		let textNode = node.firstTextNode
 
 		// Not process embedded js within embedded html.
-		if (textNode && textNode.token.text && this.languageId === 'html') {
+		if (textNode && textNode.token.text && LanguageIds.isHTMLSyntax(this.languageId)) {
 			let jsTree = JSTokenTree.fromString(textNode.token.text, textNode.token.start, 'js')
 			yield* jsTree.walkParts()
 		}

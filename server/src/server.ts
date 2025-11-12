@@ -106,7 +106,7 @@ connection.onInitialize((params: InitializeParams) => {
 				openClose: true,
 				change: TextDocumentSyncKind.Full
 			},
-			completionProvider: configuration.enableIdAndClassNameCompletion ? {
+			completionProvider: configuration.enableCompletions || configuration.enableCustomTagCompletion ? {
 				resolveProvider: false
 			} : undefined,
 			definitionProvider: configuration.enableGoToDefinition,
@@ -129,7 +129,7 @@ connection.onInitialized(async () => {
 		connection.onWorkspaceSymbol(Logger.logQuerierExecutedTime(server.provideSymbols.bind(server), 'workspace symbol'))
 	}
 
-	if (configuration.enableIdAndClassNameCompletion) {
+	if (configuration.enableCompletions) {
 		connection.onCompletion(Logger.logQuerierExecutedTime(server.provideCompletionItems.bind(server), 'completion'))
 	}
 
@@ -169,6 +169,7 @@ class CSSNavigationServer {
 		this.options = options
 
 		let startPath = options.workspaceFolderPath
+		
 		let alwaysIncludeGlobPattern = configuration.alwaysIncludeGlobPatterns
 			? generateGlobPatternByPatterns(configuration.alwaysIncludeGlobPatterns)
 			: undefined

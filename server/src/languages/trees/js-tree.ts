@@ -162,10 +162,6 @@ export class JSTokenTree extends JSTokenNode{
 		this.children = []
 	}
 
-	protected isReactScriptSyntax(): boolean {
-		return this.languageId === 'jsx' || this.languageId === 'tsx'
-	}
-
 	*walkParts(): Iterable<Part> {
 		for (let node of this.walk()) {
 			yield* this.parseNodeParts(node)

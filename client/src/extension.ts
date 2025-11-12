@@ -191,7 +191,8 @@ export class CSSNavigationExtension {
 
 		return {
 			enableGoToDefinition: config.get('enableGoToDefinition', true),
-			enableIdAndClassNameCompletion: config.get('enableIdAndClassNameCompletion', true),
+			enableCompletions: config.get('enableCompletions', true),
+			enableCustomTagCompletion: config.get('enableCustomTagCompletion', true),
 			enableWorkspaceSymbols: config.get('enableWorkspaceSymbols', true),
 			enableFindAllReferences: config.get('enableFindAllReferences', true),
 			enableHover: config.get('enableHover', true),

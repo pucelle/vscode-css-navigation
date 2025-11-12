@@ -6,7 +6,8 @@ interface InitializationOptions {
 interface Configuration {
 	enableGoToDefinition: boolean
 	enableWorkspaceSymbols: boolean
-	enableIdAndClassNameCompletion: boolean
+	enableCompletions: boolean
+	enableCustomTagCompletion: boolean
 	enableFindAllReferences: boolean
 	enableHover: boolean
 	enableDefinitionCodeLens: boolean

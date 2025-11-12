@@ -4,13 +4,14 @@ import './css/app.css'
 
 
 class App {
+	className = ''
 	render() {
 		$('.match-jquery-selector')
 		document.querySelector('.match-querySelector')
 		document.querySelectorAll('.match-querySelectorAll')
 
 		html `
-			<div class="class-in-html-template"></div> 
+			<div class="class-in-html-template ${this.className}"></div> 
 		`
 
 		css`

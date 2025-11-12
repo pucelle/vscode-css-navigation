@@ -137,7 +137,8 @@ editor.quickSuggestions": {
 | `enableLogLevelMessage`                 | Whether to enable log level message, set it to `true` for debugging.
 | `enableGoToDefinition`                  | Whether to enable goto definition service. Default value is `true`.
 | `enableWorkspaceSymbols`                | Whether to enable workspace symbol service. Default value is `true`.
-| `enableIdAndClassNameCompletion`        | Whether to enable id and class name completion service. Default value is `true`.
+| `enableCompletions`                    | Whether to enable id and class name and other completions in HTML and CSS files. Default value is `true`.
+| `enableCustomTagCompletion`             | Whether to enable custom tag name completion in HTML and CSS files. Default value is `true`.
 | `enableFindAllReferences`               | Whether to enable finding references service. Default value is `true`.
 | `enableHover`                           | Whether to enable id and class name hover service. Default value is `true`.
 | `enableCSSVariableColorPreview`         | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. Default value is `true`.

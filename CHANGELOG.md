@@ -1,6 +1,13 @@
 # ChangeLog
 
 
+## [2.10.0]
+
+- Rename option `enableIdAndClassNameCompletion` to `enableCompletions`.
+- Add option `enablesCustomTagCompletion`, to fix #119.
+- Fixes #116, #117. 
+
+
 ## [2.9.4]
 
 - `alwaysIncludeGlobPatterns` can include html files.
