@@ -184,5 +184,18 @@ div.class-match10{
 @media (min-width: 1280px) {
     .xl\:w-1\/6{
         width: 16.666667%;
+		color: var(--css-variable-color);
     }
 }
+
+@include sass-mixin(
+    (container-padding: var(--css-variable-color))
+);
+
+@include sass-mixin(
+    $properties: (container-padding: var(--css-variable-color))
+);
+
+@include sass-mixin(
+    $variable: var(--css-variable-color)
+);
