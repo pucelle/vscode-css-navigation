@@ -11,7 +11,7 @@ class App {
 		document.querySelectorAll('.match-querySelectorAll')
 
 		html `
-			<div class="class-in-html-template ${this.className}"></div> 
+			<div class="class-in-html-template ${this.className} class-${ this.className }"></div> 
 		`
 
 		css`

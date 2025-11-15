@@ -48,7 +48,7 @@
     <div :class="vue_variable_not_class"></div>
     
     <div :class="`cName-${variable}`"></div>
-    <div :class="`cName-${variable?'A':'B'}`"></div>
+    <div :class="`cName-${variable ? 'A' : 'B'}`"></div>
 </template>
 
 
