@@ -1,6 +1,6 @@
 import {HTMLToken, HTMLTokenScanner, HTMLTokenType} from '../scanners/html'
 import {Part, PartType} from '../parts'
-import {hasInternalQuotes, hasQuotes, mayBeExpression, removeQuotesFromToken} from './utils'
+import {beExpression, removeQuotesFromToken} from './utils'
 import {Picker} from './picker'
 import {CSSTokenTree} from './css-tree'
 import {HTMLTokenNode} from './html-node'
@@ -190,21 +190,16 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		else if (name === 'class' || name === 'className' || name === ':class' || name.endsWith('-bind:class')) {
 			if (attrValue && unQuotedAttrValue) {
 
-				// `:class="variable ? '' : ''"`
-				if (name.endsWith(':class') && hasQuotes(attrValue.text) && hasInternalQuotes(unQuotedAttrValue.text)) {
-					let matches = Picker.locateAllMatches(unQuotedAttrValue.text, /(['"]).*?\1/g, [0])
-					for (let match of matches) {
-						for (let word of Picker.pickClassNames(match[0].text)) {
-							yield new Part(PartType.Class, word.text, unQuotedAttrValue.start + match[0].start + word.start)
-						}
-					}
-				}
-
 				// Probably expression, and within template interpolation `${...}` or `{...}`.
-				// :class="expression" always includes an expression in vue.
-				else if (LanguageIds.isScriptSyntax(this.languageId) &&
-					(this.languageId === 'vue' && name === ':class'
-						|| mayBeExpression(attrValue.text))
+				// `className={expression}` for React like.
+				// `x-bind:class="expression"` for Alpine.js.
+				// `:class="expression"` always contain expression in vue.
+				// `class={...}` for Solid.js.
+				// Exclude template literal `class="${...}"`
+				if (LanguageIds.isScriptSyntax(this.languageId)
+					&& (name.endsWith('-bind:class')
+						|| this.languageId === 'vue' && name === ':class'
+						|| beExpression(attrValue.text))
 				) {
 					let cssParts: Part[] = []
 

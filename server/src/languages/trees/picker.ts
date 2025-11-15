@@ -11,21 +11,21 @@ export namespace Picker {
 	 * Starts with `a-z` or `_`, but can follow any non-whitespace characters.
 	 */
 	export function pickClassNames(text: string): Picked[] {
-		let re = /(\w[^\s"'`]*)|\$\{.*?\}/g
+		let re = /\w[^\s"'`]*|\$\{.*?\}/g
 		let match: RegExpExecArray | null
 		let words: Picked[] = []
 
 		while (match = re.exec(text)) {
 
-			// Have interpolation characters.
-			if (!match[1]) {
+			// Includes template interpolation part.
+			if (/\$\{.*?\}/.test(match[0])) {
 				continue
 			}
 
 			let start = match.index
 
 			words.push({
-				text: match[1],
+				text: match[0],
 				start,
 			})
 		}
@@ -45,6 +45,11 @@ export namespace Picker {
 
 		while (match = re.exec(text)) {
 			let start = match.index
+
+			// Includes template interpolation part.
+			if (match[0].startsWith('`') && /\$\{.*?\}/.test(match[0])) {
+				continue
+			}
 
 			if (match[1]) {
 				words.push({

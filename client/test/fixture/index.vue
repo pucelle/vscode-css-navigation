@@ -46,6 +46,9 @@
     <div :class="{'test-vue-class-keyed': boolean}"></div>
     <div :class="{test_vue_class_keyed: boolean}"></div>
     <div :class="vue_variable_not_class"></div>
+    
+    <div :class="`cName-${variable}`"></div>
+    <div :class="`cName-${variable?'A':'B'}`"></div>
 </template>
 
 

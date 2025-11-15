@@ -41,15 +41,9 @@ export function hasQuotes(text: string): boolean {
 }
 
 
-/** Returns whether has internal quotes inside. */
-export function hasInternalQuotes(text: string): boolean {
-	return /['"]/.test(text)
-}
-
-
-/** Returns whether like expression. */
-export function mayBeExpression(text: string): boolean {
-	return !hasQuotes(text) && /\{.*?\}/.test(text)
+/** Returns whether like expression, which means `^{...}$` or `^\${...}$`. */
+export function beExpression(text: string): boolean {
+	return /^\$?\{.*?\}$/.test(text)
 }
 
 
