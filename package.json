@@ -3,7 +3,7 @@
 	"displayName": "CSS Navigation",
 	"description": "Provides CSS Completion, Finding Definition, Finding References, Diagnostic, Hover, Workspace Symbols services for HTML, JS, TS, JSX, Vue and more languages across whole workspace",
 	"icon": "images/logo.png",
-	"version": "2.10.2",
+	"version": "2.11.0",
 	"license": "MIT",
 	"publisher": "pucelle",
 	"homepage": "https://github.com/pucelle/vscode-css-navigation",
@@ -203,7 +203,8 @@
 		"build": "tsc -b",
 		"watch": "tsc -b -w",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-		"test": "sh ./client/test/scripts/e2e.sh",
+		"e2e-test": "sh ./client/test/scripts/e2e.sh",
+		"test": "vitest tests",
 		"package": "vsce package",
 		"publish": "vsce publish"
 	},
@@ -213,7 +214,8 @@
 		"@types/minimatch": "^3.0.3",
 		"@types/mocha": "^5.2.5",
 		"@types/node": "^22.7.4",
-		"vscode": "^1.1.37"
+		"vscode": "^1.1.37",
+		"vitest": "^3.2.4"
 	},
 	"dependencies": {
 		"fs-extra": "^9.0.1",

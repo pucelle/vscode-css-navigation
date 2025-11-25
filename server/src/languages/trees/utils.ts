@@ -41,12 +41,6 @@ export function hasQuotes(text: string): boolean {
 }
 
 
-/** Returns whether like expression, which means `^{...}$` or `^\${...}$`. */
-export function beExpression(text: string): boolean {
-	return /^\$?\{.*?\}$/.test(text)
-}
-
-
 /** Join several tokens to one. */
 export function joinTokens<T extends AnyToken<any>>(tokens: T[], string: string, tokenOffset: number): T {
 	if (tokens.length === 1) {

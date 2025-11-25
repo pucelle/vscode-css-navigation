@@ -49,6 +49,7 @@
     
     <div :class="`cName-${variable}`"></div>
     <div :class="`cName-${variable ? 'A' : 'B'}`"></div>
+    <div :class="{'test_vue_class_keyed': variable === 'not-be-class-name'}"></div>
 </template>
 
 

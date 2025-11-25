@@ -1,6 +1,12 @@
 # ChangeLog
 
 
+## [2.11.0]
+
+- Add a class name token scanner for complex class-names embedded in `className=...`, `:class=...`...
+- Fix #116, partial of #120. 
+
+
 ## [2.10.0]
 
 - Rename option `enableIdAndClassNameCompletion` to `enableCompletions`.

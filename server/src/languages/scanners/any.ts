@@ -31,10 +31,29 @@ export class AnyTokenScanner<T extends number> {
 	protected offset = 0
 	protected state: number = ScanState.AnyContent
 
+	/** For complex state management when you don't want building a tree. */
+	protected stateStack: number[] = []
+
 	constructor(string: string, scannerStart: number = 0, languageId: AllLanguageId) {
 		this.string = string
 		this.scannerStart = scannerStart
 		this.languageId = languageId
+	}
+
+	/** For complex state management when you don't want building a tree. */
+	protected enterState(state: number) {
+		this.stateStack.push(this.state)
+		this.state = state
+	}
+
+	/** For complex state management when you don't want building a tree. */
+	protected exitState() {
+		if (this.stateStack.length === 0) {
+			this.state = ScanState.EOF
+		}
+		else {
+			this.state = this.stateStack.pop()!
+		}
 	}
 
 	protected isEnded(): boolean {
@@ -56,7 +75,7 @@ export class AnyTokenScanner<T extends number> {
 
 	/** 
 	 * It reads matches one by one, and requires each match must connect end to start.
-	 * Moves `offset` to before first not match position.
+	 * Moves cursor to before first not match position.
 	 * Note the `re` must have `g` flag set.
 	 * Returns whether had read some characters.
 	 */
@@ -124,8 +143,8 @@ export class AnyTokenScanner<T extends number> {
 	}
 
 	/** 
-	 * Return after position of end quote: `"..."|`.
-	 * Cursor must before first quote: `|""`.
+	 * Read string until position after end quote: `"..."|`.
+	 * Cursor must before first quote `|"`.
 	 */
 	protected readString(): boolean {
 		let quote = this.peekChar()
@@ -136,7 +155,7 @@ export class AnyTokenScanner<T extends number> {
 		while (true) {
 
 			// "..."|
-			if (!this.readOut(/['"\\]/g)) {
+			if (!this.readOut(/['"\\$]/g)) {
 				break
 			}
 
@@ -150,12 +169,19 @@ export class AnyTokenScanner<T extends number> {
 			if (char === '\\') {
 				this.offset += 1
 			}
+			
+			// Read template literal.
+			if (char === '$' && this.peekChar() === '{' && quote === '`' && LanguageIds.isScriptSyntax(this.languageId)) {
+				if (!this.readBracketed()) {
+					break
+				}
+			}
 		}
 
 		return this.state !== ScanState.EOF
 	}
 
-	/** Read all whitespaces. */
+	/** Read all whitespaces, move cursor to before first non white space. */
 	protected readWhiteSpaces(): boolean {
 		return !!this.readUntil(/\S/g)
 	}
@@ -186,8 +212,9 @@ export class AnyTokenScanner<T extends number> {
 	}
 
 	/** 
-	 * Try read an bracketed expression like `[...]`, `(...)`, `{...}`,
-	 * Must ensure the current char is one of `[{(`.
+	 * Try read an bracketed expression like `[...]`, `(...)`, `{...}`.
+	 * Must ensure the current char is one of `[{(`,
+	 * and cursor must before start bracket `[{(`.
 	 * brackets or quotes must appear in pairs.
 	 * It stops after found all matching end brackets.
 	 * Supported language js, css, sass, less.
@@ -267,7 +294,7 @@ export class AnyTokenScanner<T extends number> {
 		return this.state !== ScanState.EOF
 	}
 
-	/** Read `...`, must ensure the current char is `\``. */
+	/** Read `...`, must ensure the current char is `|``. */
 	protected readTemplateLiteral(): boolean {
 		let re = /[`\\$]/g
 
@@ -361,9 +388,9 @@ export class AnyTokenScanner<T extends number> {
 	}
 
 	/** Note it will sync start to offset. */
-	protected makeToken(type: T): AnyToken<T> {
-		let start = this.start
-		let end = this.offset
+	protected makeToken(type: T, startOffset: number = 0, endOffset: number = 0): AnyToken<T> {
+		let start = this.start + startOffset
+		let end = this.offset + endOffset
 		let text = this.string.slice(start, end)
 
 		this.sync()

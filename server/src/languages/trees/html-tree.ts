@@ -1,6 +1,6 @@
-import {HTMLToken, HTMLTokenScanner, HTMLTokenType} from '../scanners/html'
+import {HTMLToken, HTMLTokenScanner, HTMLTokenType, CSSClassInExpressionTokenScanner, CSSClassInExpressionTokenType} from '../scanners'
 import {Part, PartType} from '../parts'
-import {beExpression, removeQuotesFromToken} from './utils'
+import {hasQuotes, removeQuotesFromToken} from './utils'
 import {Picker} from './picker'
 import {CSSTokenTree} from './css-tree'
 import {HTMLTokenNode} from './html-node'
@@ -188,7 +188,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		// For normal class attribute, or for `JSX`, `Lupos.js`, `Vue.js`,
 		// or for `:class`, `v-bind:class`, `x-bind:class`
 		else if (name === 'class' || name === 'className' || name === ':class' || name.endsWith('-bind:class')) {
-			if (attrValue && unQuotedAttrValue) {
+			if (attrValue) {
 
 				// Probably expression, and within template interpolation `${...}` or `{...}`.
 				// `className={expression}` for React like.
@@ -196,37 +196,35 @@ export class HTMLTokenTree extends HTMLTokenNode {
 				// `:class="expression"` always contain expression in vue.
 				// `class={...}` for Solid.js.
 				// Exclude template literal `class="${...}"`
-				if (LanguageIds.isScriptSyntax(this.languageId)
-					&& (name.endsWith('-bind:class')
-						|| this.languageId === 'vue' && name === ':class'
-						|| beExpression(attrValue.text))
-				) {
-					let cssParts: Part[] = []
 
-					for (let word of Picker.pickClassNamesFromExpression(unQuotedAttrValue.text)) {
-						cssParts.push(new Part(PartType.Class, word.text, unQuotedAttrValue.start + word.start))
-					}
+				// Which supports `"{className: boolean}"` syntax.
+				let alreadyAnExpression = name.endsWith('-bind:class')
+					|| this.languageId === 'vue' && name === ':class'
 
-					// May a same word get recognized as CSS part, later as react module part also.
-					let moduleParts = [...this.parseReactModulePart(unQuotedAttrValue)]
-					if (moduleParts.length > 0) {
-						cssParts = cssParts.filter(p => !moduleParts.find(mp => mp.start === p.start))
-					}
+				let text = attrValue.text
+				let start = attrValue.start
 
-					yield* cssParts
-					yield* moduleParts
+				if (alreadyAnExpression && hasQuotes(text)) {
+					text = unQuotedAttrValue!.text
+					start = unQuotedAttrValue!.start
 				}
 
-				// Normal class names, but also exclude `${...}`.
-				else {
-					for (let word of Picker.pickClassNames(unQuotedAttrValue.text)) {
-						yield new Part(PartType.Class, word.text, unQuotedAttrValue.start + word.start)
-					}
-				}
+				console.log(text)
 
-				// Also provide completions for `class="|"`, or `class="abc |"`, or `class="abc | def"`.
-				for (let word of Picker.pickPotentialEmptyWords(unQuotedAttrValue.text)) {
-					yield new Part(PartType.ClassPotential, word.text, unQuotedAttrValue.start + word.start)
+				let scanner = new CSSClassInExpressionTokenScanner(text, start, this.languageId, alreadyAnExpression)
+				for (let token of scanner.parseToTokens()) {
+					if (token.type === CSSClassInExpressionTokenType.ClassName) {
+						yield new Part(PartType.Class, token.text, token.start)
+					}
+					else if (token.type === CSSClassInExpressionTokenType.PotentialClassName) {
+						yield new Part(PartType.ClassPotential, token.text, token.start)
+					}
+					else if (token.type === CSSClassInExpressionTokenType.ReactModuleName) {
+						yield new Part(PartType.ReactImportedCSSModuleName, token.text, token.start)
+					}
+					else if (token.type === CSSClassInExpressionTokenType.ReactModuleProperty) {
+						yield new Part(PartType.ReactImportedCSSModuleProperty, token.text, token.start)
+					}
 				}
 			}
 		}
