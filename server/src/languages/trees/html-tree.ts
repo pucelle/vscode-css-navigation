@@ -209,8 +209,6 @@ export class HTMLTokenTree extends HTMLTokenNode {
 					start = unQuotedAttrValue!.start
 				}
 
-				console.log(text)
-
 				let scanner = new CSSClassInExpressionTokenScanner(text, start, this.languageId, alreadyAnExpression)
 				for (let token of scanner.parseToTokens()) {
 					if (token.type === CSSClassInExpressionTokenType.ClassName) {
