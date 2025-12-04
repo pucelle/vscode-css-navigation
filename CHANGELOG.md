@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.11.1]
+
+- Fix for #120, scenario when react element syntax contains comments.
+
+
 ## [2.11.0]
 
 - Add a class name token scanner for complex class-names embedded in `className=...`, `:class=...`...

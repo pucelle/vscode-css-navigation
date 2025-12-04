@@ -12,16 +12,12 @@ export enum JSTokenType {
 	HTML,
 	CSS,
 	Script,
-	CommentText,
 }
 
 
 enum ScanState {
 	EOF = 0,
 	AnyContent = 1,
-
-	WithinSingleLineComment,
-	WithinMultiLineComment,
 }
 
 
@@ -40,12 +36,6 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 			if (this.state === ScanState.AnyContent) {
 				yield* this.onAnyContent()
 			}
-			else if (this.state === ScanState.WithinSingleLineComment) {
-				yield* this.onWithinSingleLineComment()
-			}
-			else if (this.state === ScanState.WithinMultiLineComment) {
-				yield* this.onWithinMultiLineComment()
-			}
 		}
 
 		yield* this.makeScriptToken()
@@ -59,31 +49,11 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 			return
 		}
 
-		if (!this.readUntil(/[`'"\/]/g)) {
+		if (!this.readUntil(/[`'"]/g)) {
 			return
 		}
 
 		let char = this.peekChar()
-
-		// `|//`
-		if (char === '/' && this.peekChar(1) === '/') {
-			yield* this.makeScriptToken()
-
-			// Move to `//|`
-			this.offset += 2
-			this.sync()
-			this.state = ScanState.WithinSingleLineComment
-		}
-
-		// `|/*`
-		else if (char === '/' && this.peekChar(1) === '*') {
-			yield* this.makeScriptToken()
-
-			// Move to `/*|`
-			this.offset += 2
-			this.sync()
-			this.state = ScanState.WithinMultiLineComment
-		}
 
 		// `|/`, currently can't distinguish it from sign of division.
 		// else if (char === '/') {
@@ -91,7 +61,7 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 		// }
 
 		// `|'`
-		else if (char === '\'' || char === '"') {
+		if (char === '\'' || char === '"') {
 			this.readString()
 		}
 
@@ -103,36 +73,6 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 		else {
 			this.offset += 1
 		}
-	}
-
-	protected *onWithinSingleLineComment(): Iterable<JSToken> {
-
-		// `|\n`
-		if (!this.readLine()) {
-			return
-		}
-
-		yield this.makeToken(JSTokenType.CommentText)
-
-		// Move to `\n|`
-		this.offset += 1
-		this.sync()
-		this.state = ScanState.AnyContent
-	}
-
-	protected *onWithinMultiLineComment(): Iterable<JSToken> {
-
-		// `|*/`
-		if (!this.readUntil(/\*\//g)) {
-			return
-		}
-
-		yield this.makeToken(JSTokenType.CommentText)
-
-		// Move to `*/|`
-		this.offset += 2
-		this.sync()
-		this.state = ScanState.AnyContent
 	}
 
 	protected *makeScriptToken(): Iterable<JSToken> {
