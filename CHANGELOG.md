@@ -1,6 +1,16 @@
 # ChangeLog
 
 
+## [2.11.3]
+
+- Fix #123, when React JSX code includes RegExp.
+
+
+## [2.11.2]
+
+- Fix sometimes quote marks in comment wrongly affect js codes.
+
+
 ## [2.11.1]
 
 - Fix for #120, scenario when react element syntax contains comments.

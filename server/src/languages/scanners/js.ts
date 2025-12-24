@@ -18,6 +18,8 @@ export enum JSTokenType {
 enum ScanState {
 	EOF = 0,
 	AnyContent = 1,
+	WithinSingleLineComment,
+	WithinMultiLineComment,
 }
 
 
@@ -36,6 +38,12 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 			if (this.state === ScanState.AnyContent) {
 				yield* this.onAnyContent()
 			}
+			else if (this.state === ScanState.WithinSingleLineComment) {
+				yield* this.onWithinSingleLineComment()
+			}
+			else if (this.state === ScanState.WithinMultiLineComment) {
+				yield* this.onWithinMultiLineComment()
+			}
 		}
 
 		yield* this.makeScriptToken()
@@ -49,19 +57,35 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 			return
 		}
 
-		if (!this.readUntil(/[`'"]/g)) {
+		if (!this.readUntilToMatch(/[`'"\/]/g)) {
 			return
 		}
 
 		let char = this.peekChar()
 
+		// `|//`
+		if (char === '/' && this.peekChar(1) === '/') {
+
+			// Move to `//|`
+			this.offset += 2
+			this.state = ScanState.WithinSingleLineComment
+		}
+
+		// `|/*`
+		else if (char === '/' && this.peekChar(1) === '*') {
+
+			// Move to `/*|`
+			this.offset += 2
+			this.state = ScanState.WithinMultiLineComment
+		}
+
 		// `|/`, currently can't distinguish it from sign of division.
-		// else if (char === '/') {
-		// 	this.readRegExp()
-		// }
+		else if (char === '/') {
+			this.tryReadRegExp()
+		}
 
 		// `|'`
-		if (char === '\'' || char === '"') {
+		else if (char === '\'' || char === '"') {
 			this.readString()
 		}
 
@@ -73,6 +97,30 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 		else {
 			this.offset += 1
 		}
+	}
+
+	protected *onWithinSingleLineComment(): Iterable<JSToken> {
+
+		// `|\n`
+		if (!this.readLine()) {
+			return
+		}
+
+		// Move to `\n|`
+		this.offset += 1
+		this.state = ScanState.AnyContent
+	}
+
+	protected *onWithinMultiLineComment(): Iterable<JSToken> {
+
+		// `|*/`
+		if (!this.readUntilToMatch(/\*\//g)) {
+			return
+		}
+
+		// Move to `*/|`
+		this.offset += 2
+		this.state = ScanState.AnyContent
 	}
 
 	protected *makeScriptToken(): Iterable<JSToken> {

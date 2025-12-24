@@ -122,7 +122,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	protected *onAnyContent(): Iterable<HTMLToken> {
 
 		// `|<`
-		if (!this.readUntil(/</g)) {
+		if (!this.readUntilToMatch(/</g)) {
 			return
 		}
 
@@ -173,7 +173,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	protected *onWithinComment(): Iterable<HTMLToken> {
 
 		// `-->|`
-		if (!this.readUntil(/-->/g)) {
+		if (!this.readUntilToMatch(/-->/g)) {
 			return
 		}
 
@@ -188,7 +188,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	protected *onWithinDoctype(): Iterable<HTMLToken> {
 		
 		// `|>`
-		if (!this.readUntil(/>/g)) {
+		if (!this.readUntilToMatch(/>/g)) {
 			return
 		}
 
@@ -235,7 +235,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 			yield this.makeToken(HTMLTokenType.EndTagName)
 
 			// `</abc>|`, skip `>`
-			if (!this.readOut(/>/g)) {
+			if (!this.readOutToMatch(/>/g)) {
 				return
 			}
 
@@ -284,7 +284,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	protected *onWithinAttributeName(): Iterable<HTMLToken> {
 		
 		// `name|`
-		this.readUntil(IsNotAttrName)
+		this.readUntilToMatch(IsNotAttrName)
 		yield this.makeToken(HTMLTokenType.AttributeName)
 
 		this.state = ScanState.AfterAttributeName
@@ -362,7 +362,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 		let re = /[()\[\]{}"'`\/\s>]/g
 
 		while (this.state !== ScanState.EOF) {
-			if (!this.readUntil(re)) {
+			if (!this.readUntilToMatch(re)) {
 				return
 			}
 			
@@ -391,7 +391,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 				// Move cursor to `/*|`.
 				this.offset += 2
 
-				this.readOut(/\*\//g)
+				this.readOutToMatch(/\*\//g)
 				continue
 			}
 
@@ -402,6 +402,12 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 				this.offset += 2
 
 				this.readLineAndEnd()
+				continue
+			}
+
+			// `/.../`
+			else if (char === '/') {
+				this.tryReadRegExp()
 				continue
 			}
 
@@ -492,7 +498,7 @@ export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 		yield this.makeToken(HTMLTokenType.EndTagName)
 
 		// `</abc>|`, skip `>`
-		if (!this.readOut(/>/g)) {
+		if (!this.readOutToMatch(/>/g)) {
 			return
 		}
 

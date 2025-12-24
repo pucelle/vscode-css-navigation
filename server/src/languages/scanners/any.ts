@@ -108,7 +108,7 @@ export class AnyTokenScanner<T extends number> {
 	 * It moves `offset` to before match.
 	 * Note the `re` must have `g` flag set.
 	 */
-	protected readUntil(re: RegExp): RegExpExecArray | null {
+	protected readUntilToMatch(re: RegExp): RegExpExecArray | null {
 		re.lastIndex = this.offset
 		let m = re.exec(this.string)
 
@@ -127,7 +127,7 @@ export class AnyTokenScanner<T extends number> {
 	 * It moves `offset` to after match.
 	 * Note the `re` must have `g` flag set.
 	 */
-	protected readOut(re: RegExp): RegExpExecArray | null {
+	protected readOutToMatch(re: RegExp): RegExpExecArray | null {
 		re.lastIndex = this.offset
 		let m = re.exec(this.string)
 
@@ -155,7 +155,7 @@ export class AnyTokenScanner<T extends number> {
 		while (true) {
 
 			// "..."|
-			if (!this.readOut(/['"\\$]/g)) {
+			if (!this.readOutToMatch(/['"\\$]/g)) {
 				break
 			}
 
@@ -183,12 +183,12 @@ export class AnyTokenScanner<T extends number> {
 
 	/** Read all whitespaces, move cursor to before first non white space. */
 	protected readWhiteSpaces(): boolean {
-		return !!this.readUntil(/\S/g)
+		return !!this.readUntilToMatch(/\S/g)
 	}
 
 	/** Read chars until before `|\r\n`. */
 	protected readLine(): boolean {
-		if (!this.readUntil(/[\r\n]/g)) {
+		if (!this.readUntilToMatch(/[\r\n]/g)) {
 			return false
 		}
 
@@ -225,7 +225,7 @@ export class AnyTokenScanner<T extends number> {
 		let re = /[()\[\]{}"'`\/]/g
 
 		while (this.state !== ScanState.EOF) {
-			if (!this.readUntil(re)) {
+			if (!this.readUntilToMatch(re)) {
 				break
 			}
 			
@@ -249,7 +249,7 @@ export class AnyTokenScanner<T extends number> {
 				// Move cursor to `/*|`.
 				this.offset += 2
 
-				this.readOut(/\*\//g)
+				this.readOutToMatch(/\*\//g)
 				continue
 			}
 
@@ -302,7 +302,7 @@ export class AnyTokenScanner<T extends number> {
 		this.offset += 1
 
 		while (true) {
-			if (!this.readOut(re)) {
+			if (!this.readOutToMatch(re)) {
 				break
 			}
 
@@ -329,16 +329,19 @@ export class AnyTokenScanner<T extends number> {
 
 	/** 
 	 * Read a regexp expression like `/.../`.
-	 * Cursor must locate at `|/`
+	 * Cursor must locate at `|/`.
+	 * Returns whether read a regexp.
 	 */
-	protected readRegExp(): boolean {
+	protected tryReadRegExp(): boolean {
 		let withinCharList = false
+		let startOffset = this.offset
 
 		// Move cursor to `/|`
 		this.offset += 1
 
 		while (true) {
-			if (!this.readOut(/[\\\[\]\/]/g)) {
+			if (!this.readOutToMatch(/[\\\[\]\/\r\n]/g)) {
+				this.offset = startOffset + 1
 				return false
 			}
 
@@ -365,9 +368,21 @@ export class AnyTokenScanner<T extends number> {
 			else if (char === '/' && !withinCharList) {
 				break
 			}
+
+			// Not correctly ended.
+			else if (char === '\r' || char === '\n') {
+				
+				// Move to `/|` if failed to read regexp.
+				this.offset = startOffset + 1
+				
+				return false
+			}
 		}
 
-		return !!this.readUntil(/[^a-z]/g)
+		// Skip regexp flags.
+		!!this.readUntilToMatch(/[^a-z]/g)
+
+		return true
 	}
 
 	/** 

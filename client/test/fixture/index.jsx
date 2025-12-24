@@ -3,6 +3,28 @@ import './css/test.scss'
 import './css/app.css'
 
 
+function Test() {
+	return (
+		<button
+			className="class1"
+			onContextMenu={() => {
+				// comment me , "a" will work again
+				''.replace( /"\w+":/g, ( match ) => match.replace( /"/g, '' ) );
+			}}
+		>
+			×
+		</button>
+	);
+}
+
+// broken
+function Test2() {
+	return (
+		<div className="class1" />
+	);
+}
+
+
 class App {
 	className = ''
 	render() {

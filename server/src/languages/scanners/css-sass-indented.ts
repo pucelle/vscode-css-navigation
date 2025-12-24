@@ -29,7 +29,7 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 
 		while (this.state !== ScanState.EOF) {
 			if (this.state === ScanState.AnyContent) {
-				this.readUntil(/[\/#"'\r\n]/g)
+				this.readUntilToMatch(/[\/#"'\r\n]/g)
 
 				if (this.isEnded()) {
 					break
@@ -98,7 +98,7 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 			else if (this.state === ScanState.WithinSassInterpolation) {
 
 				// `|}`
-				this.readUntil(/[}]/g)
+				this.readUntilToMatch(/[}]/g)
 
 				if (this.isEnded()) {
 					break
@@ -116,7 +116,7 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 			else if (this.state === ScanState.LineWrap) {
 
 				// `\t|`
-				this.readUntil(/[^\t ]/g)
+				this.readUntilToMatch(/[^\t ]/g)
 
 				if (this.isEnded()) {
 					break
@@ -164,7 +164,7 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 			else if (this.state === ScanState.WithinCSSComment) {
 
 				// `*/|`
-				this.readUntil(/\*\//)
+				this.readUntilToMatch(/\*\//)
 
 				if (this.isEnded()) {
 					break

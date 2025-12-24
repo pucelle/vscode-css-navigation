@@ -175,17 +175,17 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			}
 		}
 
-		// For `Lupos.js`, complete `:class.|name|` with class names.
+		// For `lupos.html`, complete `:class.|name|` with class names.
 		else if (LanguageIds.isScriptSyntax(this.languageId) && name.startsWith(':class.')) {
 			yield new Part(PartType.Class, attrName.text.slice(7), attrName.start + 7)
 		}
 
-		// For `Lupos.js`, complete `:style.-` with CSS Variables.
+		// For `lupos.html`, complete `:style.-` with CSS Variables.
 		else if (LanguageIds.isScriptSyntax(this.languageId) && name.startsWith(':style.-')) {
 			yield new Part(PartType.CSSVariableAssignment, attrName.text.slice(7), attrName.start + 7)
 		}
 
-		// For normal class attribute, or for `JSX`, `Lupos.js`, `Vue.js`,
+		// For normal class attribute, or for `JSX`, `lupos.html`, `Vue.js`,
 		// or for `:class`, `v-bind:class`, `x-bind:class`
 		else if (name === 'class' || name === 'className' || name === ':class' || name.endsWith('-bind:class')) {
 			if (attrValue) {

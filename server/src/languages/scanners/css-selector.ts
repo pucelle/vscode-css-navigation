@@ -121,7 +121,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 	*parseToTokens(): Iterable<CSSSelectorToken> {
 		while (this.state !== ScanState.EOF) {
 			if (this.state === ScanState.AnyContent) {
-				if (!this.readUntil(/[\w&.#\[:+>|~,\/*]/g)) {
+				if (!this.readUntilToMatch(/[\w&.#\[:+>|~,\/*]/g)) {
 					break
 				}
 
@@ -332,7 +332,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinCSSComment) {
 
 				// `|*/`
-				if (!this.readUntil(/\*\//g)) {
+				if (!this.readUntilToMatch(/\*\//g)) {
 					break
 				}
 
@@ -347,7 +347,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 			else if (this.state === ScanState.WithinSassLessComment) {
 
 				// `|//`
-				if (!this.readUntil(/\/\//g)) {
+				if (!this.readUntilToMatch(/\/\//g)) {
 					break
 				}
 

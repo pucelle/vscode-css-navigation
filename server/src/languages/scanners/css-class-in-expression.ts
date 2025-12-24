@@ -112,7 +112,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			offset = this.offset
 
 			if (this.state === ScanState.AnyContent) {
-				if (!this.readUntil(/['"`{$]/g)) {
+				if (!this.readUntilToMatch(/['"`{$]/g)) {
 					break
 				}
 
@@ -147,7 +147,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			}
 
 			else if (this.state === ScanState.WithinString) {
-				if (!this.readUntil(/['"`\\\w${\s]/g)) {
+				if (!this.readUntilToMatch(/['"`\\\w${\s]/g)) {
 					break
 				}
 
@@ -219,7 +219,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 
 			else if (this.state === ScanState.WithinExpression) {
 
-				if (!this.readUntil(/['"`{\[\w\}]/g)) {
+				if (!this.readUntilToMatch(/['"`{\[\w\}]/g)) {
 					break
 				}
 
@@ -321,7 +321,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 						this.offset += 1
 
 						// Move to `]|`
-						this.readOut(/]/g)
+						this.readOutToMatch(/]/g)
 					}
 				}
 
@@ -331,7 +331,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			else if (this.state === ScanState.WithinObject) {
 
 				// `{|`
-				if (!this.readUntil(/[\w'"`}]/g)) {
+				if (!this.readUntilToMatch(/[\w'"`}]/g)) {
 					break
 				}
 
@@ -386,7 +386,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 				}
 
 				while (true) {
-					if (!this.readUntil(/[\{\[\(,}]/g)) {
+					if (!this.readUntilToMatch(/[\{\[\(,}]/g)) {
 						break
 					}
 
@@ -412,7 +412,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			else if (this.state === ScanState.WithinArray) {
 
 				// `{|`
-				if (!this.readUntil(/['"`,\{\]]/g)) {
+				if (!this.readUntilToMatch(/['"`,\{\]]/g)) {
 					break
 				}
 
@@ -458,7 +458,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 	private *handleClassName(): Iterable<CSSClassInExpressionToken> {
 
 		// `abc|`
-		if (!this.readUntil(/['"`\s\\$]/g)) {
+		if (!this.readUntilToMatch(/['"`\s\\$]/g)) {
 			return
 		}
 
