@@ -9,8 +9,6 @@ import {RemoteWindow, TextDocuments} from 'vscode-languageserver'
 
 export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 
-	readonly classNameRegExp: RegExp | null
-
 	protected identifier = 'html'
 	protected cssServiceMap!: CSSServiceMap
 
@@ -27,11 +25,9 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 		documents: TextDocuments<TextDocument>,
 		window: RemoteWindow,
 		options: FileTrackerOptions,
-		config: Configuration,
-		classNameRegExp: RegExp | null
+		config: Configuration
 	) {
 		super(documents, window, options, config)
-		this.classNameRegExp = classNameRegExp
 	}
 
 	bindCSSServiceMap(cssServiceMap: CSSServiceMap) {
@@ -113,7 +109,7 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 	}
 	
 	protected createService(document: TextDocument) {
-		return new HTMLService(document, this.config, this.classNameRegExp)
+		return new HTMLService(document, this.config)
 	}
 
 	/** Parse document to HTML service, and analyze imported. */

@@ -30,8 +30,8 @@ export class HTMLService extends BaseService {
 	/** All class names references and their count for diagnostic, names excluded identifier `.`. */
 	protected classNamesReferenceSet: Map<string, number> = new Map()
 
-	constructor(document: TextDocument, config: Configuration, classNameRegExp: RegExp | null) {
-		super(document, config, classNameRegExp)
+	constructor(document: TextDocument, config: Configuration) {
+		super(document, config)
 		this.initClassNamesReferenceSet()
 	}
 
@@ -70,15 +70,15 @@ export class HTMLService extends BaseService {
 		return this.classNamesReferenceSet.get(className) ?? 0
 	}
 
-	protected makeTree(classNameRegExp: RegExp | null) {
+	protected makeTree() {
 		let extension = path.extname(this.document.uri).slice(1).toLowerCase()
 		let languageId = HTMLLanguageIdMap[this.document.languageId] ?? HTMLLanguageExtensionMap[extension] ?? 'html'
 		
 		if (LanguageIds.isHTMLSyntax(languageId)) {
-			return HTMLTokenTree.fromString(this.document.getText(), 0, languageId, classNameRegExp)
+			return HTMLTokenTree.fromString(this.document.getText(), 0, languageId)
 		}
 		else {
-			return JSTokenTree.fromString(this.document.getText(), 0, languageId, classNameRegExp)
+			return JSTokenTree.fromString(this.document.getText(), 0, languageId)
 		}
 	}
 }

@@ -22,7 +22,7 @@ import {
 	CodeLensParams
 } from 'vscode-languageserver'
 import {Position, TextDocument} from 'vscode-languageserver-textdocument'
-import {HTMLServiceMap, CSSServiceMap} from './languages'
+import {HTMLServiceMap, CSSServiceMap, ClassNamesInJS} from './languages'
 import {generateGlobPatternByExtensions, generateGlobPatternByPatterns, getPathExtension} from './utils'
 import {Ignore, Logger} from './core'
 import {findDefinitions} from './definition'
@@ -161,26 +161,14 @@ connection.listen()
 class CSSNavigationServer {
 
 	private options: InitializationOptions
-	private jsClassNameReferenceNameRegExp: RegExp | null
 	private cssServiceMap: CSSServiceMap
 	private htmlServiceMap: HTMLServiceMap
 	private diagnosedVersionMap: Map<string, number> = new Map()
 
 	constructor(options: InitializationOptions) {
 		this.options = options
-
-		let names = '(?:' + configuration.jsClassNameReferenceNames.map(n => n.replace(/\*/g, '\\w*?')).join('|') + ')'
-
-		try {
-			this.jsClassNameReferenceNameRegExp = new RegExp(
-				`\\b(?:let|var|const)\\s+${names}\\s*=\\s*["'\`]([\\w-]*?)["'\`]|\\s*${names}\\s*:\\s*["'\`]([\\w-]*?)["'\`]`,
-				'gi'
-			)
-		}
-		catch (err) {
-			this.jsClassNameReferenceNameRegExp = null
-		}
-
+		ClassNamesInJS.initWildNames(configuration.jsClassNameReferenceNames)
+		
 		let startPath = options.workspaceFolderPath
 		
 		let alwaysIncludeGlobPattern = configuration.alwaysIncludeGlobPatterns
@@ -202,7 +190,7 @@ class CSSNavigationServer {
 
 			// Release resources if has not been used for 30 mins.
 			releaseTimeoutMs: 30 * 60 * 1000,
-		}, configuration, this.jsClassNameReferenceNameRegExp)
+		}, configuration)
 
 		this.cssServiceMap = new CSSServiceMap(documents, connection.window, {
 			includeFileGlobPattern: generateGlobPatternByExtensions(configuration.activeCSSFileExtensions)!,

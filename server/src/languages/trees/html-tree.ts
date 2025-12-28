@@ -1,11 +1,12 @@
 import {HTMLToken, HTMLTokenScanner, HTMLTokenType, CSSClassInExpressionTokenScanner, CSSClassInExpressionTokenType} from '../scanners'
 import {Part, PartType} from '../parts'
 import {hasQuotes, isExpressionLike, removeQuotesFromToken} from './utils'
-import {Picked, Picker} from './picker'
+import {Picker} from './picker'
 import {CSSTokenTree} from './css-tree'
 import {HTMLTokenNode} from './html-node'
 import {JSTokenTree} from './js-tree'
 import {LanguageIds} from '../language-ids'
+import {ClassNamesInJS} from '../class-names-in-js'
 
 
 /** 
@@ -33,14 +34,14 @@ const SelfClosingTags = [
 export class HTMLTokenTree extends HTMLTokenNode {
 
 	/** Make a HTML token tree by string. */
-	static fromString(string: string, scannerStart: number = 0, languageId: HTMLLanguageId = 'html', classNameRegExp: RegExp | null): HTMLTokenTree {
+	static fromString(string: string, scannerStart: number = 0, languageId: HTMLLanguageId = 'html'): HTMLTokenTree {
 		let tokens = new HTMLTokenScanner(string, scannerStart, languageId).parseToTokens()
-		return HTMLTokenTree.fromTokens(tokens, languageId, classNameRegExp)
+		return HTMLTokenTree.fromTokens(tokens, languageId)
 	}
 
 	/** Make a token tree by tokens. */
-	static fromTokens(tokens: Iterable<HTMLToken>, languageId: HTMLLanguageId = 'html', classNameRegExp: RegExp | null): HTMLTokenTree {
-		let tree = new HTMLTokenTree(languageId, classNameRegExp)
+	static fromTokens(tokens: Iterable<HTMLToken>, languageId: HTMLLanguageId = 'html'): HTMLTokenTree {
+		let tree = new HTMLTokenTree(languageId)
 		let current: HTMLTokenNode = tree
 		let currentAttr: {name: HTMLToken, value: HTMLToken | null} | null = null
 
@@ -113,9 +114,8 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 
 	readonly languageId: HTMLLanguageId
-	readonly classNameRegExp: RegExp | null
 
-	constructor(languageId: HTMLLanguageId, classNameRegExp: RegExp | null) {
+	constructor(languageId: HTMLLanguageId) {
 		super({
 			type: HTMLTokenType.StartTagName,
 			text: 'root',
@@ -124,7 +124,6 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		}, null)
 
 		this.languageId = languageId
-		this.classNameRegExp = classNameRegExp
 	}
 
 	*walkParts(): Iterable<Part> {
@@ -238,23 +237,20 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			}
 		}
 
-		// 
 		// `var xxxClassNameXXX = `
 		else if (attrValue && isExpressionLike(attrValue.text)) {
-			if (this.classNameRegExp) {
-				let matches = Picker.locateAllMatches(
-					attrValue.text,
-					this.classNameRegExp,
-					[1, 2]
-				)
-	
-				for (let match of matches as  Iterable<Record<1 | 2, Picked>>) {
-					let subMatch = match[1] ?? match[2]
-					if (subMatch) {
-						yield new Part(PartType.Class, subMatch.text, subMatch.start + attrValue.start).trim()
-					}
-				}
+			for (let part of ClassNamesInJS.walkParts(attrValue.text, attrValue.start)) {
+				yield part
 			}
+		}
+
+		// `.enterClassName="..."`
+		else if (name
+			&& attrValue
+			&& name.startsWith('.')
+			&& ClassNamesInJS.isWildName(name.slice(1))
+		) {
+			yield (new Part(PartType.Class, attrValue.text, attrValue.start)).unquote().trim()
 		}
 	}
 
@@ -308,7 +304,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 		// Not process embedded js within embedded html.
 		if (textNode && textNode.token.text && LanguageIds.isHTMLSyntax(this.languageId)) {
-			let jsTree = JSTokenTree.fromString(textNode.token.text, textNode.token.start, 'js', this.classNameRegExp)
+			let jsTree = JSTokenTree.fromString(textNode.token.text, textNode.token.start, 'js')
 			yield* jsTree.walkParts()
 		}
 	}

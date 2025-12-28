@@ -26,11 +26,11 @@ export abstract class BaseService {
 	/** All class names for diagnostic, names excluded identifier `.`. */
 	protected definedClassNames: Map<string, number> = new Map()
 
-	constructor(document: TextDocument, config: Configuration, classNameRegExp: RegExp | null = null) {
+	constructor(document: TextDocument, config: Configuration) {
 		this.document = document
 		this.config = config
 		
-		let tree = this.makeTree(classNameRegExp)
+		let tree = this.makeTree()
 		this.parts = [...tree.walkParts()]
 		this.partMap = groupBy(this.parts, part => [part.type, part])
 
@@ -76,7 +76,7 @@ export abstract class BaseService {
 		}
 	}
 
-	protected abstract makeTree(classNameRegExp: RegExp | null): any
+	protected abstract makeTree(): any
 
 	/** Get part list by part type. */
 	getPartsByType(type: PartType): Part[] {

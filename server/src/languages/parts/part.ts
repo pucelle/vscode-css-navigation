@@ -228,6 +228,28 @@ export class Part {
 			|| this.type === PartType.CSSSelectorClass
 	}
 
+	/** Remove start and end quotes. */
+	unquote(): Part {
+		let text = this.escapedText
+		let start = this.start
+
+		if (/^['"]/.test(text)) {
+			text = text.slice(1)
+			start += 1
+		}
+
+		if (/['"]$/.test(text)) {
+			text = text.slice(0, -1)
+		}
+
+		if (text !== this.escapedText) {
+			return new Part(this.type, text, start, this.defEnd)
+		}
+		else {
+			return this
+		}
+	}
+
 	/** Trim text. */
 	trim(): Part {
 		let text = this.escapedText

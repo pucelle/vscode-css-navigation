@@ -301,7 +301,7 @@ export class CSSTokenTree extends CSSTokenNode {
 
 		// For workspace symbol searching.
 		if (commandName !== 'at-root') {
-			yield new Part(PartType.CSSCommand, node.token.text, node.token.start, node.defEnd).trim()
+			yield (new Part(PartType.CSSCommand, node.token.text, node.token.start, node.defEnd)).trim()
 		}
 
 		// See https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Nesting_at-rules
