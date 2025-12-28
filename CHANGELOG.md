@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.12.2]
+
+- Support `.classList.add('...')`.
+
+
 ## [2.12.1]
 
 - Fix a script error in 2.12.0.
