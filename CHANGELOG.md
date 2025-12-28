@@ -3,7 +3,9 @@
 
 ## [2.12.0]
 
-- Fix #116, support `@css-ignore` in a css comment to ignore diagnostic.
+- For #116, support `@css-ignore` in a css comment to ignore diagnostic.
+- For #124, when self close tag includes anonymous callback as attribute.
+
 
 
 ## [2.11.3]

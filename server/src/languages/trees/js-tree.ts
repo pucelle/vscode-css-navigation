@@ -8,119 +8,6 @@ import {HTMLTokenTree} from './html-tree'
 import {LanguageIds} from '../language-ids'
 
 
-const DOMElementNames = new Set([
-	'a',
-	'abbr',
-	'address',
-	'area',
-	'article',
-	'aside',
-	'audio',
-	'b',
-	'base',
-	'bdi',
-	'bdo',
-	'blockquote',
-	'body',
-	'br',
-	'button',
-	'canvas',
-	'caption',
-	'cite',
-	'code',
-	'col',
-	'colgroup',
-	'data',
-	'datalist',
-	'dd',
-	'del',
-	'details',
-	'dfn',
-	'dialog',
-	'div',
-	'dl',
-	'dt',
-	'em',
-	'embed',
-	'fencedframe',
-	'fieldset',
-	'figcaption',
-	'figure',
-	'footer',
-	'form',
-	'h1',
-	'head',
-	'header',
-	'hgroup',
-	'hr',
-	'html',
-	'i',
-	'iframe',
-	'img',
-	'input',
-	'ins',
-	'kbd',
-	'label',
-	'legend',
-	'li',
-	'link',
-	'main',
-	'map',
-	'mark',
-	'menu',
-	'meta',
-	'meter',
-	'nav',
-	'noscript',
-	'object',
-	'ol',
-	'optgroup',
-	'option',
-	'output',
-	'p',
-	'picture',
-	'portal',
-	'pre',
-	'progress',
-	'q',
-	'rp',
-	'rt',
-	'ruby',
-	's',
-	'samp',
-	'script',
-	'search',
-	'section',
-	'select',
-	'slot',
-	'small',
-	'source',
-	'span',
-	'strong',
-	'style',
-	'sub',
-	'summary',
-	'sup',
-	'table',
-	'tbody',
-	'td',
-	'template',
-	'textarea',
-	'tfoot',
-	'th',
-	'thead',
-	'time',
-	'title',
-	'tr',
-	'track',
-	'u',
-	'ul',
-	'var',
-	'video',
-	'wbr'
-])
-
-
 export class JSTokenTree extends JSTokenNode{
 
 	/** Make a HTML token tree by string. */
@@ -268,38 +155,8 @@ export class JSTokenTree extends JSTokenNode{
 		let text = node.token.text
 		let start = node.token.start
 
-		// It's very hard to detect react elements without parsing whole script.
-		// Normally when parsing jsx or tsx, when meet `<` and expect an expression,
-		// it recognizes as React Element.
-		let re = /<\/?([\w-]+)\s*[\s\S]*?>/g
-		let match: RegExpExecArray | null
-
-		let startTags: Set<string> = new Set()
-		let whiteList: Set<string> = new Set()
-
-		while (match = re.exec(text)) {
-			let tagName = match[1]
-			let isCloseTag = match[0][1] === '/'
-			let isSelfCloseTag = match[0][match[0].length - 2] === '/'
-
-			if (DOMElementNames.has(tagName)) {
-				whiteList.add(tagName)
-			}
-			else if (isCloseTag) {
-				if (match[0][match[0].length - 2] === '/' || startTags.has(tagName)) {
-					whiteList.add(tagName)
-				}
-			}
-			else if (isSelfCloseTag) {
-				whiteList.add(tagName)
-			}
-			else {
-				startTags.add(tagName)
-			}
-		}
-
 		// Start a white list HTML tree.
-		let tokens = new WhiteListHTMLTokenScanner(text, start, this.languageId, whiteList).parseToTokens()
+		let tokens = new WhiteListHTMLTokenScanner(text, start, this.languageId).parseToTokens()
 		let htmlTree = HTMLTokenTree.fromTokens(tokens, this.languageId)
 		yield* htmlTree.walkParts()
 	}

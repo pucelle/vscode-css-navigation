@@ -1,5 +1,6 @@
 import {LanguageIds} from '../language-ids'
 import {AnyTokenScanner, BRACKETS_MAP} from './any'
+import {DOMElementNames} from './helpers/tag-names'
 
 
 /** Parsed HTML token. */
@@ -446,9 +447,51 @@ export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 
 	readonly whiteList: Set<string>
 
-	constructor(string: string, scannerStart: number = 0, languageId: AllLanguageId, whiteList: Set<string>) {
-		super(string, scannerStart, languageId, )
-		this.whiteList = whiteList
+	constructor(string: string, scannerStart: number = 0, languageId: AllLanguageId) {
+		super(string, scannerStart, languageId)
+		this.whiteList = this.scanForWhiteList()
+	}
+
+	private scanForWhiteList() {
+		
+		// It's very hard to detect react elements without parsing whole script.
+		// Normally when parsing jsx or tsx, when meet `<` and expect an expression,
+		// it recognizes as React Element.
+
+		let scanner = new HTMLTokenScanner(this.string, 0, this.languageId)
+		let startTags: Set<string> = new Set()
+		let whiteList: Set<string> = new Set()
+		let currentTagName: string | null = null
+
+		for (let token of scanner.parseToTokens()) {
+			if (token.type !== HTMLTokenType.StartTagName
+				&& token.type !== HTMLTokenType.EndTagName
+				&& token.type !== HTMLTokenType.SelfCloseTagEnd
+			) {
+				continue
+			}
+	
+			let tagName: string = token.type === HTMLTokenType.SelfCloseTagEnd ? currentTagName! : token.text
+
+			if (DOMElementNames.has(tagName)) {
+				whiteList.add(tagName)
+			}
+			else if (token.type === HTMLTokenType.EndTagName) {
+				if (startTags.has(tagName)) {
+					whiteList.add(tagName)
+				}
+			}
+			else if (token.type === HTMLTokenType.SelfCloseTagEnd) {
+				whiteList.add(tagName)
+				currentTagName = null
+			}
+			else {
+				startTags.add(tagName)
+				currentTagName = tagName
+			}
+		}
+
+		return whiteList
 	}
 
 	protected *onWithinStartTag(): Iterable<HTMLToken> {
