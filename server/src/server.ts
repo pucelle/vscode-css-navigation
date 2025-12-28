@@ -173,7 +173,7 @@ class CSSNavigationServer {
 
 		try {
 			this.jsClassNameReferenceNameRegExp = new RegExp(
-				`\\b(?:let|var|const)\\s+${names}\\s*=\\s*["'\`](.*?)["'\`]|\\s*${names}\\s*:\\s*["'\`](.*?)["'\`]`,
+				`\\b(?:let|var|const)\\s+${names}\\s*=\\s*["'\`]([\\w-]*?)["'\`]|\\s*${names}\\s*:\\s*["'\`]([\\w-]*?)["'\`]`,
 				'gi'
 			)
 		}

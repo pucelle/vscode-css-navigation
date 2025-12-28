@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.12.1]
+
+- Fix a script error in 2.12.0.
+
+
 ## [2.12.0]
 
 - For #116, support `@css-ignore` in a css comment to ignore diagnostic.

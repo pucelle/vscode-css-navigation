@@ -126,7 +126,9 @@ export class JSTokenTree extends JSTokenNode{
 
 			for (let match of matches as  Iterable<Record<1 | 2, Picked>>) {
 				let subMatch = match[1] ?? match[2]
-				yield new Part(PartType.Class, subMatch.text, subMatch.start + start).trim()
+				if (subMatch) {
+					yield new Part(PartType.Class, subMatch.text, subMatch.start + start).trim()
+				}
 			}
 		}
 

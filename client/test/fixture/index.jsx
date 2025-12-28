@@ -25,9 +25,9 @@ function Test2() {
 }
 
 
-
 var classNameABC = 'class-js-variable'
 let classNameObject = {classNameABC: 'class-js-property'}
+let enterClassNameObject = {enterClassName: 'drag-entered'}
 
 
 class App {
