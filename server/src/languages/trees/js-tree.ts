@@ -115,6 +115,18 @@ export class JSTokenTree extends JSTokenNode {
 			}
 		}
 
+		
+		// `.classList.add('...')`
+		matches = Picker.locateAllMatches(
+			text,
+			/\.classList\.add\s*\(\s*['"`]([\w-]*)['"`]/g,
+			[1]
+		)
+
+		for (let match of matches) {
+			yield new Part(PartType.Class, match[1].text, match[1].start + start).trim()
+		}
+
 
 		// `var xxxClassNameXXX = `
 		if (this.classNameRegExp) {
