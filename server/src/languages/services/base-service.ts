@@ -270,7 +270,7 @@ export abstract class BaseService {
 				let label: CompletionLabel | null = null
 
 				if (part.isSelectorDetailedType()) {
-					let wrapperPart = this.findPartAt(part.start) as CSSSelectorWrapperPart | undefined
+					let wrapperPart = part.getWrapper(this)
 					if (wrapperPart) {
 						label = {
 							text: wrapperPart.comment,
@@ -404,7 +404,7 @@ export abstract class BaseService {
 		}
 
 		if (part.isSelectorDetailedType()) {
-			let wrapperPart = this.findPartAt(part.start) as CSSSelectorWrapperPart | undefined
+			let wrapperPart = part.getWrapper(this)
 			if (!wrapperPart) {
 				return null
 			}

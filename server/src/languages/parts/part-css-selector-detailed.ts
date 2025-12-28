@@ -1,4 +1,5 @@
 import {CSSSelectorToken, CSSSelectorTokenType} from '../scanners'
+import {BaseService} from '../services'
 import {Part, PartType} from './part'
 import {PartConvertor} from './part-convertor'
 import {CSSSelectorWrapperPart} from './part-css-selector-wrapper'
@@ -50,6 +51,12 @@ export class CSSSelectorDetailedPart extends Part {
 
 	isTextExpMatch(re: RegExp) {
 		return this.formatted.some(text => re.test(text))
+	}
+
+	/** Get parent selector wrapper. */
+	getWrapper(service: BaseService): CSSSelectorWrapperPart | null {
+		let wrapperPart = service.findPartAt(this.start) as CSSSelectorWrapperPart | undefined
+		return wrapperPart ?? null
 	}
 }
 

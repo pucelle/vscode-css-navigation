@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.12.0]
+
+- Fix #116, support `@css-ignore` in a css comment to ignore diagnostic.
+
+
 ## [2.11.3]
 
 - Fix #123, when React JSX code includes RegExp.

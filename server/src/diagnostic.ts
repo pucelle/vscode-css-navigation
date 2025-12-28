@@ -146,10 +146,17 @@ async function getReferencedDiagnostics(
 					break
 				}
 
+				// Query across all js files.
 				if (configuration.enableGlobalEmbeddedCSS) {
 					if (htmlServiceMap.hasReferencedClassName(nonIdentifierClassName)) {
 						break
 					}
+				}
+
+				// Has `@css-ignore` comment.
+				let wrapper = part.getWrapper(currentHTMLService)
+				if (wrapper && wrapper.comment?.includes('@css-ignore')) {
+					break
 				}
 
 				diagnostics.push({
@@ -193,6 +200,12 @@ async function getReferencedDiagnostics(
 
 				// Any one of formatted exist, break.
 				if (htmlServiceMap.hasReferencedClassName(nonIdentifierClassName)) {
+					break
+				}
+
+				// Has `@css-ignore` comment.
+				let wrapper = part.getWrapper(currentCSSService)
+				if (wrapper && wrapper.comment?.includes('@css-ignore')) {
 					break
 				}
 
