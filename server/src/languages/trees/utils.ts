@@ -41,6 +41,12 @@ export function hasQuotes(text: string): boolean {
 }
 
 
+/** Test whether attribute value like an expression. */
+export function isExpressionLike(value: string) {
+	return /^\$?\{[\s\S]*\}$/.test(value)
+}
+
+
 /** Join several tokens to one. */
 export function joinTokens<T extends AnyToken<any>>(tokens: T[], string: string, tokenOffset: number): T {
 	if (tokens.length === 1) {

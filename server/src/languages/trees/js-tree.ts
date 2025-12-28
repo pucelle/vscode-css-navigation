@@ -8,7 +8,7 @@ import {HTMLTokenTree} from './html-tree'
 import {LanguageIds} from '../language-ids'
 
 
-export class JSTokenTree extends JSTokenNode{
+export class JSTokenTree extends JSTokenNode {
 
 	/** Make a HTML token tree by string. */
 	static fromString(string: string, scannerStart: number = 0, languageId: HTMLLanguageId = 'js', classNameRegExp: RegExp | null): JSTokenTree {

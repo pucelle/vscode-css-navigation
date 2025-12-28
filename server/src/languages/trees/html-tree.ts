@@ -1,7 +1,7 @@
 import {HTMLToken, HTMLTokenScanner, HTMLTokenType, CSSClassInExpressionTokenScanner, CSSClassInExpressionTokenType} from '../scanners'
 import {Part, PartType} from '../parts'
-import {hasQuotes, removeQuotesFromToken} from './utils'
-import {Picker} from './picker'
+import {hasQuotes, isExpressionLike, removeQuotesFromToken} from './utils'
+import {Picked, Picker} from './picker'
 import {CSSTokenTree} from './css-tree'
 import {HTMLTokenNode} from './html-node'
 import {JSTokenTree} from './js-tree'
@@ -235,6 +235,25 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		else if (LanguageIds.isScriptSyntax(this.languageId) && name === 'styleName') {
 			if (unQuotedAttrValue) {
 				yield new Part(PartType.ReactDefaultImportedCSSModuleClass, unQuotedAttrValue.text, unQuotedAttrValue.start)
+			}
+		}
+
+		// 
+		// `var xxxClassNameXXX = `
+		else if (attrValue && isExpressionLike(attrValue.text)) {
+			if (this.classNameRegExp) {
+				let matches = Picker.locateAllMatches(
+					attrValue.text,
+					this.classNameRegExp,
+					[1, 2]
+				)
+	
+				for (let match of matches as  Iterable<Record<1 | 2, Picked>>) {
+					let subMatch = match[1] ?? match[2]
+					if (subMatch) {
+						yield new Part(PartType.Class, subMatch.text, subMatch.start + attrValue.start).trim()
+					}
+				}
 			}
 		}
 	}
