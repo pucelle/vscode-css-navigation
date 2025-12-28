@@ -2,11 +2,14 @@ import {HTMLService} from './html-service'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {BaseServiceMap} from './base-service-map'
 import {TwoWayListMap} from '../../utils'
-import {TrackingReasonMask} from '../../core'
+import {FileTrackerOptions, TrackingReasonMask} from '../../core'
 import {CSSServiceMap} from './css-service-map'
+import {RemoteWindow, TextDocuments} from 'vscode-languageserver'
 
 
 export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
+
+	readonly classNameRegExp: RegExp | null
 
 	protected identifier = 'html'
 	protected cssServiceMap!: CSSServiceMap
@@ -19,6 +22,17 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 
 	/** URI <-> CSS Imported URI. */
 	private cssImportMap: TwoWayListMap<string, string> = new TwoWayListMap()
+
+	constructor(
+		documents: TextDocuments<TextDocument>,
+		window: RemoteWindow,
+		options: FileTrackerOptions,
+		config: Configuration,
+		classNameRegExp: RegExp | null
+	) {
+		super(documents, window, options, config)
+		this.classNameRegExp = classNameRegExp
+	}
 
 	bindCSSServiceMap(cssServiceMap: CSSServiceMap) {
 		this.cssServiceMap = cssServiceMap
@@ -99,7 +113,7 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 	}
 	
 	protected createService(document: TextDocument) {
-		return new HTMLService(document, this.config)
+		return new HTMLService(document, this.config, this.classNameRegExp)
 	}
 
 	/** Parse document to HTML service, and analyze imported. */

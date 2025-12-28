@@ -25,6 +25,11 @@ function Test2() {
 }
 
 
+
+var classNameABC = 'class-js-variable'
+let classNameObject = {classNameABC: 'class-js-property'}
+
+
 class App {
 	className = ''
 	render() {

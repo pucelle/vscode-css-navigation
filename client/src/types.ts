@@ -22,6 +22,7 @@ interface Configuration {
 	activeCSSFileExtensions: string[]
 	excludeGlobPatterns: string[]
 	alwaysIncludeGlobPatterns: string[]
+	jsClassNameReferenceNames: string[]
 
 	ignoreCustomAndComponentTagDefinition: boolean
 	ignoreFilesBy: string[]

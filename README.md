@@ -144,6 +144,7 @@ editor.quickSuggestions": {
 | `enableCSSVariableColorPreview`         | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. Default value is `true`.
 | `enableClassNameDefinitionDiagnostic`   | Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message. Default value is `false`.
 | `enableClassNameReferenceDiagnostic`    | Whether to enable class name reference diagnostic - if can't find any reference for a class name in a CSS file, will show a warn message. Default value is `false`.
+| `jsClassNameReferenceNames`             | JS variable names or property names which used for referencing existing class names, can use `*` to wild match `1~n` word characters.
 | `enableDefinitionCodeLens`              | Whether to enable CSS class name definition code lens, which will show class name definition count. Default value is `false`.
 | `enableReferenceCodeLens`               | Whether to enable CSS class name reference code lens, which will show class name reference count. Default value is `false`.
 | `enableGlobalEmbeddedCSS`               | If your HTML codes contain imported CSS or embedded CSS fragments which should be shared across whole workspace, set this option to `true`. Default value is `false`.

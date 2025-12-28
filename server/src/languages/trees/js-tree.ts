@@ -1,6 +1,6 @@
 import {JSToken, JSTokenScanner, JSTokenType, CSSSelectorTokenScanner, CSSSelectorTokenType, WhiteListHTMLTokenScanner} from '../scanners'
 import {Part, PartType} from '../parts'
-import {Picker} from './picker'
+import {Picked, Picker} from './picker'
 import {isCSSLikePath} from '../../utils'
 import {CSSTokenTree} from './css-tree'
 import {JSTokenNode} from './js-node'
@@ -11,14 +11,14 @@ import {LanguageIds} from '../language-ids'
 export class JSTokenTree extends JSTokenNode{
 
 	/** Make a HTML token tree by string. */
-	static fromString(string: string, scannerStart: number = 0, languageId: HTMLLanguageId = 'js'): JSTokenTree {
+	static fromString(string: string, scannerStart: number = 0, languageId: HTMLLanguageId = 'js', classNameRegExp: RegExp | null): JSTokenTree {
 		let tokens = new JSTokenScanner(string, scannerStart, languageId).parseToTokens()
-		return JSTokenTree.fromTokens(tokens, languageId)
+		return JSTokenTree.fromTokens(tokens, languageId, classNameRegExp)
 	}
 
 	/** Make a token tree by tokens. */
-	static fromTokens(tokens: Iterable<JSToken>, languageId: HTMLLanguageId = 'js'): JSTokenTree {
-		let tree = new JSTokenTree(languageId)
+	static fromTokens(tokens: Iterable<JSToken>, languageId: HTMLLanguageId = 'js', classNameRegExp: RegExp | null): JSTokenTree {
+		let tree = new JSTokenTree(languageId, classNameRegExp)
 
 		for (let token of tokens) {
 			if (token.type === JSTokenType.HTML
@@ -36,8 +36,9 @@ export class JSTokenTree extends JSTokenNode{
 
 	declare children: JSTokenNode[]
 	readonly languageId: HTMLLanguageId
+	readonly classNameRegExp: RegExp | null
 
-	constructor(languageId: HTMLLanguageId) {
+	constructor(languageId: HTMLLanguageId, classNameRegExp: RegExp | null) {
 		super({
 			type: JSTokenType.Script,
 			text: '',
@@ -46,6 +47,7 @@ export class JSTokenTree extends JSTokenNode{
 		}, null)
 
 		this.languageId = languageId
+		this.classNameRegExp = classNameRegExp
 		this.children = []
 	}
 
@@ -72,7 +74,7 @@ export class JSTokenTree extends JSTokenNode{
 	protected *parseHTMLParts(node: JSTokenNode): Iterable<Part> {
 
 		// HTML tree accept current language, and it affects some actions.
-		let htmlTree = HTMLTokenTree.fromString(node.token.text, node.token.start, this.languageId)
+		let htmlTree = HTMLTokenTree.fromString(node.token.text, node.token.start, this.languageId, this.classNameRegExp)
 		yield* htmlTree.walkParts()
 	}
 
@@ -114,7 +116,22 @@ export class JSTokenTree extends JSTokenNode{
 		}
 
 
-		// setProperty('--variable-name')
+		// `var xxxClassNameXXX = `
+		if (this.classNameRegExp) {
+			matches = Picker.locateAllMatches(
+				text,
+				this.classNameRegExp,
+				[1, 2]
+			)
+
+			for (let match of matches as  Iterable<Record<1 | 2, Picked>>) {
+				let subMatch = match[1] ?? match[2]
+				yield new Part(PartType.Class, subMatch.text, subMatch.start + start).trim()
+			}
+		}
+
+
+		// `setProperty('--variable-name')`
 		matches = Picker.locateAllMatches(
 			text,
 			/\.setProperty\s*\(\s*['"`](-[\w-]*)['"`]/g,
@@ -157,7 +174,7 @@ export class JSTokenTree extends JSTokenNode{
 
 		// Start a white list HTML tree.
 		let tokens = new WhiteListHTMLTokenScanner(text, start, this.languageId).parseToTokens()
-		let htmlTree = HTMLTokenTree.fromTokens(tokens, this.languageId)
+		let htmlTree = HTMLTokenTree.fromTokens(tokens, this.languageId, this.classNameRegExp)
 		yield* htmlTree.walkParts()
 	}
 }

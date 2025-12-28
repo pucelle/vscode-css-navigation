@@ -33,14 +33,14 @@ const SelfClosingTags = [
 export class HTMLTokenTree extends HTMLTokenNode {
 
 	/** Make a HTML token tree by string. */
-	static fromString(string: string, scannerStart: number = 0, languageId: HTMLLanguageId = 'html'): HTMLTokenTree {
+	static fromString(string: string, scannerStart: number = 0, languageId: HTMLLanguageId = 'html', classNameRegExp: RegExp | null): HTMLTokenTree {
 		let tokens = new HTMLTokenScanner(string, scannerStart, languageId).parseToTokens()
-		return HTMLTokenTree.fromTokens(tokens, languageId)
+		return HTMLTokenTree.fromTokens(tokens, languageId, classNameRegExp)
 	}
 
 	/** Make a token tree by tokens. */
-	static fromTokens(tokens: Iterable<HTMLToken>, languageId: HTMLLanguageId = 'html'): HTMLTokenTree {
-		let tree = new HTMLTokenTree(languageId)
+	static fromTokens(tokens: Iterable<HTMLToken>, languageId: HTMLLanguageId = 'html', classNameRegExp: RegExp | null): HTMLTokenTree {
+		let tree = new HTMLTokenTree(languageId, classNameRegExp)
 		let current: HTMLTokenNode = tree
 		let currentAttr: {name: HTMLToken, value: HTMLToken | null} | null = null
 
@@ -113,8 +113,9 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 
 	readonly languageId: HTMLLanguageId
+	readonly classNameRegExp: RegExp | null
 
-	constructor(languageId: HTMLLanguageId) {
+	constructor(languageId: HTMLLanguageId, classNameRegExp: RegExp | null) {
 		super({
 			type: HTMLTokenType.StartTagName,
 			text: 'root',
@@ -123,6 +124,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		}, null)
 
 		this.languageId = languageId
+		this.classNameRegExp = classNameRegExp
 	}
 
 	*walkParts(): Iterable<Part> {
@@ -287,7 +289,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 		// Not process embedded js within embedded html.
 		if (textNode && textNode.token.text && LanguageIds.isHTMLSyntax(this.languageId)) {
-			let jsTree = JSTokenTree.fromString(textNode.token.text, textNode.token.start, 'js')
+			let jsTree = JSTokenTree.fromString(textNode.token.text, textNode.token.start, 'js', this.classNameRegExp)
 			yield* jsTree.walkParts()
 		}
 	}

@@ -90,6 +90,17 @@
 					"default": false,
 					"description": "Whether to enable class name reference diagnostic - if can't find any reference for a class name in a CSS file, will show a warn message."
 				},
+				"CSSNavigation.jsClassNameReferenceNames": {
+					"type": "array",
+					"default": [
+						"*ClassName*",
+						"*class_name*"
+					],
+					"items": {
+						"type": "string"
+					},
+					"description": "JS variable names or property names which used for referencing existing class names, can use `*` to wild match `0~n` word characters."
+				},
 				"CSSNavigation.enableDefinitionCodeLens": {
 					"type": "boolean",
 					"default": false,

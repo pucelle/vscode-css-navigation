@@ -5,7 +5,7 @@
 
 - For #116, support `@css-ignore` in a css comment to ignore diagnostic.
 - For #124, when self close tag includes anonymous callback as attribute.
-
+- For #122, support `xxxClassNameXXX = 'classes'`, `xxx_class_name_xx`, and `{xxxClassNameXXX: 'classes'}`.
 
 
 ## [2.11.3]
