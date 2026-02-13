@@ -1,5 +1,11 @@
 # ChangeLog
 
+
+## [2.12.4]
+
+- Fix when complete when no character inputted, class name starts with a `.`.
+
+
 ## [2.12.3]
 
 - Support class names start with `-`.
