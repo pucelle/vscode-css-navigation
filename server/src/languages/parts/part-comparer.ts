@@ -53,7 +53,11 @@ export namespace PartComparer {
 	}
 
 	/** Whether one part text list matches another part. */
-	export function isMayFormattedListExpMatch(testPart: Part, re: RegExp): boolean {
+	export function isMayFormattedListExpMatch(testPart: Part, re: RegExp | null): boolean {
+		if (!re) {
+			return true
+		}
+		
 		if (testPart.hasFormattedList()) {
 			return testPart.formatted.some(text => re.test(text))
 		}

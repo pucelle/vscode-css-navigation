@@ -39,7 +39,11 @@ export namespace PartConvertor {
 
 
 	/** `ab` -> /^ab/i. */
-	export function makeStartsMatchExp(text: string): RegExp {
+	export function makeStartsMatchExp(text: string): RegExp | null {
+		if (!text) {
+			return null
+		}
+
 		return new RegExp('^' + escapeAsRegExpSource(text), 'i')
 	}
 
@@ -100,6 +104,7 @@ export namespace PartConvertor {
 			|| fromType === PartType.CSSSelectorClass
 		) {
 			if (toType === PartType.Class
+				|| toType === PartType.ClassPotential
 				|| toType === PartType.ReactDefaultImportedCSSModuleClass
 				|| toType === PartType.ReactImportedCSSModuleProperty
 			) {
