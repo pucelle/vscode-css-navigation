@@ -2,7 +2,7 @@
 
 ## [2.12.3]
 
-- Support class names starts with `-`.
+- Support class names start with `-`.
 
 
 ## [2.12.2]
