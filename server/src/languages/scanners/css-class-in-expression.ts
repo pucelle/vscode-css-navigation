@@ -147,7 +147,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			}
 
 			else if (this.state === ScanState.WithinString) {
-				if (!this.readUntilToMatch(/['"`\\\w${\s]/g)) {
+				if (!this.readUntilToMatch(/['"`\\\w-${\s]/g)) {
 					break
 				}
 
@@ -218,7 +218,6 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			}
 
 			else if (this.state === ScanState.WithinExpression) {
-
 				if (!this.readUntilToMatch(/['"`{\[\w\}]/g)) {
 					break
 				}

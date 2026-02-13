@@ -1,5 +1,9 @@
 # ChangeLog
 
+## [2.12.3]
+
+- Support class names starts with `-`.
+
 
 ## [2.12.2]
 

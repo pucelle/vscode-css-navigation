@@ -91,6 +91,10 @@ describe('Test Finding Definition from HTML', () => {
 	it('Should find right css variable definition', async () => {
 		assert.deepStrictEqual(await gs(['var(', '--css-variable-color', ')']), ['--css-variable-color'])
 	})
+
+	it('Should support class name starts with "-"', async () => {
+		assert.deepStrictEqual(await gs(['class="', '-class-starts-with-dash', '"']), ['-class-starts-with-dash'])
+	})
 })
 
 
