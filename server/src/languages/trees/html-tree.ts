@@ -1,4 +1,4 @@
-import {HTMLToken, HTMLTokenScanner, HTMLTokenType, CSSClassInExpressionTokenScanner, CSSClassInExpressionTokenType} from '../scanners'
+import {HTMLToken, HTMLTokenScanner, HTMLTokenType, CSSClassInExpressionTokenScanner, CSSClassInExpressionTokenType, WhiteListHTMLTokenScanner} from '../scanners'
 import {Part, PartType} from '../parts'
 import {hasQuotes, isExpressionLike, removeQuotesFromToken} from './utils'
 import {Picker} from './picker'
@@ -210,22 +210,18 @@ export class HTMLTokenTree extends HTMLTokenNode {
 					start = unQuotedAttrValue!.start
 				}
 
-				let scanner = new CSSClassInExpressionTokenScanner(text, start, this.languageId, alreadyAnExpression)
-				for (let token of scanner.parseToTokens()) {
-					if (token.type === CSSClassInExpressionTokenType.ClassName) {
-						yield new Part(PartType.Class, token.text, token.start)
-					}
-					else if (token.type === CSSClassInExpressionTokenType.PotentialClassName) {
-						yield new Part(PartType.ClassPotential, token.text, token.start)
-					}
-					else if (token.type === CSSClassInExpressionTokenType.ReactModuleName) {
-						yield new Part(PartType.ReactImportedCSSModuleName, token.text, token.start)
-					}
-					else if (token.type === CSSClassInExpressionTokenType.ReactModuleProperty) {
-						yield new Part(PartType.ReactImportedCSSModuleProperty, token.text, token.start)
-					}
-				}
+				yield* this.parseExpressionLike(text, start, alreadyAnExpression)
 			}
+		}
+
+		// onClick={() => ...}
+		// onClick=${() => ...}
+		else if (attrValue && name.startsWith('on') && isExpressionLike(attrValue.text)) {
+
+			// Start a white list HTML tree to parse for React Elements.
+			let tokens = new WhiteListHTMLTokenScanner(attrValue.text, attrValue.start, this.languageId).parseToTokens()
+			let htmlTree = HTMLTokenTree.fromTokens(tokens, this.languageId)
+			yield* htmlTree.walkParts()
 		}
 
 		// https://github.com/gajus/babel-plugin-react-css-modules and issue #60.
@@ -251,6 +247,25 @@ export class HTMLTokenTree extends HTMLTokenNode {
 			&& ClassNamesInJS.isWildName(name.slice(1))
 		) {
 			yield (new Part(PartType.Class, attrValue.text, attrValue.start)).unquote().trim()
+		}
+	}
+
+	/** Parse expression like. */
+	protected *parseExpressionLike(text: string, start: number, alreadyAnExpression: boolean): Iterable<Part> {
+		let scanner = new CSSClassInExpressionTokenScanner(text, start, this.languageId, alreadyAnExpression)
+		for (let token of scanner.parseToTokens()) {
+			if (token.type === CSSClassInExpressionTokenType.ClassName) {
+				yield new Part(PartType.Class, token.text, token.start)
+			}
+			else if (token.type === CSSClassInExpressionTokenType.PotentialClassName) {
+				yield new Part(PartType.ClassPotential, token.text, token.start)
+			}
+			else if (token.type === CSSClassInExpressionTokenType.ReactModuleName) {
+				yield new Part(PartType.ReactImportedCSSModuleName, token.text, token.start)
+			}
+			else if (token.type === CSSClassInExpressionTokenType.ReactModuleProperty) {
+				yield new Part(PartType.ReactImportedCSSModuleProperty, token.text, token.start)
+			}
 		}
 	}
 

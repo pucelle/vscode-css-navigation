@@ -174,7 +174,7 @@ export class JSTokenTree extends JSTokenNode {
 		let text = node.token.text
 		let start = node.token.start
 
-		// Start a white list HTML tree.
+		// Start a white list HTML tree to parse for React Elements.
 		let tokens = new WhiteListHTMLTokenScanner(text, start, this.languageId).parseToTokens()
 		let htmlTree = HTMLTokenTree.fromTokens(tokens, this.languageId)
 		yield* htmlTree.walkParts()

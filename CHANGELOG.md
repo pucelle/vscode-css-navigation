@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.12.5]
+
+- Support embedded React HTML syntax in event handlers like `<div onClick={() => <div className="class1">}>`.
+
+
 ## [2.12.4]
 
 - Fix when complete when no character inputted, class name starts with a `.`.

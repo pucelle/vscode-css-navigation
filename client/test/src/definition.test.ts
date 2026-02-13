@@ -93,7 +93,7 @@ describe('Test Finding Definition from HTML', () => {
 	})
 
 	it('Should support class name starts with "-"', async () => {
-		assert.deepStrictEqual(await gs(['class="', '-class-starts-with-dash', '"']), ['-class-starts-with-dash'])
+		assert.deepStrictEqual(await gs(['class="', '-class-starts-with-dash', '"']), ['.-class-starts-with-dash'])
 	})
 })
 

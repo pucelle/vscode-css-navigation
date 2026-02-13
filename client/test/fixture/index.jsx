@@ -68,3 +68,19 @@ class App {
 		)
 	}
 }
+
+
+
+function A() {
+	return (
+		<div
+			className='class1'
+			onClick={() => <div className='class1' />}
+		>
+			<h1>
+				Hello World
+			</h1>
+		</div>
+	);
+}
+

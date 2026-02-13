@@ -63,6 +63,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 	 * no bracket marker like `{...}`,
 	 * like x-bind:class=`variable ? a : b`,
 	 * or :class=`{prop: boolean}`
+	 * `alreadyAnExpression` indicates whether have no `${...}` or `{...}` wrapped and already an expression.
 	 */
 	constructor(string: string, scannerStart: number = 0, languageId: AllLanguageId, alreadyAnExpression: boolean) {
 		super(string, scannerStart, languageId)
