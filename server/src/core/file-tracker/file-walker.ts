@@ -13,6 +13,9 @@ export interface FileWalkerOptions {
 
 	/** Whether follow symbol links, default value is `false`. */
 	followSymbolLinks: boolean
+
+	/** Maximum number of files to traverse, default value is no limit. */
+	maxFileCount?: number
 }
 
 
@@ -20,10 +23,6 @@ interface IgnoreRule {
 	relDir: string
 	match: Minimatch
 }
-
-
-/** Can only read at most 1000 files. */
-const ReadFileCountLimit = 1000
 
 
 class FileWalker {
@@ -37,10 +36,14 @@ class FileWalker {
 	/** Whether follow symbol links. */
 	private followSymbolLinks: boolean
 
+	/** Maximum number of files to traverse. */
+	private maxFileCount: number
+
 	constructor (options: FileWalkerOptions) {
 		this.currentDir = options.currentDir ?? process.cwd()
 		this.ignoreFileNames = options.ignoreFileNames || [ '.gitignore' ]
 		this.followSymbolLinks = options.followSymbolLinks ?? false
+		this.maxFileCount = options.maxFileCount ?? Infinity
 	}
 
 	/** Generate relative paths relative to current directory. */
@@ -65,7 +68,7 @@ class FileWalker {
 
 		// May parallel to increase speed, but will break generator logic.
 		for (let fileName of fileNames) {
-			if (count.value > ReadFileCountLimit) {
+			if (count.value >= this.maxFileCount) {
 				break
 			}
 
@@ -155,12 +158,14 @@ class FileWalker {
 /** Will walk the file paths, generate each absolute paths, not include folder path. */
 export async function* walkDirectoryToMatchFiles(
 	currentDir: string,
-	ignoreFileNames: string[]
+	ignoreFileNames: string[],
+	maxFileCount: number = Infinity
 ): AsyncGenerator<string> {
 	let walker = new FileWalker({
 		currentDir,
 		ignoreFileNames,
 		followSymbolLinks: false,
+		maxFileCount,
 	})
 
 	for await(let relPath of walker.walk()) {
