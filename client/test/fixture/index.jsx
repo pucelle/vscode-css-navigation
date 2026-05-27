@@ -3,6 +3,13 @@ import './css/test.scss'
 import './css/app.css'
 
 
+const styles = StyleSheet.create({
+    goalItem: {
+        backgroundColor: "#5e0acc",
+    },
+})
+
+
 function Test() {
 	return (
 		<button

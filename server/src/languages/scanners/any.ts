@@ -279,6 +279,7 @@ export class AnyTokenScanner<T extends number> {
 					expect = stack.pop()!
 				}
 				else {
+					expect = null
 					break
 				}
 			}

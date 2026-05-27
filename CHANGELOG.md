@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.13.1]
+
+- Fix `maxFileCount` not fully work issue.
+
+
 ## [2.13.0]
 
 - Merge pull request from `AgentRBY@github.com`, and add a new option `maxFileCount` for large projects.
