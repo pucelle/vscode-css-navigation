@@ -177,7 +177,7 @@ export abstract class FileTracker {
 	
 	/** Track folder. */
 	private async tryTrackFolder(folderPath: string, reason: TrackingReasonMask) {
-		let filePathsGenerator = walkDirectoryToMatchFiles(folderPath, this.ignoreFilesBy)
+		let filePathsGenerator = walkDirectoryToMatchFiles(folderPath, this.ignoreFilesBy, this.maxFileCount)
 		let count = 0
 
 		for await (let absPath of filePathsGenerator) {
