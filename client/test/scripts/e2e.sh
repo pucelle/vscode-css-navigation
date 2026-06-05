@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export CODE_TESTS_PATH="$(pwd)/out"
-export CODE_TESTS_WORKSPACE="$(pwd)/fixture"
+# Resolve paths relative to this script so it works regardless of the current working directory.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-node "$(pwd)/../../client/node_modules/vscode/bin/test"
+node "$SCRIPT_DIR/../out/runTest.js"

@@ -196,7 +196,7 @@ async function getCompletionNamesAtPosition(position: vscode.Position): Promise<
 	let completionNames = []
 
 	for (let item of list.items) {
-		completionNames.push(item.label)
+		completionNames.push(typeof item.label === 'string' ? item.label : item.label.label)
 	}
 
 	return completionNames
