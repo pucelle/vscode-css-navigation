@@ -3,10 +3,10 @@
  * @param pairFn get key and value pair by it.
  */
 export function groupBy<T, K, V>(list: Iterable<T>, pairFn: (value: T) => [K, V]): Map<K, V[]> {
-	let map: Map<K, V[]> = new Map()
+	const map: Map<K, V[]> = new Map()
 
-	for (let item of list) {
-		let [key, value] = pairFn(item)
+	for (const item of list) {
+		const [key, value] = pairFn(item)
 
 		let group = map.get(key)
 		if (!group) {
@@ -33,7 +33,7 @@ export function quickBinaryFindIndex<T>(sortedList: ArrayLike<T>, fn: (v: T) => 
 		return -1
 	}
 
-	let firstResult = fn(sortedList[0])
+	const firstResult = fn(sortedList[0])
 
 	if (firstResult === 0) {
 		return 0
@@ -43,7 +43,7 @@ export function quickBinaryFindIndex<T>(sortedList: ArrayLike<T>, fn: (v: T) => 
 		return -1
 	}
 
-	let lastResult = fn(sortedList[sortedList.length - 1])
+	const lastResult = fn(sortedList[sortedList.length - 1])
 
 	if (lastResult === 0) {
 		return sortedList.length - 1
@@ -57,8 +57,8 @@ export function quickBinaryFindIndex<T>(sortedList: ArrayLike<T>, fn: (v: T) => 
 	let end = sortedList.length - 1
 
 	while (start + 1 < end) {
-		let center = Math.floor((end + start) / 2)
-		let result = fn(sortedList[center])
+		const center = Math.floor((end + start) / 2)
+		const result = fn(sortedList[center])
 
 		if (result === 0) {
 			return center

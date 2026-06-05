@@ -20,7 +20,7 @@ export class CompletionLabels {
 	private detailMap: Map<string, CompletionLabel | null> = new Map()
 
 	add(type: CompletionLabelType, labelMap: Map<string, CompletionLabel | null>) {
-		for (let [label, detail] of labelMap) {
+		for (const [label, detail] of labelMap) {
 			if (!this.typeMap.has(label) || this.typeMap.get(label)! < type) {
 				this.typeMap.set(label, type)
 				this.detailMap.set(label, detail)
@@ -29,7 +29,7 @@ export class CompletionLabels {
 	}
 
 	remove(labels: Iterable<string>) {
-		for (let label of labels) {
+		for (const label of labels) {
 			this.typeMap.delete(label)
 
 			// No need to delete details, wait them to be GC.
@@ -38,15 +38,15 @@ export class CompletionLabels {
 
 	/** If `forceForOffset` specified, reset text edit to this offset. */
 	output(fromPart: Part, document: TextDocument, forceEditCollapseToOffset: number | undefined = undefined): CompletionItem[] {
-		let items: CompletionItem[] = []
+		const items: CompletionItem[] = []
 
-		let collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base', ignorePunctuation: true})
-		let sortedTexts = [...this.typeMap.keys()].sort(collator.compare)
+		const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base', ignorePunctuation: true})
+		const sortedTexts = [...this.typeMap.keys()].sort((a, b) => collator.compare(a, b))
 
 		for (let i = 0; i < sortedTexts.length; i++) {
 			let kind: CompletionItemKind
-			let text = sortedTexts[i]
-			let type = this.typeMap.get(text)
+			const text = sortedTexts[i]
+			const type = this.typeMap.get(text)
 
 			if (type === CompletionLabelType.CSSVariable) {
 				kind = CompletionItemKind.Variable
@@ -58,12 +58,12 @@ export class CompletionLabels {
 				kind = CompletionItemKind.Value
 			}
 
-			let label = this.detailMap.get(text)
+			const label = this.detailMap.get(text)
 			let detail = label?.text
 
 			// Completion supports only HEX color type.
 			if (type === CompletionLabelType.CSSVariable && detail) {
-				let color = Color.fromString(detail)
+				const color = Color.fromString(detail)
 				if (color) {
 					kind = CompletionItemKind.Color
 					detail = color.toHEX()
@@ -73,10 +73,10 @@ export class CompletionLabels {
 			// Before completion items expanded, shows detail,
 			// After expanded, shows documentation.
 			// If both provided, shows detail + documentation after expanded.
-			let documentation = label?.markdown
+			const documentation = label?.markdown
 
 			// Use space because it's char code is 32, lower than any other visible characters.
-			let sortText = ' ' + String(i).padStart(3, '0')
+			const sortText = ' ' + String(i).padStart(3, '0')
 			let insertText = text
 			let command: Command | undefined
 			
@@ -86,7 +86,7 @@ export class CompletionLabels {
 			}
 
 			// Reset text edit collapse to the specified offset.
-			let range = PartConvertor.toRange(fromPart, document)
+			const range = PartConvertor.toRange(fromPart, document)
 			if (forceEditCollapseToOffset !== undefined) {
 				range.start = range.end = document.positionAt(forceEditCollapseToOffset)
 			}
@@ -97,12 +97,12 @@ export class CompletionLabels {
 				command = Command.create('Move cursor forward for one character', 'CSSNavigation.moveCursorForward')
 			}
 
-			let textEdit = TextEdit.replace(
+			const textEdit = TextEdit.replace(
 				PartConvertor.toRange(fromPart, document),
 				insertText,
 			)
 
-			let item: CompletionItem = {
+			const item: CompletionItem = {
 				kind,
 				label: text,
 				detail,

@@ -10,7 +10,7 @@ export namespace Logger {
 
 	/** Get a time marker `hh:MM:ss` for current time. */
 	function getTimeMarker() {
-		let date = new Date()
+		const date = new Date()
 		
 		return '['
 			+ String(date.getHours())
@@ -57,16 +57,16 @@ export namespace Logger {
 	}
 
 	/** Error level message. */
-	export function error(msg: any) {
+	export function error(msg: unknown) {
 		scopedConsole.info(getTimeMarker() + '❌ ' + String(msg))
 	}
 
 
 
-	let startTimeMap: Map<string, number> = new Map()
+	const startTimeMap: Map<string, number> = new Map()
 
 	export function getTimestamp(): number {
-		let time = process.hrtime()
+		const time = process.hrtime()
 		return time[0] * 1000 + time[1] / 1000000
 	}
 
@@ -77,14 +77,14 @@ export namespace Logger {
 
 	/** End a time counter with specified name. */
 	export function timeEnd(name: string, message: string | null = null) {
-		let startTime = startTimeMap.get(name)
+		const startTime = startTimeMap.get(name)
 		if (startTime === undefined) {
 			warn(`Timer "${name}" is not started`)
 			return
 		}
 
 		startTimeMap.delete(name)
-		let timeCost = Math.round(getTimestamp() - startTime!)
+		const timeCost = Math.round(getTimestamp() - startTime)
 
 		if (message !== null) {
 			log('🕒 ' + message + ` in ${timeCost} ms`)
@@ -92,13 +92,13 @@ export namespace Logger {
 	}
 
 
-	type ResultsHandler<A extends any[], T> = (...args: A) => Promise<T | null>
+	type ResultsHandler<A extends unknown[], T> = (...args: A) => Promise<T | null>
 
 	/** Log executed time of a function, which will return a list, or a single item. */
-	export function logQuerierExecutedTime<A extends any[], T>(fn: ResultsHandler<[A[0], number], T>, type: string): ResultsHandler<A, T> {
+	export function logQuerierExecutedTime<A extends unknown[], T>(fn: ResultsHandler<[A[0], number], T>, type: string): ResultsHandler<A, T> {
 		return async (...args: A) => {
-			let startTime = getTimestamp()
-			let result: Awaited<T> | null = null
+			const startTime = getTimestamp()
+			let result: Awaited<T> | null
 
 			try {
 				result = await fn(args[0], startTime)
@@ -108,7 +108,7 @@ export namespace Logger {
 				return null
 			}
 
-			let time = toDecimal(getTimestamp() - startTime!, 1)
+			const time = toDecimal(getTimestamp() - startTime, 1)
 			
 			if (Array.isArray(result)) {
 				if (result.length === 0) {

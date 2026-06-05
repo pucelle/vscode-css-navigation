@@ -24,7 +24,7 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 	 */
 	*parseToTokens(start: number = 0): Iterable<CSSToken> {
 		this.start = this.offset = start
-		let indentCountStack: number[] = []
+		const indentCountStack: number[] = []
 		let currentIndentCount = 0
 
 		while (this.state !== ScanState.EOF) {
@@ -122,8 +122,8 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 					break
 				}
 
-				let indentText = this.peekText()
-				let indentCount = this.checkIndentCount(indentText)
+				const indentText = this.peekText()
+				const indentCount = this.checkIndentCount(indentText)
 				this.sync()
 
 				// |.class1
@@ -205,7 +205,7 @@ export class SassIndentedTokenScanner extends AnyTokenScanner<CSSTokenType> {
 	}
 
 	private checkIndentCount(text: string): number {
-		let re = /\t|  /g
+		const re = /\t| {2}/g
 		let count = 0
 
 		while (re.exec(text)) {

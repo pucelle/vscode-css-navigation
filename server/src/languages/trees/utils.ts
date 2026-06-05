@@ -48,15 +48,15 @@ export function isExpressionLike(value: string) {
 
 
 /** Join several tokens to one. */
-export function joinTokens<T extends AnyToken<any>>(tokens: T[], string: string, tokenOffset: number): T {
+export function joinTokens<T extends AnyToken<number>>(tokens: T[], string: string, tokenOffset: number): T {
 	if (tokens.length === 1) {
 		return tokens[0]
 	}
 	else {
-		let type = tokens[0].type
-		let start = tokens[0].start
-		let end = tokens[tokens.length - 1].end
-		let text = string.slice(start - tokenOffset, end - tokenOffset)
+		const type = tokens[0].type
+		const start = tokens[0].start
+		const end = tokens[tokens.length - 1].end
+		const text = string.slice(start - tokenOffset, end - tokenOffset)
 
 		return {
 			type,

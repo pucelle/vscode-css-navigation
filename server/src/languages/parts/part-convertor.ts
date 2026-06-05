@@ -163,8 +163,8 @@ export namespace PartConvertor {
 	 * so can transform to definition mode to make comparing faster.
 	 */
 	export function toDefinitionMode(part: Part): Part {
-		let type = PartConvertor.typeToDefinition(part.type)
-		let text = PartConvertor.textToType(part.escapedText, part.type, type)
+		const type = PartConvertor.typeToDefinition(part.type)
+		const text = PartConvertor.textToType(part.escapedText, part.type, type)
 
 		return new Part(type, text, -1, -1)
 	}
@@ -178,13 +178,13 @@ export namespace PartConvertor {
 
 	/** To a location link for going to definition. */
 	export function toLocationLink(part: Part, document: TextDocument, fromPart: Part, fromDocument: TextDocument) {
-		let selectionRange = toRange(part, document)
-		let end = part.defEnd > -1 ? part.defEnd : part.end
+		const selectionRange = toRange(part, document)
+		const end = part.defEnd > -1 ? part.defEnd : part.end
 
 		// Selection range doesn't work as expected, finally cursor move to definition start.
-		let definitionRange = Range.create(selectionRange.start, document.positionAt(end))
+		const definitionRange = Range.create(selectionRange.start, document.positionAt(end))
 
-		let fromRange = toRange(fromPart, fromDocument)
+		const fromRange = toRange(fromPart, fromDocument)
 
 		return LocationLink.create(document.uri, definitionRange, selectionRange, fromRange)
 	}
@@ -196,14 +196,14 @@ export namespace PartConvertor {
 
 	/** To several symbol information for workspace symbol searching. */
 	export function toSymbolInformationList(part: Part, document: TextDocument): SymbolInformation[] {
-		let kind = part.type === PartType.CSSSelectorWrapper
+		const kind = part.type === PartType.CSSSelectorWrapper
 			|| part.type === PartType.CSSSelectorTag
 			|| part.type === PartType.CSSSelectorClass
 			|| part.type === PartType.CSSSelectorId
 				? SymbolKind.Class
 				: SymbolKind.Variable
 
-		let textList = PartComparer.mayFormatted(part)
+		const textList = PartComparer.mayFormatted(part)
 
 		return textList.map(text => SymbolInformation.create(
 			text,
@@ -216,7 +216,7 @@ export namespace PartConvertor {
 	/** Selector part to hover. */
 	export function toHoverOfSelectorWrapper(part: CSSSelectorWrapperPart, fromPart: Part, document: TextDocument, fromDocument: TextDocument, maxStylePropertyCount: number): Hover {
 		let content = getSelectorStyleContent(part, document, maxStylePropertyCount)
-		let comment = part.comment?.trim()
+		const comment = part.comment?.trim()
 
 		if (comment) {
 			content = comment + '\n' + content
@@ -249,18 +249,18 @@ export namespace PartConvertor {
 	}
 
 	function parseStyleProperties(part: CSSSelectorWrapperPart, string: string, maxStylePropertyCount: number): string {
-		let text = string.slice(part.start, part.defEnd)
-		let tree = CSSTokenTree.fromString(text, 0, 'css')
+		const text = string.slice(part.start, part.defEnd)
+		const tree = CSSTokenTree.fromString(text, 0, 'css')
 		let content = ''
 		let count = 0
 		let hasAdditional = false
-		let selectorNode = tree.children!.find(child => child.type === CSSTokenNodeType.Selector)
+		const selectorNode = tree.children!.find(child => child.type === CSSTokenNodeType.Selector)
 
 		if (!selectorNode) {
 			return '...'
 		}
 
-		for (let child of selectorNode.children!) {
+		for (const child of selectorNode.children!) {
 			if (count === maxStylePropertyCount) {
 				hasAdditional = true
 				break
@@ -298,8 +298,8 @@ export namespace PartConvertor {
 
 	/** CSS Variable definition part to hover. */
 	export function toHoverOfCSSVariableDefinition(part: CSSVariableDefinitionPart, fromPart: Part, fromDocument: TextDocument): Hover | null {
-		let comment = part.comment?.trim()
-		let value = part.value?.trim()
+		const comment = part.comment?.trim()
+		const value = part.value?.trim()
 		let content = ''
 
 		if (value) {
@@ -322,7 +322,7 @@ export namespace PartConvertor {
 
 	/** CSS Variable part to color information. */
 	export function toColorInformation(part: Part, value: string, fromDocument: TextDocument): ColorInformation | null {
-		let color = Color.fromString(value)
+		const color = Color.fromString(value)
 		if (!color) {
 			return null
 		}

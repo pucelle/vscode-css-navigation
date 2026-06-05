@@ -13,7 +13,7 @@ export namespace Picker {
 	 * `re` must not be global.
 	 */
 	export function locateMatches<I extends number>(text: string, re: RegExp, matchIndices: I[]): Record<I, Picked> | null {
-		let match = text.match(re)
+		const match = text.match(re)
 		if (!match) {
 			return null
 		}
@@ -31,7 +31,7 @@ export namespace Picker {
 	export function* locateAllMatches<I extends number>(text: string, re: RegExp, matchIndices: I[]): Iterable<Record<I, Picked>> {
 		let match: RegExpExecArray | null
 
-		while (match = re.exec(text)) {
+		while ((match = re.exec(text)) !== null) {
 			yield addOffsetToMatches(match, matchIndices)
 		}
 	}
@@ -42,7 +42,7 @@ export namespace Picker {
 	 * `re` must not be global.
 	 */
 	export function locateMatchGroups(text: string, re: RegExp): Record<string, Picked> | null {
-		let match = text.match(re)
+		const match = text.match(re)
 		if (!match) {
 			return null
 		}
@@ -58,7 +58,7 @@ export namespace Picker {
 	export function* locateAllMatchGroups(text: string, re: RegExp): Iterable<Record<string, Picked>> {
 		let match: RegExpExecArray | null
 
-		while (match = re.exec(text)) {
+		while ((match = re.exec(text)) !== null) {
 			yield addOffsetToMatchGroup(match)
 		}
 	}
@@ -68,16 +68,16 @@ export namespace Picker {
 	 * Note it may not 100% get correct result.
 	 */
 	function addOffsetToMatches(match: RegExpMatchArray | RegExpExecArray, matchIndices: number[]): Record<number, Picked> {
-		let o: Record<number, Picked> = {}
+		const o: Record<number, Picked> = {}
 		let lastIndex = 0
 
-		for (let matchIndex of matchIndices) {
-			let m = match[matchIndex]
+		for (const matchIndex of matchIndices) {
+			const m = match[matchIndex]
 			if (!m) {
 				continue
 			}
 			
-			let start = matchIndex === 0 ? 0 : match[0].indexOf(m, lastIndex)
+			const start = matchIndex === 0 ? 0 : match[0].indexOf(m, lastIndex)
 
 			o[matchIndex] = {
 				text: m,
@@ -98,21 +98,21 @@ export namespace Picker {
 	 * `re` must not be global.
 	 */
 	function addOffsetToMatchGroup(match: RegExpMatchArray | RegExpExecArray): Record<string, Picked> {
-		let o: Record<string, Picked> = {}
+		const o: Record<string, Picked> = {}
 
-		let groups = match.groups
+		const groups = match.groups
 		if (!groups) {
 			return o
 		}
 
 		let lastIndex = 0
 
-		for (let [k, m] of Object.entries(groups)) {
+		for (const [k, m] of Object.entries(groups)) {
 			if (!m) {
 				continue
 			}
 			
-			let start = match[0].indexOf(m, lastIndex)
+			const start = match[0].indexOf(m, lastIndex)
 
 			o[k] = {
 				text: m,

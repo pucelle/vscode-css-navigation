@@ -3,7 +3,7 @@ import * as path from 'path'
 
 /** If a workspace folder contains another, what we need is to return the outmost one. */
 export function getOutmostWorkspaceURI(folderURI: string, allFolderURIs: string[]): string | null {
-	let parentURIs = allFolderURIs.filter(parentURI => folderURI.startsWith(parentURI + '/'))
+	const parentURIs = allFolderURIs.filter(parentURI => folderURI.startsWith(parentURI + '/'))
 	parentURIs.sort((a, b) => a.length - b.length)
 
 	return parentURIs[0] || folderURI

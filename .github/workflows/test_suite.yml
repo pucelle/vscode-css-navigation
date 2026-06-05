@@ -1,0 +1,58 @@
+name: Test suite
+
+on:
+  push:
+    branches:
+      - master
+      - feature/*
+      - release/*
+      - fix/*
+  pull_request:
+    branches:
+      - master
+      - feature/*
+      - release/*
+      - fix/*
+
+jobs:
+  # Fast checks: lint, type-check/build and the parser unit tests.
+  lint-build-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+      - name: Unit tests
+        run: npm test
+
+  # End-to-end tests across every OS, against the oldest supported and the latest VSCode.
+  e2e:
+    needs: lint-build-unit
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        vscode: ['1.91.0', 'stable']
+    runs-on: ${{ matrix.os }}
+    env:
+      VSCODE_VERSION: ${{ matrix.vscode }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Build
+        run: npm run build
+      - name: E2E tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run e2e-test
+      - name: E2E tests (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: npm run e2e-test

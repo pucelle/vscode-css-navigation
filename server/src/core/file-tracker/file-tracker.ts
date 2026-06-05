@@ -98,11 +98,11 @@ export abstract class FileTracker {
 
 	/** After document saved. */
 	onDocumentSaved(document: TextDocument) {
-		let fresh = this.trackingMap.isFresh(document.uri)
+		const fresh = this.trackingMap.isFresh(document.uri)
 
 		// Since `onDidChangeWatchedFiles` event was triggered so frequently, we only do updating after saved.
 		if (!fresh && this.updating) {
-			this.updateURI(document.uri)
+			void this.updateURI(document.uri)
 		}
 	}
 
@@ -115,9 +115,9 @@ export abstract class FileTracker {
 
 	/** After changes of files or folders. */
 	async onWatchedFileOrFolderChanged(params: DidChangeWatchedFilesParams) {
-		for (let change of params.changes) {
-			let uri = change.uri
-			let fsPath = URI.parse(uri).fsPath
+		for (const change of params.changes) {
+			const uri = change.uri
+			const fsPath = URI.parse(uri).fsPath
 
 			// New file or folder.
 			if (change.type === FileChangeType.Created) {
@@ -130,13 +130,13 @@ export abstract class FileTracker {
 					return
 				}
 
-				this.tryTrackFileOrFolder(fsPath, TrackingReasonMask.Included)
+				void this.tryTrackFileOrFolder(fsPath, TrackingReasonMask.Included)
 			}
 
 			// File or folder that content changed.
 			else if (change.type === FileChangeType.Changed) {
 				if (await fs.pathExists(fsPath)) {
-					let stat = await fs.stat(fsPath)
+					const stat = await fs.stat(fsPath)
 					if (stat && stat.isFile()) {
 						if (this.test.shouldTrackPath(fsPath)) {
 							this.trackPath(fsPath, TrackingReasonMask.Included)
@@ -163,12 +163,12 @@ export abstract class FileTracker {
 			return
 		}
 
-		let stat = await fs.stat(fsPath)
+		const stat = await fs.stat(fsPath)
 		if (stat.isDirectory()) {
 			await this.tryTrackFolder(fsPath, reason)
 		}
 		else if (stat.isFile()) {
-			let filePath = fsPath
+			const filePath = fsPath
 			if (this.test.shouldTrackPath(filePath)) {
 				this.trackPath(filePath, reason)
 			}
@@ -177,10 +177,10 @@ export abstract class FileTracker {
 	
 	/** Track folder. */
 	private async tryTrackFolder(folderPath: string, reason: TrackingReasonMask) {
-		let filePathsGenerator = walkDirectoryToMatchFiles(folderPath, this.ignoreFilesBy, this.maxFileCount)
+		const filePathsGenerator = walkDirectoryToMatchFiles(folderPath, this.ignoreFilesBy, this.maxFileCount)
 		let count = 0
 
-		for await (let absPath of filePathsGenerator) {
+		for await (const absPath of filePathsGenerator) {
 			if (this.test.shouldTrackPath(absPath)) {
 				this.trackPath(absPath, reason)
 				count++
@@ -200,13 +200,13 @@ export abstract class FileTracker {
 
 	/** Track or re-track file by file path, not validate whether should track here. */
 	private trackPath(filePath: string, reason: TrackingReasonMask | 0) {
-		let uri = URI.file(filePath).toString()
+		const uri = URI.file(filePath).toString()
 		this.trackURI(uri, reason)
 	}
 
 	/** Track or re-track by uri, not validate whether should track here. */
 	private trackURI(uri: string, reason: TrackingReasonMask | 0) {
-		let hasTracked = this.trackingMap.has(uri)
+		const hasTracked = this.trackingMap.has(uri)
 		this.trackingMap.trackByReason(uri, reason)
 
 		if (!hasTracked) {
@@ -222,13 +222,13 @@ export abstract class FileTracker {
 
 	/** Track or re-track opened file from document, or update tracking, no matter files inside or outside workspace. */
 	trackOpenedDocument(document: TextDocument) {
-		let uri = document.uri
-		let hasTracked = this.trackingMap.has(uri)
-		let freshBefore = this.trackingMap.isFresh(uri)
+		const uri = document.uri
+		const hasTracked = this.trackingMap.has(uri)
+		const freshBefore = this.trackingMap.isFresh(uri)
 
 		this.trackingMap.trackByDocument(document)
-		let freshAfter = this.trackingMap.isFresh(uri)
-		let expired = freshBefore && !freshAfter
+		const freshAfter = this.trackingMap.isFresh(uri)
+		const expired = freshBefore && !freshAfter
 
 		if (expired) {
 			this.afterFileExpired(uri)
@@ -244,13 +244,13 @@ export abstract class FileTracker {
 		this.onFileTracked(uri)
 
 		if (this.updating) {
-			this.updateURI(uri)
+			void this.updateURI(uri)
 		}
 	}
 
 	/** After file or folder deleted from disk. */
 	private afterDirDeleted(deletedURI: string) {
-		for (let uri of this.trackingMap.getURIs()) {
+		for (const uri of this.trackingMap.getURIs()) {
 			if (uri.startsWith(deletedURI)) {
 				this.untrackURI(uri)
 			}
@@ -263,7 +263,7 @@ export abstract class FileTracker {
 		this.onFileExpired(uri)
 
 		if (this.updating) {
-			this.updateURI(uri)
+			void this.updateURI(uri)
 		}
 	}
 
@@ -336,11 +336,11 @@ export abstract class FileTracker {
 				
 		Logger.timeStart(this.identifier + '-update')
 
-		for (let uri of this.trackingMap.getURIs()) {
+		for (const uri of this.trackingMap.getURIs()) {
 			if (!this.trackingMap.isFresh(uri)) {
 
 				// Note here not wait it.
-				this.updateURI(uri)
+				void this.updateURI(uri)
 			}
 		}
 
@@ -349,9 +349,9 @@ export abstract class FileTracker {
 
 		// May track more files and push more promises when updating.
 		while (this.updatePromiseMap.size > 0 && loopCount++ < 10) {
-			let allPromises = [...this.updatePromiseMap.values()]
+			const allPromises = [...this.updatePromiseMap.values()]
 
-			for (let promise of allPromises) {
+			for (const promise of allPromises) {
 				await promise
 			}
 
@@ -370,14 +370,14 @@ export abstract class FileTracker {
 	private async loadStartData() {
 		Logger.timeStart(this.identifier + '-track')
 
-		for (let document of this.documents.all()) {
+		for (const document of this.documents.all()) {
 			if (this.test.shouldTrackURI(document.uri)) {
 				this.trackOpenedDocument(document)
 			}
 		}
 
 		if (this.alwaysIncludeGlobSharer) {
-			let alwaysIncludePaths = await this.alwaysIncludeGlobSharer.get()
+			const alwaysIncludePaths = await this.alwaysIncludeGlobSharer.get()
 
 			for (let filePath of alwaysIncludePaths) {
 
@@ -434,17 +434,17 @@ export abstract class FileTracker {
 
 	/** Load text content and create one document. */
 	protected async loadDocument(uri: string): Promise<TextDocument | null> {
-		let languageId = path.extname(uri).slice(1).toLowerCase()
+		const languageId = path.extname(uri).slice(1).toLowerCase()
 		let document: TextDocument | null = null
-		let protocol = URI.parse(uri).scheme
+		const protocol = URI.parse(uri).scheme
 
 		if (protocol === 'http' || protocol === 'https') {
 			try {
 				
 				// Use private uri protocol to open remote files.
-				let myURI = 'css-nav-uri:' + uri
+				const myURI = 'css-nav-uri:' + uri
 
-				let text = await fetchAsText(uri)
+				const text = await fetchAsText(uri)
 				document = TextDocument.create(myURI, languageId, 1, text)
 			}
 			catch (err) {
@@ -453,7 +453,7 @@ export abstract class FileTracker {
 		}
 		else if (protocol === 'file') {
 			try {
-				let text = (await fs.readFile(URI.parse(uri).fsPath)).toString('utf8')
+				const text = (await fs.readFile(URI.parse(uri).fsPath)).toString('utf8')
 				document = TextDocument.create(uri, languageId, 1, text)
 			}
 			catch (err) {
@@ -482,7 +482,7 @@ export abstract class FileTracker {
 
 	/** Release all resources. */
 	protected releaseResources() {
-		let size = this.trackingMap.size()
+		const size = this.trackingMap.size()
 		if (size === 0) {
 			return
 		}
@@ -498,14 +498,14 @@ export abstract class FileTracker {
 
 	/** Clean imported only resource. */
 	protected clearImportedOnlyResources() {
-		let timestamp = Logger.getTimestamp() - CheckUnUsedTimeInterval
-		let uris = [...this.trackingMap.walkInActiveAndExpiredURIs(timestamp)]
+		const timestamp = Logger.getTimestamp() - CheckUnUsedTimeInterval
+		const uris = [...this.trackingMap.walkInActiveAndExpiredURIs(timestamp)]
 
 		if (uris.length === 0) {
 			return
 		}
 
-		for (let uri of uris) {
+		for (const uri of uris) {
 			this.untrackURI(uri)
 		}
 

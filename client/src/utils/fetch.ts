@@ -7,10 +7,10 @@ import {promiseWithResolves} from './promise'
 export function fetchAsText(uri: string): Promise<string> {
 
 	// Node URL protocol has `:` in end.
-	let protocol = URL.parse(uri)?.protocol
-	let {promise, resolve, reject} = promiseWithResolves<string>()
+	const protocol = URL.parse(uri)?.protocol
+	const {promise, resolve, reject} = promiseWithResolves<string>()
 
-	let req = (protocol === 'https:' ? https : http).get(uri, (res) => {
+	const req = (protocol === 'https:' ? https : http).get(uri, (res) => {
 		let data = ''
 		
 		res.on('data', (chunk) => {

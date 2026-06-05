@@ -38,7 +38,7 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 		super.untrackURI(uri)
 
 		if (this.config.enableGlobalEmbeddedCSS) {
-			let oldImportURIs = this.cssImportMap.getByLeft(uri)
+			const oldImportURIs = this.cssImportMap.getByLeft(uri)
 			this.cssImportMap.deleteLeft(uri)
 
 			if (oldImportURIs) {
@@ -48,7 +48,7 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 	}
 
 	private checkImportURIsImported(importURIs: string[]) {
-		for (let importURI of importURIs) {
+		for (const importURI of importURIs) {
 
 			// Have no import to it from any html file.
 			if (this.cssImportMap.countOfRight(importURI) === 0) {
@@ -70,8 +70,8 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 		) {
 			this.definedClassNamesSet.clear()
 			
-			for (let service of this.walkAvailableServices()) {
-				for (let [className, count] of service.getDefinedClassNames()) {
+			for (const service of this.walkAvailableServices()) {
+				for (const [className, count] of service.getDefinedClassNames()) {
 					this.definedClassNamesSet.set(className, (this.definedClassNamesSet.get(className) ?? 0) + count)
 				}
 			}
@@ -80,8 +80,8 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 		if (this.config.enableClassNameReferenceDiagnostic) {
 			this.referencedClassNamesSet.clear()
 
-			for (let service of this.walkAvailableServices()) {
-				for (let [className, count] of service.getReferencedClassNamesSet()) {
+			for (const service of this.walkAvailableServices()) {
+				for (const [className, count] of service.getReferencedClassNamesSet()) {
 					this.referencedClassNamesSet.set(className, (this.referencedClassNamesSet.get(className) ?? 0) + count)
 				}
 			}
@@ -117,18 +117,18 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 		await super.parseDocument(uri, document)
 
 		if (this.config.enableGlobalEmbeddedCSS) {
-			let htmlService = this.serviceMap.get(uri)
+			const htmlService = this.serviceMap.get(uri)
 			if (!htmlService) {
 				return
 			}
 
-			let oldImportURIs = [...this.cssImportMap.getByLeft(uri) ?? []]
+			const oldImportURIs = [...this.cssImportMap.getByLeft(uri) ?? []]
 
 			// If having `@import ...`, load it.
-			let importURIs = await htmlService.getImportedCSSURIs()
+			const importURIs = await htmlService.getImportedCSSURIs()
 
 			// Force import css uris.
-			for (let importURI of importURIs) {
+			for (const importURI of importURIs) {
 				this.cssServiceMap.trackMoreURI(importURI, TrackingReasonMask.ForceImported)
 			}
 

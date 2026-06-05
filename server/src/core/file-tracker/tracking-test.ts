@@ -39,7 +39,7 @@ export class TrackingTest {
 
 	/** Returns whether should track uri. */
 	shouldTrackURI(uri: string): boolean {
-		let parsed = URI.parse(uri)
+		const parsed = URI.parse(uri)
 		if (parsed.scheme === 'file') {
 			return this.shouldTrackPath(parsed.fsPath)
 		}
