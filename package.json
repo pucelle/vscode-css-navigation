@@ -220,19 +220,24 @@
 		"watch": "tsc -b -w",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
 		"e2e-test": "sh ./client/test/scripts/e2e.sh",
+		"lint": "eslint client/src server/src client/test/src",
+		"lint:fix": "eslint client/src server/src client/test/src --fix",
 		"test": "vitest tests",
 		"package": "vsce package",
 		"publish": "vsce publish"
 	},
 	"devDependencies": {
+		"@eslint/js": "^10.0.1",
 		"@types/fs-extra": "^9.0.1",
 		"@types/glob": "^7.1.3",
 		"@types/mocha": "^10.0.10",
 		"@types/node": "^22.7.4",
 		"@types/vscode": "^1.91.0",
 		"@vscode/test-electron": "^2.4.1",
+		"eslint": "^10.4.1",
 		"mocha": "^11.1.0",
 		"typescript": "^6.0.0",
+		"typescript-eslint": "^8.60.1",
 		"vitest": "^3.2.4"
 	},
 	"dependencies": {
