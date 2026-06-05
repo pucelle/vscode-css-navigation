@@ -4,6 +4,9 @@ import * as os from 'os'
 import {runTests} from '@vscode/test-electron'
 
 
+const requestTimeoutMs = 60_000
+
+
 /**
  * Downloads a VSCode instance and runs the e2e test suite in it.
  * Replaces the deprecated `vscode/bin/test` runner from the old `vscode` package.
@@ -29,6 +32,7 @@ async function main() {
 		// supported `1.91.0` and the latest `stable`); defaults to `stable` locally.
 		await runTests({
 			version: process.env.VSCODE_VERSION || 'stable',
+			timeout: requestTimeoutMs,
 			extensionDevelopmentPath,
 			extensionTestsPath,
 			launchArgs: [`--user-data-dir=${userDataDir}`, testWorkspace],
