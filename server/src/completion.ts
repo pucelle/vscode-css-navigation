@@ -12,17 +12,17 @@ export async function getCompletionItems(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<CompletionItem[] | null> {
-	let documentExtension = getPathExtension(document.uri)
-	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+	const documentExtension = getPathExtension(document.uri)
+	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+	const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
 	if (isHTMLFile) {
-		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+		const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 		if (!currentHTMLService) {
 			return null
 		}
 
-		let fromPart = currentHTMLService.findDetailedPartAt(offset)
+		const fromPart = currentHTMLService.findDetailedPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -36,12 +36,12 @@ export async function getCompletionItems(
 		return await getCompletionItemsInHTML(fromPart, currentHTMLService, document, cssServiceMap, configuration, offset)
 	}
 	else if (isCSSFile) {
-		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+		const currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
 		if (!currentCSSService) {
 			return null
 		}
 
-		let fromPart = currentCSSService.findDetailedPartAt(offset)
+		const fromPart = currentCSSService.findDetailedPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -68,8 +68,8 @@ async function getCompletionItemsInHTML(
 ): Promise<CompletionItem[] | null> {
 
 	// `#i` -> `i` to do completion is not working.
-	let matchPart = PartConvertor.toDefinitionMode(fromPart)
-	let labels = new CompletionLabels()
+	const matchPart = PartConvertor.toDefinitionMode(fromPart)
+	const labels = new CompletionLabels()
 
 	// Complete html element class name.
 	if (fromPart.isHTMLType()) {
@@ -88,7 +88,7 @@ async function getCompletionItemsInHTML(
 		}
 	}
 
-	let forceEditCollapseToOffset = fromPart.type === PartType.ClassPotential ? offset : undefined
+	const forceEditCollapseToOffset = fromPart.type === PartType.ClassPotential ? offset : undefined
 	return labels.output(fromPart, document, forceEditCollapseToOffset)
 }
 
@@ -102,8 +102,8 @@ async function getCompletionItemsInCSS(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<CompletionItem[] | null> {
-	let matchPart = PartConvertor.toDefinitionMode(fromPart)
-	let labels = new CompletionLabels()
+	const matchPart = PartConvertor.toDefinitionMode(fromPart)
+	const labels = new CompletionLabels()
 
 	// Find selector referenced completions from current document, and across all html documents.
 	// It ignores css selectors declaration completions, which will be filled by vscode.
@@ -119,7 +119,7 @@ async function getCompletionItemsInCSS(
 
 		// Remove repetitive items with current document.
 		if (configuration.disableOwnCSSVariableCompletion) {
-			let currentLabels = currentService.getReferencedCompletionLabels(fromPart)
+			const currentLabels = currentService.getReferencedCompletionLabels(fromPart)
 			labels.remove(currentLabels.keys())
 		}
 	}

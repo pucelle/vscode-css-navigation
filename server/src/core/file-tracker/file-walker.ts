@@ -48,17 +48,17 @@ class FileWalker {
 
 	/** Generate relative paths relative to current directory. */
 	async *walk(): AsyncGenerator<string> {
-		let count: {value: number} = {value: 0}
+		const count: {value: number} = {value: 0}
 
-		for await(let relPath of this.walkRecursively('', [], count)) {
+		for await(const relPath of this.walkRecursively('', [], count)) {
 			yield relPath
 		}
 	}
 
 	private async *walkRecursively(relDir: string, ignoreRules: IgnoreRule[], count: {value: number}): AsyncGenerator<string> {
-		let fileNames = await fs.readdir(path.join(this.currentDir, relDir))
+		const fileNames = await fs.readdir(path.join(this.currentDir, relDir))
 
-		for (let fileName of fileNames) {
+		for (const fileName of fileNames) {
 			if (this.isIgnoreFile(fileName)) {
 
 				// Must regenerate array.
@@ -67,7 +67,7 @@ class FileWalker {
 		}
 
 		// May parallel to increase speed, but will break generator logic.
-		for (let fileName of fileNames) {
+		for (const fileName of fileNames) {
 			if (count.value >= this.maxFileCount) {
 				break
 			}
@@ -76,15 +76,15 @@ class FileWalker {
 				continue
 			}
 
-			let relPath = path.join(relDir, fileName)
-			let stat = await this.readStat(relPath)
+			const relPath = path.join(relDir, fileName)
+			const stat = await this.readStat(relPath)
 
 			if (this.matchIgnoreRules(relPath, ignoreRules)) {
 				continue
 			}
 
 			if (stat.isDirectory()) {
-				for await(let subRelPath of this.walkRecursively(relPath, ignoreRules, count)) {
+				for await(const subRelPath of this.walkRecursively(relPath, ignoreRules, count)) {
 					yield subRelPath
 				}
 			}
@@ -100,26 +100,26 @@ class FileWalker {
 	}
 
 	private async readStat(relPath: string): Promise<fs.Stats> {
-		let absPath = path.join(this.currentDir, relPath)
+		const absPath = path.join(this.currentDir, relPath)
 		return this.followSymbolLinks ? await fs.stat(absPath) : await fs.lstat(absPath)
 	}
 
 	private async parseIgnoreRules(relDir: string, fileName: string): Promise<IgnoreRule[]> {
-		let absPath = path.join(this.currentDir, relDir, fileName)
-		let text = await fs.readFile(absPath, 'utf8')
+		const absPath = path.join(this.currentDir, relDir, fileName)
+		const text = await fs.readFile(absPath, 'utf8')
 
-		let globOptions = {
+		const globOptions = {
 			matchBase: true,
 			dot: true,
 			flipNegate: true,
 			nocase: true,
 		}
 
-		let ruleLines = text.split(/\r?\n/)
+		const ruleLines = text.split(/\r?\n/)
 			.filter(line => !/^#|^$/.test(line.trim()))
 
 		// Here it doesn't supports expressions like `!XXX`.
-		let rules = ruleLines.map(pattern => {
+		const rules = ruleLines.map(pattern => {
 			if (pattern.startsWith('/')) {
 				pattern = pattern.slice(1)
 			}
@@ -141,8 +141,8 @@ class FileWalker {
 	}
 
 	private matchIgnoreRules(relPath: string, ignoreRules: IgnoreRule[]) {
-		for (let rule of ignoreRules) {
-			let pathRelToRule = path.relative(rule.relDir, relPath)
+		for (const rule of ignoreRules) {
+			const pathRelToRule = path.relative(rule.relDir, relPath)
 
 			if (rule.match.match(pathRelToRule)) {
 				return true
@@ -161,14 +161,14 @@ export async function* walkDirectoryToMatchFiles(
 	ignoreFileNames: string[],
 	maxFileCount: number = Infinity
 ): AsyncGenerator<string> {
-	let walker = new FileWalker({
+	const walker = new FileWalker({
 		currentDir,
 		ignoreFileNames,
 		followSymbolLinks: false,
 		maxFileCount,
 	})
 
-	for await(let relPath of walker.walk()) {
+	for await(const relPath of walker.walk()) {
 		yield path.join(currentDir, relPath)
 	}
 }

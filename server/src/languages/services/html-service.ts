@@ -2,7 +2,7 @@ import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PartType} from '../parts'
 import {HTMLTokenTree, JSTokenTree} from '../trees'
 import {BaseService} from './base-service'
-import path = require('node:path')
+import * as path from 'node:path'
 import {LanguageIds} from '../language-ids'
 
 
@@ -40,14 +40,14 @@ export class HTMLService extends BaseService {
 			return
 		}
 
-		let classTexts = [
+		const classTexts = [
 			...this.partMap.get(PartType.Class)?.map(p => p.escapedText) || [],
 			...this.partMap.get(PartType.ReactImportedCSSModuleProperty)?.map(p => p.escapedText) || [],
 			...this.partMap.get(PartType.CSSSelectorQueryClass)?.map(p => p.escapedText.slice(1)) || [],
 			...this.partMap.get(PartType.ReactDefaultImportedCSSModuleClass)?.map(p => p.escapedText) || [],
 		]
 
-		for (let text of classTexts) {
+		for (const text of classTexts) {
 			this.classNamesReferenceSet.set(text, (this.classNamesReferenceSet.get(text) ?? 0) + 1)
 		}
 	}
@@ -71,8 +71,8 @@ export class HTMLService extends BaseService {
 	}
 
 	protected makeTree() {
-		let extension = path.extname(this.document.uri).slice(1).toLowerCase()
-		let languageId = HTMLLanguageIdMap[this.document.languageId] ?? HTMLLanguageExtensionMap[extension] ?? 'html'
+		const extension = path.extname(this.document.uri).slice(1).toLowerCase()
+		const languageId = HTMLLanguageIdMap[this.document.languageId] ?? HTMLLanguageExtensionMap[extension] ?? 'html'
 		
 		if (LanguageIds.isHTMLSyntax(languageId)) {
 			return HTMLTokenTree.fromString(this.document.getText(), 0, languageId)

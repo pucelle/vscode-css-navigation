@@ -5,10 +5,10 @@ import {promiseWithResolves} from './promise'
 
 
 export function fetchAsText(url: string): Promise<string> {
-	let protocol = URI.parse(url).scheme
-	let {promise, resolve, reject} = promiseWithResolves<string>()
+	const protocol = URI.parse(url).scheme
+	const {promise, resolve, reject} = promiseWithResolves<string>()
 
-	let req = (protocol === 'https' ? https : http).get(url, (res) => {
+	const req = (protocol === 'https' ? https : http).get(url, (res) => {
 		let data = ''
 		
 		res.on('data', (chunk) => {

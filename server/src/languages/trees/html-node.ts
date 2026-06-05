@@ -29,7 +29,7 @@ export class HTMLTokenNode extends AnyTokenNode<HTMLToken> {
 
 	get firstTextNode(): HTMLTokenNode | null {
 		if (this.children && this.children.length > 0 && this.children[0].token.type === HTMLTokenType.Text) {
-			return this.children[0] as HTMLTokenNode
+			return this.children[0]
 		}
 
 		return null
@@ -57,7 +57,7 @@ export class HTMLTokenNode extends AnyTokenNode<HTMLToken> {
 			return null
 		}
 
-		let attr = this.attrs.find(attr => attr.name.text === name)
+		const attr = this.attrs.find(attr => attr.name.text === name)
 		if (attr && attr.value) {
 			return removeQuotesFromToken(attr.value)
 		}
@@ -68,7 +68,7 @@ export class HTMLTokenNode extends AnyTokenNode<HTMLToken> {
 	
 	/** Attribute value text, with quotes removed. */
 	getAttributeValue(name: string): string | null {
-		let attr = this.getAttribute(name)
+		const attr = this.getAttribute(name)
 		if (attr) {
 			return attr.text
 		}

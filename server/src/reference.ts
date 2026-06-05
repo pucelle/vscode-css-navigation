@@ -13,18 +13,18 @@ export async function findReferences(
 	configuration: Configuration,
 	pureReference: boolean
 ): Promise<Location[] | null> {
-	let documentExtension = getPathExtension(document.uri)
-	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+	const documentExtension = getPathExtension(document.uri)
+	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+	const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 	let locations: Location[] | null = null
 
 	if (isHTMLFile) {
-		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+		const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 		if (!currentHTMLService) {
 			return null
 		}
 
-		let fromPart = currentHTMLService.findDetailedPartAt(offset)
+		const fromPart = currentHTMLService.findDetailedPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -37,12 +37,12 @@ export async function findReferences(
 		locations = await findReferencesInHTML(fromPart, currentHTMLService, htmlServiceMap, cssServiceMap, configuration, pureReference)
 	}
 	else if (isCSSFile) {
-		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+		const currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
 		if (!currentCSSService) {
 			return null
 		}
 
-		let fromPart = currentCSSService.findDetailedPartAt(offset)
+		const fromPart = currentCSSService.findDetailedPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -63,8 +63,8 @@ async function findReferencesInHTML(
 	configuration: Configuration,
 	pureReference: boolean
 ): Promise<Location[] | null> {
-	let matchPart = PartConvertor.toDefinitionMode(fromPart)
-	let locations: Location[] = []
+	const matchPart = PartConvertor.toDefinitionMode(fromPart)
+	const locations: Location[] = []
 
 
 	if (pureReference) {
@@ -105,8 +105,8 @@ async function findReferencesInCSS(
 	cssServiceMap: CSSServiceMap,
 	pureReference: boolean
 ): Promise<Location[] | null> {
-	let matchPart = PartConvertor.toDefinitionMode(fromPart)
-	let locations: Location[] = []
+	const matchPart = PartConvertor.toDefinitionMode(fromPart)
+	const locations: Location[] = []
 
 
 	if (pureReference) {

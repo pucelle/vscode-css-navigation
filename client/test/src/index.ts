@@ -8,18 +8,18 @@ import Mocha from 'mocha'
  * Replaces the deprecated `vscode/lib/testrunner` from the old `vscode` package.
  */
 export function run(): Promise<void> {
-	let mocha = new Mocha({
+	const mocha = new Mocha({
 		ui: 'bdd',
 		color: true,
 		timeout: 100000,
 	})
 
-	let testsRoot = __dirname
+	const testsRoot = __dirname
 
 	return new Promise((resolve, reject) => {
 		try {
-			let files = fs.readdirSync(testsRoot).filter(file => file.endsWith('.test.js'))
-			for (let file of files) {
+			const files = fs.readdirSync(testsRoot).filter(file => file.endsWith('.test.js'))
+			for (const file of files) {
 				mocha.addFile(path.resolve(testsRoot, file))
 			}
 
@@ -33,7 +33,7 @@ export function run(): Promise<void> {
 			})
 		}
 		catch (err) {
-			reject(err)
+			reject(err instanceof Error ? err : new Error(String(err)))
 		}
 	})
 }

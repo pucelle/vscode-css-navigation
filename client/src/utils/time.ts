@@ -1,6 +1,6 @@
 /** Generate current time marker in `h:MM:ss` format. */
 export function getTimeMarker() {
-	let date = new Date()
+	const date = new Date()
 	
 	return '['
 		+ String(date.getHours())

@@ -4,6 +4,18 @@ import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} fro
 import {getOutmostWorkspaceURI, getPathExtension, generateGlobPatternFromExtensions, getTimeMarker, fetchAsText} from './utils'
 
 
+/** Wire shape of the `definitions` / `references` server responses. */
+interface LocationsResponse {
+	data: {
+		uri: string
+		range: {
+			start: {line: number, character: number}
+			end: {line: number, character: number}
+		}
+	}[] | null
+}
+
+
 process.on('unhandledRejection', function(reason) {
 	console.log('Unhandled Rejection: ', reason)
 })
@@ -16,17 +28,17 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 	extension = new CSSNavigationExtension(context)
 
 	// Register command.
-	let moveCursorForwardCommand = vscode.commands.registerCommand(
+	const moveCursorForwardCommand = vscode.commands.registerCommand(
 		'CSSNavigation.moveCursorForward',
 		() => {
-			let editor = vscode.window.activeTextEditor
+			const editor = vscode.window.activeTextEditor
 			if (!editor) {
 				return
 			}
 
-			let currentPosition = editor.selection.active
+			const currentPosition = editor.selection.active
 
-			let newPosition = currentPosition.with(
+			const newPosition = currentPosition.with(
 				currentPosition.line,
 				Math.max(0, currentPosition.character - 1)
 			)
@@ -39,25 +51,25 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 
 
 	// Register command.
-	let peekDefinitionsCommand = vscode.commands.registerCommand(
+	const peekDefinitionsCommand = vscode.commands.registerCommand(
 		'CSSNavigation.peekDefinitions',
 		async (uri: string, position: vscode.Position) => {
-			let theURI = vscode.Uri.parse(uri)
-			let client = extension.ensureClientForOpenedURI(theURI)
+			const theURI = vscode.Uri.parse(uri)
+			const client = extension.ensureClientForOpenedURI(theURI)
 
 			if (!client) {
 				return
 			}
 
-			let tokenSource = new vscode.CancellationTokenSource()
+			const tokenSource = new vscode.CancellationTokenSource()
 
-			let result = await client.sendRequest(
-				'definitions', 
+			const result = await client.sendRequest<LocationsResponse>(
+				'definitions',
 				{uri, position},
 				tokenSource.token
-			) as {data: vscode.Location[] | null}
+			)
 			
-			let definitions = result.data as vscode.Location[] | null
+			const definitions = result.data
 			if (definitions && definitions.length > 0) {
 				await vscode.commands.executeCommand(
 					'editor.action.peekLocations',
@@ -78,25 +90,25 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 		}
 	)
 
-	let peekReferencesCommand = vscode.commands.registerCommand(
+	const peekReferencesCommand = vscode.commands.registerCommand(
 		'CSSNavigation.peekReferences',
 		async (uri: string, position: vscode.Position) => {
-			let theURI = vscode.Uri.parse(uri)
-			let client = extension.ensureClientForOpenedURI(theURI)
+			const theURI = vscode.Uri.parse(uri)
+			const client = extension.ensureClientForOpenedURI(theURI)
 
 			if (!client) {
 				return
 			}
 
-			let tokenSource = new vscode.CancellationTokenSource()
+			const tokenSource = new vscode.CancellationTokenSource()
 
-			let result = await client.sendRequest(
-				'references', 
+			const result = await client.sendRequest<LocationsResponse>(
+				'references',
 				{uri, position},
 				tokenSource.token
-			) as {data: vscode.Location[] | null}
+			)
 
-			let references = result.data as vscode.Location[] | null
+			const references = result.data
 			if (references && references.length > 0) {
 				await vscode.commands.executeCommand(
 					'editor.action.peekLocations',
@@ -123,7 +135,7 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 	// Register a content provider to open remote URI.
 	const httpProvider = new class implements vscode.TextDocumentContentProvider {
 		provideTextDocumentContent(myURI: vscode.Uri): Promise<string> {
-			let uri = myURI.path
+			const uri = myURI.path
 			return fetchAsText(uri)
 		}
 	}
@@ -136,7 +148,7 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration('CSSNavigation')) {
 				extension.loadConfig()
-				extension.restartAllClients()
+				void extension.restartAllClients()
 			}
 		}),
 
@@ -145,8 +157,8 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 		}),
 
 		vscode.workspace.onDidChangeWorkspaceFolders(event => {
-			for (let folder of event.removed) {
-				extension.stopClient(folder)
+			for (const folder of event.removed) {
+				void extension.stopClient(folder)
 			}
 
 			// Even only removes a folder, we may still need to restart all servers for every folder,
@@ -187,7 +199,7 @@ export class CSSNavigationExtension {
 
 	/** Get configuration object. */
 	private getConfigObject(): Configuration {
-		let config = this.config
+		const config = this.config
 
 		return {
 			enableGoToDefinition: config.get('enableGoToDefinition', true),
@@ -222,15 +234,15 @@ export class CSSNavigationExtension {
 
 	/** Sync server with workspace folders. */
 	ensureClients() {
-		let searchAcrossWorkspaceFolders: boolean = this.config.get('searchAcrossWorkspaceFolders', false)
+		const searchAcrossWorkspaceFolders: boolean = this.config.get('searchAcrossWorkspaceFolders', false)
 
 		if (searchAcrossWorkspaceFolders) {
-			for (let workspaceFolder of vscode.workspace.workspaceFolders || []) {
+			for (const workspaceFolder of vscode.workspace.workspaceFolders || []) {
 				this.ensureClientForWorkspace(workspaceFolder)
 			}
 		}
 		else {
-			for (let document of vscode.workspace.textDocuments) {
+			for (const document of vscode.workspace.textDocuments) {
 				this.ensureClientForOpenedURI(document.uri)
 			}
 		}
@@ -238,19 +250,19 @@ export class CSSNavigationExtension {
 
 	/** Make sure client to be started for workspace folder. */
 	private ensureClientForWorkspace(workspaceFolder: vscode.WorkspaceFolder): LanguageClient | null {
-		let workspaceURI = workspaceFolder.uri.toString()
-		let workspaceURIs = (vscode.workspace.workspaceFolders || []).map(folder => folder.uri.toString())
-		let outmostWorkspaceURI = getOutmostWorkspaceURI(workspaceURI, workspaceURIs)
+		const workspaceURI = workspaceFolder.uri.toString()
+		const workspaceURIs = (vscode.workspace.workspaceFolders || []).map(folder => folder.uri.toString())
+		const outmostWorkspaceURI = getOutmostWorkspaceURI(workspaceURI, workspaceURIs)
 
 		//was covered by another folder, stop it
 		if (outmostWorkspaceURI && workspaceURI !== outmostWorkspaceURI && this.clients.has(workspaceURI)) {
-			this.stopClient(workspaceFolder)
+			void this.stopClient(workspaceFolder)
 		}
 		
 		if (outmostWorkspaceURI && !this.clients.has(outmostWorkspaceURI)) {
-			let workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(outmostWorkspaceURI))
+			const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(outmostWorkspaceURI))
 			if (workspaceFolder) {
-				this.startClientFor(workspaceFolder)
+				void this.startClientFor(workspaceFolder)
 			}
 		}
 
@@ -268,16 +280,16 @@ export class CSSNavigationExtension {
 			return null
 		}
 
-		let activeHTMLFileExtensions: string[] = this.config.get('activeHTMLFileExtensions', [])
-		let activeCSSFileExtensions: string[] = this.config.get('activeCSSFileExtensions', [])
-		let extension = getPathExtension(uri.fsPath)
+		const activeHTMLFileExtensions: string[] = this.config.get('activeHTMLFileExtensions', [])
+		const activeCSSFileExtensions: string[] = this.config.get('activeCSSFileExtensions', [])
+		const extension = getPathExtension(uri.fsPath)
 		
 		if (!activeHTMLFileExtensions.includes(extension) && !activeCSSFileExtensions.includes(extension)) {
 			return null
 		}
 
 		// Not in any workspace.
-		let workspaceFolder = vscode.workspace.getWorkspaceFolder(uri)
+		const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri)
 		if (!workspaceFolder) {
 			return null
 		}
@@ -287,28 +299,28 @@ export class CSSNavigationExtension {
 
 	/** Start client & server for workspace folder. */
 	private async startClientFor(workspaceFolder: vscode.WorkspaceFolder) {
-		let workspaceFolderPath = workspaceFolder.uri.fsPath
-		let activeHTMLFileExtensions: string[] = this.config.get('activeHTMLFileExtensions', [])
-		let activeCSSFileExtensions: string[] = this.config.get('activeCSSFileExtensions', [])
-		let searchAcrossWorkspaceFolders: boolean = this.config.get('searchAcrossWorkspaceFolders', false)
+		const workspaceFolderPath = workspaceFolder.uri.fsPath
+		const activeHTMLFileExtensions: string[] = this.config.get('activeHTMLFileExtensions', [])
+		const activeCSSFileExtensions: string[] = this.config.get('activeCSSFileExtensions', [])
+		const searchAcrossWorkspaceFolders: boolean = this.config.get('searchAcrossWorkspaceFolders', false)
 
-		let serverModule = this.context.asAbsolutePath(
+		const serverModule = this.context.asAbsolutePath(
 			path.join('server', 'out', 'server.js')
 		)
 		
 		// One port for only one server to debug should be ok.
-		let debugOptions = {execArgv: ["--nolazy", '--inspect=6009']}
+		const debugOptions = {execArgv: ["--nolazy", '--inspect=6009']}
 
-		let serverOptions: ServerOptions = {
+		const serverOptions: ServerOptions = {
 			run: {module: serverModule, transport: TransportKind.ipc},
 			debug: {module: serverModule, transport: TransportKind.ipc, options: debugOptions},
 		}
 
 		// To notify open / close / content changed for html & css files in specified range, and provide language service.
-		let htmlCSSPattern = generateGlobPatternFromExtensions([...activeHTMLFileExtensions, ...activeCSSFileExtensions])
-		let configuration = this.getConfigObject()
+		const htmlCSSPattern = generateGlobPatternFromExtensions([...activeHTMLFileExtensions, ...activeCSSFileExtensions])
+		const configuration = this.getConfigObject()
 
-		let clientOptions: LanguageClientOptions = {
+		const clientOptions: LanguageClientOptions = {
 			documentSelector: [{
 				scheme: 'file',
 				//language: 'plaintext', //plaintext is not work, just ignore it if match all plaintext files
@@ -328,13 +340,13 @@ export class CSSNavigationExtension {
 				fileEvents: vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(workspaceFolderPath, `**`))
 			},
 
-			initializationOptions: <InitializationOptions>{
+			initializationOptions: {
 				workspaceFolderPath,
 				configuration,
 			},
 		}
 
-		let client = new LanguageClient('css-navigation', 'CSS Navigation', serverOptions, clientOptions)
+		const client = new LanguageClient('css-navigation', 'CSS Navigation', serverOptions, clientOptions)
 
 		// Register before awaiting `start()`, so re-entrant `ensureClient*` calls reuse this client.
 		this.clients.set(workspaceFolder.uri.toString(), client)
@@ -353,7 +365,7 @@ export class CSSNavigationExtension {
 			await client.start()
 		}
 		catch (err) {
-			this.showChannelMessage(getTimeMarker() + `❌ Client for workspace "${workspaceFolder.name}" failed to start: ${err}`)
+			this.showChannelMessage(getTimeMarker() + `❌ Client for workspace "${workspaceFolder.name}" failed to start: ${String(err)}`)
 		}
 	}
 
@@ -366,8 +378,8 @@ export class CSSNavigationExtension {
 	async stopClient(workspaceFolder: vscode.WorkspaceFolder) {
 		this.unwatchLastWatchedGitIgnoreFile(workspaceFolder)
 
-		let uri = workspaceFolder.uri.toString()
-		let client = this.clients.get(uri)
+		const uri = workspaceFolder.uri.toString()
+		const client = this.clients.get(uri)
 		if (client) {
 			this.clients.delete(uri)
 
@@ -379,7 +391,7 @@ export class CSSNavigationExtension {
 				}
 			}
 			catch (err) {
-				this.showChannelMessage(getTimeMarker() + `Error while stopping client for workspace folder "${workspaceFolder.name}": ${err}`)
+				this.showChannelMessage(getTimeMarker() + `Error while stopping client for workspace folder "${workspaceFolder.name}": ${String(err)}`)
 			}
 
 			this.showChannelMessage(getTimeMarker() + `Client for workspace folder "${workspaceFolder.name}" stopped`)
@@ -399,11 +411,11 @@ export class CSSNavigationExtension {
 
 	/** Stop all clients and servers. */
 	async stopAllClients() {
-		let promises: Promise<void>[] = []
+		const promises: Promise<void>[] = []
 
 		// Snapshot the keys, since `stopClient` mutates the map while we iterate.
-		for (let uri of [...this.clients.keys()]) {
-			let workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(uri))
+		for (const uri of [...this.clients.keys()]) {
+			const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(uri))
 			if (workspaceFolder) {
 				promises.push(this.stopClient(workspaceFolder))
 			}
@@ -419,9 +431,9 @@ export class CSSNavigationExtension {
 	private watchGitIgnoreFile(workspaceFolder: vscode.WorkspaceFolder) {
 		this.unwatchLastWatchedGitIgnoreFile(workspaceFolder)
 
-		let watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(workspaceFolder.uri.fsPath, `.gitignore`))
-		let onGitIgnoreChange = () => {
-			this.restartClient(workspaceFolder)
+		const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(workspaceFolder.uri.fsPath, `.gitignore`))
+		const onGitIgnoreChange = () => {
+			void this.restartClient(workspaceFolder)
 		}
 
 		watcher.onDidCreate(onGitIgnoreChange)
@@ -433,7 +445,7 @@ export class CSSNavigationExtension {
 
 	/** unwatch `.gitignore`. */
 	private unwatchLastWatchedGitIgnoreFile(workspaceFolder: vscode.WorkspaceFolder) {
-		let watcher = this.gitIgnoreWatchers.get(workspaceFolder.uri.fsPath)
+		const watcher = this.gitIgnoreWatchers.get(workspaceFolder.uri.fsPath)
 		if (watcher) {
 			watcher.dispose()
 		}

@@ -28,7 +28,7 @@ export class AnyTokenNode<T extends AnyToken<number>> {
 			return null
 		}
 
-		let index = this.parent.children!.indexOf(this)
+		const index = this.parent.children!.indexOf(this)
 		if (index < this.parent.children!.length - 1) {
 			return this.parent.children![index + 1] as this
 		}
@@ -38,7 +38,7 @@ export class AnyTokenNode<T extends AnyToken<number>> {
 
 	/** Sort walking of parts. */
 	*sortParts(walk: Iterable<Part>): Iterable<Part> {
-		let list = [...walk]
+		const list = [...walk]
 		list.sort((a, b) => a.start - b.start)
 		yield* list
 	}
@@ -50,7 +50,7 @@ export class AnyTokenNode<T extends AnyToken<number>> {
 		}
 
 		if (this.children) {
-			for (let child of this.children) {
+			for (const child of this.children) {
 				yield* child.walk() as Iterable<this>
 			}
 		}
@@ -69,7 +69,7 @@ export class AnyTokenNode<T extends AnyToken<number>> {
 		}
 
 		if (this.children) {
-			for (let child of this.children) {
+			for (const child of this.children) {
 				yield* child.walk() as Iterable<this>
 			}
 		}

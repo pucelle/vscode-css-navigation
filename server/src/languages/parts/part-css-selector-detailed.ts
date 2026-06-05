@@ -55,7 +55,7 @@ export class CSSSelectorDetailedPart extends Part {
 
 	/** Get parent selector wrapper. */
 	getWrapper(service: BaseService): CSSSelectorWrapperPart | null {
-		let wrapperPart = service.findPartAt(this.start) as CSSSelectorWrapperPart | undefined
+		const wrapperPart = service.findPartAt(this.start) as CSSSelectorWrapperPart | undefined
 		return wrapperPart ?? null
 	}
 }
@@ -68,13 +68,13 @@ export function parseDetailedParts(
 	definitionEnd: number,
 	commandWrapped: boolean
 ): CSSSelectorDetailedPart[] {
-	let detailedTokens = group.filter(item => item.type === CSSSelectorTokenType.Tag
+	const detailedTokens = group.filter(item => item.type === CSSSelectorTokenType.Tag
 		|| item.type === CSSSelectorTokenType.Nesting
 		|| item.type === CSSSelectorTokenType.Class
 		|| item.type === CSSSelectorTokenType.Id)
 		
 	let primaryToken = detailedTokens.length > 0 ? detailedTokens[detailedTokens.length - 1] : null
-	let primaryTokenIndex = primaryToken ? group.lastIndexOf(primaryToken) : -1
+	const primaryTokenIndex = primaryToken ? group.lastIndexOf(primaryToken) : -1
 
 	// Has combinator or separator followed.
 	// `a b` -> `b`
@@ -84,7 +84,7 @@ export function parseDetailedParts(
 	// `.a::before` -> `null`
 	if (primaryTokenIndex !== -1) {
 		for (let i = primaryTokenIndex + 1; i < group.length; i++) {
-			let item = group[i]
+			const item = group[i]
 
 			if (item.type === CSSSelectorTokenType.Combinator
 				|| item.type === CSSSelectorTokenType.Separator
@@ -96,10 +96,10 @@ export function parseDetailedParts(
 		}
 	}
 
-	let details: CSSSelectorDetailedPart[] = []
-	let independent = commandWrapped || group.length === 1
+	const details: CSSSelectorDetailedPart[] = []
+	const independent = commandWrapped || group.length === 1
 
-	for (let token of detailedTokens) {
+	for (const token of detailedTokens) {
 		let formatted = joinMainReferenceSelectorWithParent(token, parents)
 		if (formatted.length === 0) {
 			continue
@@ -107,9 +107,9 @@ export function parseDetailedParts(
 
 		formatted = formatted.map(escapedCSSSelector)
 
-		let type = getDetailedPartType(token.type, formatted)
-		let primary = token === primaryToken
-		let part = new CSSSelectorDetailedPart(type, token.text, token.start, definitionEnd, formatted, primary, independent)
+		const type = getDetailedPartType(token.type, formatted)
+		const primary = token === primaryToken
+		const part = new CSSSelectorDetailedPart(type, token.text, token.start, definitionEnd, formatted, primary, independent)
 
 		details.push(part)
 	}
@@ -120,8 +120,8 @@ export function parseDetailedParts(
 
 /** Join parent selectors, but only handle `&-` joining. */
 function joinMainReferenceSelectorWithParent(token: CSSSelectorToken, parents: CSSSelectorWrapperPart[] | undefined): string[] {
-	let text = token.text
-	let re = /&/g
+	const text = token.text
+	const re = /&/g
 
 	// `a{&-b}` -> `a-b`, not handle joining multiply & when several `&` exist.
 	if (re.test(text)) {
@@ -129,14 +129,14 @@ function joinMainReferenceSelectorWithParent(token: CSSSelectorToken, parents: C
 			return [text]
 		}
 
-		let joint: string[] = []
+		const joint: string[] = []
 
-		for (let parent of parents) {
+		for (const parent of parents) {
 			if (!parent.primary) {
 				continue
 			}
 
-			for (let primaryFormatted of parent.primary.formatted) {
+			for (const primaryFormatted of parent.primary.formatted) {
 				joint.push(text.replace(re, primaryFormatted))
 			}
 		}

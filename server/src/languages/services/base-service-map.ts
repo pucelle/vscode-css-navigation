@@ -44,9 +44,10 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		this.serviceMap.clear()
 	}
 
+	// eslint-disable-next-line @typescript-eslint/require-await -- overrides FileTracker.parseDocument, whose contract returns a Promise
 	protected async parseDocument(uri: string, document: TextDocument) {
 		try {
-			let service = this.createService(document)
+			const service = this.createService(document)
 			this.serviceMap.set(uri, service)
 		}
 		catch (err) {
@@ -56,7 +57,7 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	}
 
 	protected *walkAvailableServices(): IterableIterator<S> {
-		for (let uri of this.trackingMap.walkActiveURIs()) {
+		for (const uri of this.trackingMap.walkActiveURIs()) {
 			if (this.serviceMap.has(uri)) {
 				this.trackingMap.setUseTime(uri, this.timestamp)
 				yield this.serviceMap.get(uri)!
@@ -77,13 +78,13 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 
 	/** Force get a service by document, create it and cache as opened document. */
 	async forceGetServiceByDocument(document: TextDocument): Promise<S | undefined> {
-		let uri = document.uri
+		const uri = document.uri
 
 		if (!this.trackingMap.has(uri)) {
 			this.trackOpenedDocument(document)
 		}
 
-		return this.getFreshly(uri) as Promise<S | undefined>
+		return this.getFreshly(uri)
 	}
 
 	/** Force get a service by uri, create it but not cache. */
@@ -95,7 +96,7 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		}
 
 		// Already included.
-		return this.getFreshly(uri) as Promise<S | undefined>
+		return this.getFreshly(uri)
 	}
 
 	/** Parse document to CSS service. */
@@ -104,9 +105,9 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async findDefinitions(matchPart: Part, fromPart: Part, fromDocument: TextDocument): Promise<LocationLink[]> {
 		await this.beFresh()
 
-		let locations: LocationLink[] = []
+		const locations: LocationLink[] = []
 
-		for (let service of this.walkAvailableServices()) {
+		for (const service of this.walkAvailableServices()) {
 			locations.push(...service.findDefinitions(matchPart, fromPart, fromDocument))
 		}
 
@@ -116,9 +117,9 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async findSymbols(query: string): Promise<SymbolInformation[]> {
 		await this.beFresh()
 
-		let symbols: SymbolInformation[] = []
+		const symbols: SymbolInformation[] = []
 
-		for (let service of this.walkAvailableServices()) {
+		for (const service of this.walkAvailableServices()) {
 			symbols.push(...service.findSymbols(query))
 		}
 
@@ -128,10 +129,10 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async getCompletionLabels(matchPart: Part, fromPart: Part, maxHoverStylePropertyCount: number): Promise<Map<string, CompletionLabel | null>> {
 		await this.beFresh()
 
-		let labelMap: Map<string, CompletionLabel | null> = new Map()
+		const labelMap: Map<string, CompletionLabel | null> = new Map()
 
-		for (let service of this.walkAvailableServices()) {
-			for (let [label, item] of service.getCompletionLabels(matchPart, fromPart, maxHoverStylePropertyCount)) {
+		for (const service of this.walkAvailableServices()) {
+			for (const [label, item] of service.getCompletionLabels(matchPart, fromPart, maxHoverStylePropertyCount)) {
 				labelMap.set(label, item)
 			}
 		}
@@ -148,10 +149,10 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async getReferencedCompletionLabels(fromPart: Part): Promise<Map<string, CompletionLabel | null>> {
 		await this.beFresh()
 
-		let labelMap: Map<string, CompletionLabel | null> = new Map()
+		const labelMap: Map<string, CompletionLabel | null> = new Map()
 
-		for (let service of this.walkAvailableServices()) {
-			for (let [label, detail] of service.getReferencedCompletionLabels(fromPart)) {
+		for (const service of this.walkAvailableServices()) {
+			for (const [label, detail] of service.getReferencedCompletionLabels(fromPart)) {
 				labelMap.set(label, detail)
 			}
 		}
@@ -162,9 +163,9 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async findReferences(matchDefPart: Part, fromPart: Part): Promise<Location[]> {
 		await this.beFresh()
 		
-		let locations: Location[] = []
+		const locations: Location[] = []
 
-		for (let htmlService of this.serviceMap.values()) {
+		for (const htmlService of this.serviceMap.values()) {
 			locations.push(...htmlService.findReferences(matchDefPart, fromPart))
 		}
 
@@ -174,8 +175,8 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async findHover(matchPart: Part, fromPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Promise<Hover | null> {
 		await this.beFresh()
 
-		for (let service of this.walkAvailableServices()) {
-			let hover = service.findHover(matchPart, fromPart, fromDocument, maxStylePropertyCount)
+		for (const service of this.walkAvailableServices()) {
+			const hover = service.findHover(matchPart, fromPart, fromDocument, maxStylePropertyCount)
 			if (hover) {
 				return hover
 			}
@@ -188,10 +189,10 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async getCSSVariables(names: Set<string>): Promise<Map<string, string>> {
 		await this.beFresh()
 
-		let map: Map<string, string> = new Map()
+		const map: Map<string, string> = new Map()
 
-		for (let service of this.walkAvailableServices()) {
-			for (let [name, value] of service.getCSSVariables(names)) {
+		for (const service of this.walkAvailableServices()) {
+			for (const [name, value] of service.getCSSVariables(names)) {
 				map.set(name, value)
 			}
 		}

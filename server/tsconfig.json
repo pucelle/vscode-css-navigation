@@ -17,8 +17,7 @@
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitAny": true,
 		"noImplicitThis": true,
-		"composite": true,
-		"ignoreDeprecations": "6.0"
+		"composite": true
 	},
 	"include": ["src"],
 	"exclude": [

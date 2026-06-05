@@ -9,13 +9,13 @@ import {runTests} from '@vscode/test-electron'
 async function main() {
 	try {
 		// The folder containing the extension manifest `package.json`, passed as `--extensionDevelopmentPath`.
-		let extensionDevelopmentPath = path.resolve(__dirname, '../../../')
+		const extensionDevelopmentPath = path.resolve(__dirname, '../../../')
 
 		// The compiled test entry (`index.js` exporting `run`), passed as `--extensionTestsPath`.
-		let extensionTestsPath = path.resolve(__dirname, './index')
+		const extensionTestsPath = path.resolve(__dirname, './index')
 
 		// The workspace folder to open while running the tests.
-		let testWorkspace = path.resolve(__dirname, '../fixture')
+		const testWorkspace = path.resolve(__dirname, '../fixture')
 
 		await runTests({
 			extensionDevelopmentPath,
@@ -29,4 +29,4 @@ async function main() {
 	}
 }
 
-main()
+void main()

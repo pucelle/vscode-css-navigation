@@ -17,8 +17,8 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 		if (this.config.enableClassNameDefinitionDiagnostic) {
 			this.definedClassNamesSet.clear()
 
-			for (let service of this.walkAvailableServices()) {
-				for (let [className, count] of service.getDefinedClassNames()) {
+			for (const service of this.walkAvailableServices()) {
+				for (const [className, count] of service.getDefinedClassNames()) {
 					this.definedClassNamesSet.set(className, (this.definedClassNamesSet.get(className) ?? 0) + count)
 				}
 			}
@@ -43,15 +43,15 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 	protected async parseDocument(uri: string, document: TextDocument) {
 		await super.parseDocument(uri, document)
 
-		let cssService = this.serviceMap.get(uri)
+		const cssService = this.serviceMap.get(uri)
 		if (!cssService) {
 			return
 		}
 
 		// If having `@import ...`, load it.
-		let importURIs = await cssService.getImportedCSSURIs()
+		const importURIs = await cssService.getImportedCSSURIs()
 
-		for (let importURI of importURIs) {
+		for (const importURI of importURIs) {
 			this.trackMoreURI(importURI)
 		}
 

@@ -2,15 +2,15 @@
 export function promiseWithResolves<T = void>(): {
 	promise: Promise<T>,
 	resolve: (value: T | PromiseLike<T>) => void,
-	reject: (err?: any) => void
+	reject: (reason?: unknown) => void
 } {
 	let resolve: (value: T | PromiseLike<T>) => void
-	let reject: (err: any) => void
+	let reject: (reason?: unknown) => void
 
-	let promise = new Promise((res, rej) => {
-		resolve = res as (value: T | PromiseLike<T>) => void
+	const promise = new Promise<T>((res, rej) => {
+		resolve = res
 		reject = rej
-	}) as Promise<T>
+	})
 
 	return {
 		promise,

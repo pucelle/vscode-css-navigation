@@ -12,7 +12,7 @@ export namespace PathResolver {
 
 	/** Resolve relative path, will search `node_modules` directory to find final import path. */
 	export async function resolveModulePath(fromPath: string, toPath: string): Promise<string | null> {
-		let isModulePath = toPath.startsWith('~')
+		const isModulePath = toPath.startsWith('~')
 		let fromDir = path.dirname(fromPath)
 		let beModuleImport = false
 
@@ -27,7 +27,7 @@ export namespace PathResolver {
 			toPath = fixPathExtension(toPath, fromPath)
 
 			// Import relative path.
-			let filePath = path.resolve(fromDir, toPath)
+			const filePath = path.resolve(fromDir, toPath)
 			if (await fs.pathExists(filePath) && (await fs.stat(filePath)).isFile()) {
 				return filePath
 			}
@@ -41,12 +41,12 @@ export namespace PathResolver {
 
 		if (beModuleImport) {
 			while (fromDir) {
-				let filePath = path.resolve(fromDir, toPath)
+				const filePath = path.resolve(fromDir, toPath)
 				if (await fs.pathExists(filePath) && (await fs.stat(filePath)).isFile()) {
 					return filePath
 				}
 				
-				let dir = path.dirname(fromDir)
+				const dir = path.dirname(fromDir)
 				if (dir === fromDir) {
 					break
 				}
@@ -61,7 +61,7 @@ export namespace PathResolver {
 
 	/** Fix imported path with extension. */
 	function fixPathExtension(toPath: string, fromPath: string): string {
-		let fromPathExtension = getPathExtension(fromPath)
+		const fromPathExtension = getPathExtension(fromPath)
 
 		if (fromPathExtension === 'scss') {
 
@@ -88,14 +88,14 @@ export namespace PathResolver {
 	 * `part` must be in `Import` type.
 	 */
 	export async function resolveImportLocationLink(part: Part, fromDocument: TextDocument): Promise<LocationLink | null> {
-		let uri = await resolveImportURI(part.escapedText, fromDocument)
+		const uri = await resolveImportURI(part.escapedText, fromDocument)
 		if (!uri) {
 			return null
 		}
 
-		let targetRange = Range.create(0, 0, 0, 0)
-		let selectionRange = targetRange
-		let fromRange = PartConvertor.toRange(part, fromDocument)
+		const targetRange = Range.create(0, 0, 0, 0)
+		const selectionRange = targetRange
+		const fromRange = PartConvertor.toRange(part, fromDocument)
 
 		return LocationLink.create(uri, targetRange, selectionRange, fromRange)
 	}
@@ -103,15 +103,15 @@ export namespace PathResolver {
 	
 	/** Resolve import path to full uri. */
 	export async function resolveImportURI(importPath: string, fromDocument: TextDocument): Promise<string | null> {
-		let importProtocol = isRelativePath(importPath) ? '' : URI.parse(importPath).scheme
+		const importProtocol = isRelativePath(importPath) ? '' : URI.parse(importPath).scheme
 		if (importProtocol) {
 			return importPath
 		}
 
 		// File relative, try handle module path.
-		let fromURI = URI.parse(fromDocument.uri)
+		const fromURI = URI.parse(fromDocument.uri)
 		if (fromURI.scheme === 'file') {
-			let fullPath = await resolveModulePath(fromURI.fsPath, importPath)
+			const fullPath = await resolveModulePath(fromURI.fsPath, importPath)
 			if (!fullPath) {
 				return null
 			}

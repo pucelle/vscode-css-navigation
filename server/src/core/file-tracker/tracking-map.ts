@@ -68,7 +68,7 @@ export class TrackingMap {
 	
 	/** Walk all included and opened, or imported uris. */
 	*walkActiveURIs(): Iterable<string> {
-		for (let [uri, item] of this.trackingMap) {
+		for (const [uri, item] of this.trackingMap) {
 			if (item.reason > 0) {
 				yield uri
 			}
@@ -77,7 +77,7 @@ export class TrackingMap {
 
 	/** Walk imported only, or has no reason uris, which are also expired. */
 	*walkInActiveAndExpiredURIs(beforeTimestamp: number): Iterable<string> {
-		for (let [uri, item] of this.trackingMap) {
+		for (const [uri, item] of this.trackingMap) {
 			if (item.reason === 0 && item.latestUseTime < beforeTimestamp) {
 				yield uri
 			}
@@ -86,21 +86,21 @@ export class TrackingMap {
 
 	/** Get resolved import uris, and all their imported recursively. */
 	resolveChainedImportedURIs(uris: string[]): Iterable<string> {
-		let set: Set<string> = new Set()
+		const set: Set<string> = new Set()
 		this.resolveChainedImportedCSSPathsBySet(uris, set)
 
 		return set
 	}
 
 	private resolveChainedImportedCSSPathsBySet(uris: string[], set: Set<string>) {
-		for (let uri of uris) {
+		for (const uri of uris) {
 			if (set.has(uri)) {
 				continue
 			}
 
 			set.add(uri)
 
-			let imported = this.importMap.getByLeft(uri)
+			const imported = this.importMap.getByLeft(uri)
 			if (imported) {
 				this.resolveChainedImportedCSSPathsBySet(imported, set)
 			}
@@ -112,7 +112,7 @@ export class TrackingMap {
 	}
 
 	isFresh(uri: string): boolean {
-		let item = this.trackingMap.get(uri)
+		const item = this.trackingMap.get(uri)
 		if (!item) {
 			return false
 		}
@@ -135,7 +135,7 @@ export class TrackingMap {
 	 * Only opened document get cached.
 	 */
 	setDocument(uri: string, document: TextDocument | null) {
-		let item = this.trackingMap.get(uri)!
+		const item = this.trackingMap.get(uri)!
 
 		if (item.reason & TrackingReasonMask.Opened) {
 			item.document = document
@@ -161,22 +161,22 @@ export class TrackingMap {
 
 	/** Suggest to track both, then add import relationship. */
 	setImported(imported: string[], from: string) {
-		let changed = new Set(this.importMap.getByLeft(from))
+		const changed = new Set(this.importMap.getByLeft(from))
 
-		for (let uri of imported) {
+		for (const uri of imported) {
 			changed.add(uri)
 		}
 
 		this.importMap.replaceLeft(from, imported)
 
-		for (let uri of changed) {
+		for (const uri of changed) {
 			this.checkImportedRecursively(uri)
 		}
 	}
 
 	/** Validate after reason of `uri`, or ancestrally imported changed. */
 	private checkImportedRecursively(uri: string, depth = 5) {
-		let item = this.trackingMap.get(uri)
+		const item = this.trackingMap.get(uri)
 		if (!item) {
 			return
 		}
@@ -193,9 +193,9 @@ export class TrackingMap {
 
 		// Validate all imported reason to imported recursively.
 		if (depth > 0) {
-			let importURIs = this.importMap.getByLeft(uri)
+			const importURIs = this.importMap.getByLeft(uri)
 			if (importURIs) {
-				for (let importURI of importURIs) {
+				for (const importURI of importURIs) {
 					this.checkImportedRecursively(importURI, depth - 1)
 				}
 			}
@@ -204,12 +204,12 @@ export class TrackingMap {
 
 	/** Test whether been imported, or ancestrally imported by any included or opened. */
 	private isImportedAncestrally(uri: string, depth: number = 5): boolean {
-		let item = this.trackingMap.get(uri)
+		const item = this.trackingMap.get(uri)
 		if (!item) {
 			return false
 		}
 
-		let fromURIs = this.importMap.getByRight(uri)
+		const fromURIs = this.importMap.getByRight(uri)
 		if (!fromURIs) {
 			return false
 		}
@@ -218,8 +218,8 @@ export class TrackingMap {
 			return false
 		}
 
-		for (let fromURI of fromURIs) {
-			let fromItem = this.trackingMap.get(fromURI)!
+		for (const fromURI of fromURIs) {
+			const fromItem = this.trackingMap.get(fromURI)!
 			if (!fromItem) {
 				continue
 			}
@@ -239,12 +239,12 @@ export class TrackingMap {
 	delete(uri: string) {
 		this.trackingMap.delete(uri)
 
-		let importURIs = this.importMap.getByLeft(uri)
+		const importURIs = this.importMap.getByLeft(uri)
 		this.importMap.deleteLeft(uri)
 		this.importMap.deleteRight(uri)
 
 		if (importURIs) {
-			for (let importURI of importURIs) {
+			for (const importURI of importURIs) {
 				this.checkImportedRecursively(importURI)
 			}
 		}
@@ -294,11 +294,11 @@ export class TrackingMap {
 
 	/** Track opened document. */
 	trackByDocument(document: TextDocument) {
-		let uri = document.uri
+		const uri = document.uri
 		let item = this.trackingMap.get(uri)
 
 		if (item) {
-			let fileChanged = document.version !== item.version
+			const fileChanged = document.version !== item.version
 			item.document = document
 			item.version = document.version
 			item.reason |= TrackingReasonMask.Opened
@@ -327,7 +327,7 @@ export class TrackingMap {
 
 	/** Remove reason, if file has no reason, delete it. */
 	removeReason(uri: string, reason: TrackingReasonMask) {
-		let item = this.trackingMap.get(uri)
+		const item = this.trackingMap.get(uri)
 		if (!item) {
 			return
 		}
@@ -343,12 +343,12 @@ export class TrackingMap {
 
 	/** After knows that file get expired. */
 	private makeExpire(uri: string) {
-		let item = this.trackingMap.get(uri)
+		const item = this.trackingMap.get(uri)
 		if (!item) {
 			return
 		}
 
-		let fresh = item.fresh
+		const fresh = item.fresh
 		if (!fresh) {
 			return
 		}
