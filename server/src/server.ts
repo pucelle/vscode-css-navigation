@@ -32,7 +32,6 @@ import {findHover} from './hover'
 import {getCSSVariableColors} from './css-variable-color'
 import {getDiagnostics} from './diagnostic'
 import {getCodeLens} from './code-lens'
-import '../../client/out/types'
 import {GlobPathSharer} from './core/file-tracker/glob-path-sharer'
 
 
@@ -469,4 +468,3 @@ class CSSNavigationServer {
 		return getDiagnostics(document, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
 }
-

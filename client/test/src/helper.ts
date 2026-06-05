@@ -1,7 +1,10 @@
 import * as path from 'path'
 import * as assert from 'assert'
 import * as vscode from 'vscode'
-import {CSSNavigationExtension} from '../../out/extension'
+
+interface ExtensionExport {
+	channel: vscode.OutputChannel
+}
 
 
 export function sleep(ms: number) {
@@ -47,8 +50,8 @@ export function getFixtureFileUri(relativePath: string): vscode.Uri {
 	return vscode.Uri.file(path.resolve(__dirname, '../fixture', relativePath))
 }
 
-async function getExtensionExport(): Promise<CSSNavigationExtension> {
-	const ext = vscode.extensions.getExtension<CSSNavigationExtension>('pucelle.vscode-css-navigation')!
+async function getExtensionExport(): Promise<ExtensionExport> {
+	const ext = vscode.extensions.getExtension<ExtensionExport>('pucelle.vscode-css-navigation')!
 	await ext.activate()
 	return ext.exports
 }

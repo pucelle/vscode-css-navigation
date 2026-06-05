@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- ambient global type, consumed across the client and server
 interface InitializationOptions {
 	workspaceFolderPath: string
 	configuration: Configuration

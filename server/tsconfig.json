@@ -19,7 +19,10 @@
 		"noImplicitThis": true,
 		"composite": true
 	},
-	"include": ["src"],
+	"include": [
+		"src",
+		"../types/**/*.d.ts"
+	],
 	"exclude": [
 		"node_modules", 
 		".vscode-test"

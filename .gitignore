@@ -1,8 +1,9 @@
 node_modules
+!client/test/fixture/node_modules/
+!client/test/fixture/node_modules/**
 out
 .vscode-test
 **/*.tsbuildinfo
 **/package-lock.json
 *.vsix
 .VSCodeCounter
-
