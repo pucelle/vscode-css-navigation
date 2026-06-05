@@ -17,7 +17,10 @@ async function main() {
 		// The workspace folder to open while running the tests.
 		const testWorkspace = path.resolve(__dirname, '../fixture')
 
+		// `VSCODE_VERSION` lets CI pin the VSCode build to test against (e.g. the oldest
+		// supported `1.91.0` and the latest `stable`); defaults to `stable` locally.
 		await runTests({
+			version: process.env.VSCODE_VERSION || 'stable',
 			extensionDevelopmentPath,
 			extensionTestsPath,
 			launchArgs: [testWorkspace],
