@@ -1,10 +1,16 @@
 {
 	"compilerOptions": {
-		"module": "commonjs",
+		"module": "Node16",
+		"moduleResolution": "Node16",
+		"moduleDetection": "legacy",
+		"esModuleInterop": true,
+		"skipLibCheck": true,
 		"target": "esnext",
 		"outDir": "out",
 		"rootDir": "src",
-		"lib": ["esnext"],
+		"lib": [
+			"esnext"
+		],
 		"sourceMap": true,
 		"strict": true,
 		"noUnusedLocals": true,
@@ -14,9 +20,14 @@
 		"noImplicitAny": true,
 		"noImplicitThis": true,
 		"declaration": true,
-		"composite": true
+		"composite": true,
+		"types": [
+			"node"
+		]
 	},
-	"include": ["src"],
+	"include": [
+		"src"
+	],
 	"exclude": [
 		"node_modules",
 		".vscode-test"

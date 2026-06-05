@@ -20,7 +20,7 @@ import {
 	Diagnostic,
 	CodeLens,
 	CodeLensParams
-} from 'vscode-languageserver'
+} from 'vscode-languageserver/node'
 import {Position, TextDocument} from 'vscode-languageserver-textdocument'
 import {HTMLServiceMap, CSSServiceMap, ClassNamesInJS} from './languages'
 import {generateGlobPatternByExtensions, generateGlobPatternByPatterns, getPathExtension} from './utils'
@@ -146,10 +146,18 @@ connection.onInitialized(async () => {
 	}
 
 	if (configuration.enableCSSVariableColorPreview) {
-		connection.onDocumentColor(Logger.logQuerierExecutedTime(server.provideDocumentCSSVariableColors.bind(server), 'hover'))
+		connection.onDocumentColor(async (params) => {
+			try {
+				return await server.provideDocumentCSSVariableColors(params, Logger.getTimestamp())
+			}
+			catch (err) {
+				Logger.error(String(err))
+				return []
+			}
+		})
 
 		// Just ensure no error happens.
-		connection.onColorPresentation(() => null)
+		connection.onColorPresentation(() => [])
 	}
 })
 
@@ -378,17 +386,17 @@ class CSSNavigationServer {
 	}
 
 	/** Provide document css variable color service. */
-	async provideDocumentCSSVariableColors(params: DocumentColorParams, time: number): Promise<ColorInformation[] | null> {
+	async provideDocumentCSSVariableColors(params: DocumentColorParams, time: number): Promise<ColorInformation[]> {
 		this.updateTimestamp(time)
 
 		let documentIdentifier = params.textDocument
 		let document = documents.get(documentIdentifier.uri)
 
 		if (!document) {
-			return null
+			return []
 		}
-	
-		return getCSSVariableColors(document, this.htmlServiceMap, this.cssServiceMap, configuration)
+
+		return (await getCSSVariableColors(document, this.htmlServiceMap, this.cssServiceMap, configuration)) ?? []
 	}
 
 	/** Diagnose class names for a changed document. */

@@ -1,6 +1,6 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
-import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} from 'vscode-languageclient'
+import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} from 'vscode-languageclient/node'
 import {getOutmostWorkspaceURI, getPathExtension, generateGlobPatternFromExtensions, getTimeMarker, fetchAsText} from './utils'
 
 
@@ -167,7 +167,7 @@ export function deactivate(): Promise<void> {
 export class CSSNavigationExtension {
 	
 	/** Channel public for testing. */
-	channel = vscode.window.createOutputChannel('CSS Navigation')
+	channel = vscode.window.createOutputChannel('CSS Navigation', {log: true})
 
 	private context: vscode.ExtensionContext
 	private config!: vscode.WorkspaceConfiguration
@@ -335,7 +335,8 @@ export class CSSNavigationExtension {
 		}
 
 		let client = new LanguageClient('css-navigation', 'CSS Navigation', serverOptions, clientOptions)
-		client.start()
+
+		// Register before awaiting `start()`, so re-entrant `ensureClient*` calls reuse this client.
 		this.clients.set(workspaceFolder.uri.toString(), client)
 
 		this.showChannelMessage(
@@ -345,6 +346,15 @@ export class CSSNavigationExtension {
 		)
 
 		this.watchGitIgnoreFile(workspaceFolder)
+
+		// Since vscode-languageclient v8+, `start()` returns a promise; await it so a failed
+		// startup is surfaced here instead of becoming an unhandled rejection.
+		try {
+			await client.start()
+		}
+		catch (err) {
+			this.showChannelMessage(getTimeMarker() + `❌ Client for workspace "${workspaceFolder.name}" failed to start: ${err}`)
+		}
 	}
 
 	private async restartClient(workspaceFolder: vscode.WorkspaceFolder) {
@@ -360,7 +370,18 @@ export class CSSNavigationExtension {
 		let client = this.clients.get(uri)
 		if (client) {
 			this.clients.delete(uri)
-			await client.stop()
+
+			// Since vscode-languageclient v8+, `stop()` rejects if the client isn't running
+			// (e.g. it's still starting up). Guard and swallow so a restart can't be left half-done.
+			try {
+				if (client.needsStop()) {
+					await client.stop()
+				}
+			}
+			catch (err) {
+				this.showChannelMessage(getTimeMarker() + `Error while stopping client for workspace folder "${workspaceFolder.name}": ${err}`)
+			}
+
 			this.showChannelMessage(getTimeMarker() + `Client for workspace folder "${workspaceFolder.name}" stopped`)
 		}
 	}
@@ -379,12 +400,17 @@ export class CSSNavigationExtension {
 	/** Stop all clients and servers. */
 	async stopAllClients() {
 		let promises: Promise<void>[] = []
-		for (let uri of this.clients.keys()) {
+
+		// Snapshot the keys, since `stopClient` mutates the map while we iterate.
+		for (let uri of [...this.clients.keys()]) {
 			let workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(uri))
 			if (workspaceFolder) {
-				this.stopClient(workspaceFolder)
+				promises.push(this.stopClient(workspaceFolder))
 			}
 		}
+
+		// Actually wait for every server to shut down before returning, so a following
+		// `ensureClients()` (on restart) can't spin up duplicate servers for the same folder.
 		await Promise.all(promises)
 		this.clients.clear()
 	}
