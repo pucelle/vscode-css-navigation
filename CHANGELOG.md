@@ -1,6 +1,13 @@
 # ChangeLog
 
 
+## [2.14.0]
+
+- Upgrade `vscode-languageclient` / `vscode-languageserver` to `^10` (and `vscode-uri` to `^3`). This fixes `Couldn't start client CSS Navigation`, which was caused by the old `vscode-languageclient@4` / `vscode-languageserver@6` stack being incompatible with the newer `vscode-languageserver-protocol@3.18` / `vscode-jsonrpc@9` that a fresh install resolves to.
+- Raise the minimum VSCode engine to `^1.91.0` (required by `vscode-languageclient@10`).
+- Replace the deprecated `vscode` package with `@types/vscode`, and switch the e2e tests to `@vscode/test-electron` + `mocha`.
+
+
 ## [2.13.1]
 
 - Fix `maxFileCount` not fully work issue.

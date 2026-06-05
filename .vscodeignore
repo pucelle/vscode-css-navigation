@@ -9,8 +9,6 @@
 **/*.tsbuildInfo
 **/package-lock.json
 .travis.yml
-client/node_modules/!(vscode-*)/**
-client/node_modules/vscode-test
 client/test/**
 images/!(logo.png)
 .VSCodeCounter/**
