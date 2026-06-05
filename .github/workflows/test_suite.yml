@@ -6,11 +6,13 @@ on:
       - master
       - feature/*
       - release/*
+      - fix/*
   pull_request:
     branches:
       - master
       - feature/*
       - release/*
+      - fix/*
 
 jobs:
   # Fast checks: lint, type-check/build and the parser unit tests.
