@@ -78,7 +78,7 @@
 				"CSSNavigation.enableCSSVariableColorPreview": {
 					"type": "boolean",
 					"default": true,
-					"description": "Whether to enable CSS variable color preview. if enabled, will show a color preview box besides color type css variables."
+					"description": "Whether to enable CSS variable color preview. if enabled, will show a color preview box besides color type css variables. Please note enabling this may cause original color preview feature in ts/js files not working"
 				},
 				"CSSNavigation.enableClassNameDefinitionDiagnostic": {
 					"type": "boolean",

@@ -142,7 +142,7 @@ editor.quickSuggestions": {
 | `enableCustomTagCompletion`             | Whether to enable custom tag name completion in HTML and CSS files. Default value is `true`. Also needs `enableCompletions` to be `true` to enable.
 | `enableFindAllReferences`               | Whether to enable finding references service. Default value is `true`.
 | `enableHover`                           | Whether to enable id and class name hover service. Default value is `true`.
-| `enableCSSVariableColorPreview`         | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. Default value is `true`.
+| `enableCSSVariableColorPreview`         | Whether to enable css variable color preview, if enabled, will show a color preview box besides color type css variables. **Please note** enabling this may cause original color preview feature in ts/js files not working. Default value is `true`.
 | `enableClassNameDefinitionDiagnostic`   | Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message. Default value is `false`.
 | `enableClassNameReferenceDiagnostic`    | Whether to enable class name reference diagnostic - if can't find any reference for a class name in a CSS file, will show a warn message. Default value is `false`.
 | `jsClassNameReferenceNames`             | JS variable names or property names which used for referencing existing class names, can use `*` to wild match `1~n` word characters.

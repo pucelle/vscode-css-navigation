@@ -29,4 +29,6 @@ images/!(logo.png)
 **/node_modules/**/readme
 **/node_modules/**/CHANGELOG
 **/node_modules/**/changelog
+**/node_modules/**/esm/**
+**/node_modules/**/eslint.config.js
 
