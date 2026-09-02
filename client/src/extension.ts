@@ -223,6 +223,7 @@ export class CSSNavigationExtension {
 			alwaysIncludeGlobPatterns: config.get('alwaysIncludeGlobPatterns', []),
 			jsClassNameReferenceNames: config.get('jsClassNameReferenceNames', []),
 
+			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
 			ignoreCustomAndComponentTagDefinition: config.get('ignoreCustomAndComponentTagDefinition', false),
 			ignoreFilesBy: config.get('ignoreFilesBy', []),
 

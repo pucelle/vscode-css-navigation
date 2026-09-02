@@ -196,6 +196,11 @@
 					"default": false,
 					"description": "When `false` by default, only search CSS definition in current workspace folder. If your workspace folder requires css references from another workspace folder in current workspace, you should set this to `true`."
 				},
+				"CSSNavigation.ignoreSameNameCSSFile": {
+					"type": "boolean",
+					"default": true,
+					"description": "When enabled, a CSS file is ignored if an SCSS, Sass, or Less file with the same basename exists in the same directory. This avoids duplicate results when preprocessors compile to a same-name CSS file."
+				},
 				"CSSNavigation.ignoreCustomAndComponentTagDefinition": {
 					"type": "boolean",
 					"default": true,

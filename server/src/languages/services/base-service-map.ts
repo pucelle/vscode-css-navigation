@@ -165,8 +165,8 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		
 		const locations: Location[] = []
 
-		for (const htmlService of this.serviceMap.values()) {
-			locations.push(...htmlService.findReferences(matchDefPart, fromPart))
+		for (const service of this.walkAvailableServices()) {
+			locations.push(...service.findReferences(matchDefPart, fromPart))
 		}
 
 		return locations

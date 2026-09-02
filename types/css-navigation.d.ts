@@ -24,6 +24,7 @@ interface Configuration {
 	alwaysIncludeGlobPatterns: string[]
 	jsClassNameReferenceNames: string[]
 
+	ignoreSameNameCSSFile: boolean
 	ignoreCustomAndComponentTagDefinition: boolean
 	ignoreFilesBy: string[]
 

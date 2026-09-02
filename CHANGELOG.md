@@ -4,6 +4,7 @@
 ## [2.15.0]
 
 - Preserve VS Code's built-in color decorators in JavaScript and TypeScript files while CSS variable color previews are enabled.
+- Restore the `ignoreSameNameCSSFile` option, which excludes generated CSS files when a same-name SCSS, Sass, or Less source exists.
 
 
 ## [2.14.0]

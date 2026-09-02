@@ -1,6 +1,20 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {CSSService} from './css-service'
 import {BaseServiceMap} from './base-service-map'
+import {getPathExtension, replacePathExtension} from '../../utils'
+
+
+const SameNameSourceExtensions = ['scss', 'sass', 'less']
+
+
+/** Whether a generated CSS URI has an active same-name preprocessor source. */
+export function shouldIgnoreSameNameCSSURI(uri: string, activeURIs: ReadonlySet<string>): boolean {
+	if (getPathExtension(uri) !== 'css') {
+		return false
+	}
+
+	return SameNameSourceExtensions.some(extension => activeURIs.has(replacePathExtension(uri, extension)))
+}
 
 
 /** Gives CSS service for multiple files. */
@@ -10,6 +24,22 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 
 	/** Class map to contains all the class names and their count of whole service. */
 	protected definedClassNamesSet: Map<string, number> = new Map()
+
+	protected *walkAvailableServices(): IterableIterator<CSSService> {
+		const activeURIs = new Set(this.trackingMap.walkActiveURIs())
+
+		for (const uri of activeURIs) {
+			if (this.config.ignoreSameNameCSSFile && shouldIgnoreSameNameCSSURI(uri, activeURIs)) {
+				continue
+			}
+
+			const service = this.serviceMap.get(uri)
+			if (service) {
+				this.trackingMap.setUseTime(uri, this.timestamp)
+				yield service
+			}
+		}
+	}
 
 	protected onAfterUpdated() {
 
