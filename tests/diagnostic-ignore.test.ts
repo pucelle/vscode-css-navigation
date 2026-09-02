@@ -1,10 +1,11 @@
-import {describe, expect, it} from 'vitest'
+import {beforeEach, describe, expect, it} from 'vitest'
 import {TextDocument} from '../server/node_modules/vscode-languageserver-textdocument'
 import {getCodeActions} from '../server/src/code-action'
 import {
 	ClassNameDiagnosticCode,
 	getDiagnostics,
 	makeDiagnosticIgnoredClassNameMatcher,
+	updateDiagnosticIgnoredClassNameMatcher,
 } from '../server/src/diagnostic'
 import {CSSService, HTMLService} from '../server/src/languages'
 
@@ -20,6 +21,8 @@ const baseConfiguration = {
 
 
 describe('diagnostic ignored class names', () => {
+	beforeEach(() => updateDiagnosticIgnoredClassNameMatcher([]))
+
 	it('supports exact names, a leading dot, and wildcards', () => {
 		const isIgnored = makeDiagnosticIgnoredClassNameMatcher(['exact', '.with-dot', 'generated-*'])
 
@@ -39,6 +42,7 @@ describe('diagnostic ignored class names', () => {
 			diagnosticIgnoredClassNames: ['external', 'generated-*'],
 		}
 		const htmlService = new HTMLService(document, configuration)
+		updateDiagnosticIgnoredClassNameMatcher(configuration.diagnosticIgnoredClassNames)
 		const diagnostics = await getDiagnostics(
 			document,
 			{
@@ -67,6 +71,7 @@ describe('diagnostic ignored class names', () => {
 			diagnosticIgnoredClassNames: ['external', 'generated-*'],
 		}
 		const cssService = new CSSService(document, configuration)
+		updateDiagnosticIgnoredClassNameMatcher(configuration.diagnosticIgnoredClassNames)
 		const diagnostics = await getDiagnostics(
 			document,
 			{

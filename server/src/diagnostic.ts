@@ -19,17 +19,41 @@ export const ClassNameDiagnosticCode = {
 
 /** Make a matcher for class names excluded from diagnostics. */
 export function makeDiagnosticIgnoredClassNameMatcher(patterns: readonly string[]): (className: string) => boolean {
-	const regularExpressions = patterns
-		.map(pattern => pattern.trim().replace(/^\./, ''))
-		.filter(Boolean)
-		.map(pattern => new RegExp(
-			'^' + pattern
-				.replace(/[|\\{}()[\]^$+?.]/g, '\\$&')
-				.replace(/\*/g, '.*')
-			+ '$'
-		))
+	const fullMatchNames = new Set<string>()
+	const wildcardPatterns: RegExp[] = []
 
-	return className => regularExpressions.some(pattern => pattern.test(className.replace(/^\./, '')))
+	for (const configuredName of patterns) {
+		const name = configuredName.trim().replace(/^\./, '')
+		if (!name) {
+			continue
+		}
+
+		if (name.includes('*')) {
+			wildcardPatterns.push(new RegExp(
+				'^' + name
+					.replace(/[|\\{}()[\]^$+?.]/g, '\\$&')
+					.replace(/\*/g, '.*')
+				+ '$'
+			))
+		}
+		else {
+			fullMatchNames.add(name)
+		}
+	}
+
+	return className => {
+		return fullMatchNames.has(className)
+			|| wildcardPatterns.some(pattern => pattern.test(className))
+	}
+}
+
+
+/** Get updated after configuration changed. */
+let isDiagnosticIgnoredClassName = makeDiagnosticIgnoredClassNameMatcher([])
+
+/** Rebuild the shared matcher after its configuration changes. */
+export function updateDiagnosticIgnoredClassNameMatcher(patterns: readonly string[]) {
+	isDiagnosticIgnoredClassName = makeDiagnosticIgnoredClassNameMatcher(patterns)
 }
 
 
@@ -51,17 +75,15 @@ export async function getDiagnostics(
 	}
 
 	const diagnostics: Diagnostic[] = []
-	const isIgnored = makeDiagnosticIgnoredClassNameMatcher(configuration.diagnosticIgnoredClassNames ?? [])
-
 	if (shouldProvideDefDiag) {
-		const diags = await getDefinitionDiagnostics(document, htmlServiceMap, cssServiceMap, configuration, isIgnored)
+		const diags = await getDefinitionDiagnostics(document, htmlServiceMap, cssServiceMap, configuration)
 		if (diags) {
 			diagnostics.push(...diags)
 		}
 	}
 
 	if (shouldProvideRefDiag) {
-		const diags = await getReferencedDiagnostics(document, htmlServiceMap, cssServiceMap, configuration, isIgnored)
+		const diags = await getReferencedDiagnostics(document, htmlServiceMap, cssServiceMap, configuration)
 		if (diags) {
 			diagnostics.push(...diags)
 		}
@@ -76,8 +98,7 @@ async function getDefinitionDiagnostics(
 	document: TextDocument,
 	htmlServiceMap: HTMLServiceMap,
 	cssServiceMap: CSSServiceMap,
-	configuration: Configuration,
-	isIgnored: (className: string) => boolean
+	configuration: Configuration
 ): Promise<Diagnostic[] | null> {
 	const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 	if (!currentHTMLService) {
@@ -101,7 +122,7 @@ async function getDefinitionDiagnostics(
 
 		// Without identifier.
 		const className = part.escapedText
-		if (isIgnored(className)) {
+		if (isDiagnosticIgnoredClassName(className)) {
 			continue
 		}
 
@@ -139,8 +160,7 @@ async function getReferencedDiagnostics(
 	document: TextDocument,
 	htmlServiceMap: HTMLServiceMap,
 	cssServiceMap: CSSServiceMap,
-	configuration: Configuration,
-	isIgnored: (className: string) => boolean
+	configuration: Configuration
 ): Promise<Diagnostic[] | null> {
 	const documentExtension = getPathExtension(document.uri)
 	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
@@ -175,7 +195,7 @@ async function getReferencedDiagnostics(
 
 				// Without identifier.
 				const nonIdentifierClassName = className.slice(1)
-				if (isIgnored(nonIdentifierClassName)) {
+				if (isDiagnosticIgnoredClassName(nonIdentifierClassName)) {
 					break
 				}
 
@@ -238,7 +258,7 @@ async function getReferencedDiagnostics(
 
 				// Without identifier.
 				const nonIdentifierClassName = className.slice(1)
-				if (isIgnored(nonIdentifierClassName)) {
+				if (isDiagnosticIgnoredClassName(nonIdentifierClassName)) {
 					break
 				}
 

@@ -32,7 +32,7 @@ import {getCompletionItems} from './completion'
 import {findReferences} from './reference'
 import {findHover} from './hover'
 import {getCSSVariableColors} from './css-variable-color'
-import {getDiagnostics} from './diagnostic'
+import {getDiagnostics, updateDiagnosticIgnoredClassNameMatcher} from './diagnostic'
 import {getCodeLens} from './code-lens'
 import {GlobPathSharer} from './core/file-tracker/glob-path-sharer'
 import {getCodeActions} from './code-action'
@@ -88,6 +88,7 @@ connection.onRequest('references', async({uri, position}: {uri: string, position
 connection.onInitialize((params: InitializeParams) => {
 	const options = params.initializationOptions as InitializationOptions
 	configuration = options.configuration
+	updateDiagnosticIgnoredClassNameMatcher(configuration.diagnosticIgnoredClassNames)
 	server = new CSSNavigationServer(options)
 
 
@@ -429,16 +430,20 @@ class CSSNavigationServer {
 
 	/** Apply settings that don't require rebuilding the tracked workspace. */
 	async onUpdatedConfiguration(nextConfiguration: Configuration) {
+		const didIgnoredClassNamesChange = !sameStringArray(
+			configuration.diagnosticIgnoredClassNames,
+			nextConfiguration.diagnosticIgnoredClassNames,
+		)
 		const shouldRefreshDiagnostics
 			= configuration.enableClassNameDefinitionDiagnostic !== nextConfiguration.enableClassNameDefinitionDiagnostic
 				|| configuration.enableClassNameReferenceDiagnostic !== nextConfiguration.enableClassNameReferenceDiagnostic
-				|| !sameStringArray(
-					configuration.diagnosticIgnoredClassNames,
-					nextConfiguration.diagnosticIgnoredClassNames,
-				)
+				|| didIgnoredClassNamesChange
 
 		Object.assign(configuration, nextConfiguration)
 		Logger.setLogEnabled(configuration.enableLogLevelMessage)
+		if (didIgnoredClassNamesChange) {
+			updateDiagnosticIgnoredClassNameMatcher(configuration.diagnosticIgnoredClassNames)
+		}
 
 		if (shouldRefreshDiagnostics) {
 			for (const document of documents.all()) {
