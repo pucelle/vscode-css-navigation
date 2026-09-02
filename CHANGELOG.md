@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.15.0]
+
+- Preserve VS Code's built-in color decorators in JavaScript and TypeScript files while CSS variable color previews are enabled.
+
+
 ## [2.14.0]
 
 - Upgrade `vscode-languageclient` / `vscode-languageserver` to `^10` (and `vscode-uri` to `^3`). This fixes `Couldn't start client CSS Navigation`, which was caused by the old `vscode-languageclient@4` / `vscode-languageserver@6` stack being incompatible with the newer `vscode-languageserver-protocol@3.18` / `vscode-jsonrpc@9` that a fresh install resolves to.

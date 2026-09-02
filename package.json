@@ -36,6 +36,20 @@
 	],
 	"main": "./client/out/extension",
 	"contributes": {
+		"configurationDefaults": {
+			"[javascript]": {
+				"editor.defaultColorDecorators": "always"
+			},
+			"[javascriptreact]": {
+				"editor.defaultColorDecorators": "always"
+			},
+			"[typescript]": {
+				"editor.defaultColorDecorators": "always"
+			},
+			"[typescriptreact]": {
+				"editor.defaultColorDecorators": "always"
+			}
+		},
 		"configuration": {
 			"type": "object",
 			"title": "CSS Navigation",
@@ -78,7 +92,7 @@
 				"CSSNavigation.enableCSSVariableColorPreview": {
 					"type": "boolean",
 					"default": true,
-					"description": "Whether to enable CSS variable color preview. if enabled, will show a color preview box besides color type css variables. Please note enabling this may cause original color preview feature in ts/js files not working"
+					"description": "Whether to enable CSS variable color preview. If enabled, a color preview box is shown beside color-type CSS variables."
 				},
 				"CSSNavigation.enableClassNameDefinitionDiagnostic": {
 					"type": "boolean",
