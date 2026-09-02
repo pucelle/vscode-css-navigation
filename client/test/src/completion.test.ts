@@ -1,5 +1,5 @@
 import * as assert from 'assert'
-import {prepare, searchCompletion as sc} from './helper'
+import {prepare, searchCompletion as sc, jsxDocument} from './helper'
 
 
 describe('Test Completion', () => {
@@ -37,5 +37,8 @@ describe('Test Completion', () => {
 	it('Should find completion for escaped class names', async () => {
 		assert.ok((await sc(['class="', 'xl', '"']))!.length > 0)
 	})
-})
 
+	it('Should complete from the imported CSS Module', async () => {
+		assert.ok((await sc(['style.', 'cssModuleCom', ''], jsxDocument))!.includes('cssModuleCompletion'))
+	})
+})

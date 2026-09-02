@@ -59,7 +59,7 @@ async function getDefinitionCodeLens(
 	const classNameParts = [
 		...currentHTMLService.getPartsByType(PartType.Class),
 		...currentHTMLService.getPartsByType(PartType.ReactDefaultImportedCSSModuleClass),
-		...currentHTMLService.getPartsByType(PartType.ReactImportedCSSModuleProperty),
+		...currentHTMLService.getPartsByType(PartType.ImportedCSSModuleProperty),
 	]
 
 	if (!classNameParts || classNameParts.length === 0) {

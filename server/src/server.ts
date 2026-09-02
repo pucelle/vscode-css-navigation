@@ -106,7 +106,14 @@ connection.onInitialize((params: InitializeParams) => {
 				change: TextDocumentSyncKind.Full
 			},
 			completionProvider: configuration.enableCompletions ? {
-				resolveProvider: false
+				resolveProvider: false,
+
+				// #: id
+				// .: class or css module dot
+				// -: css variable
+				// [: before css module property
+				// '": css module property
+				triggerCharacters: ['.', '#', '-', '[', '"', "'"],
 			} : undefined,
 			definitionProvider: configuration.enableGoToDefinition,
 			referencesProvider: configuration.enableFindAllReferences,

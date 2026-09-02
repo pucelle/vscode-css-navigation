@@ -1,5 +1,5 @@
 import {TextDocument} from 'vscode-languageserver-textdocument'
-import {CompletionLabels, CompletionLabelType, CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, Part, PartConvertor, PartType} from './languages'
+import {CompletionLabels, CompletionLabelType, CSSService, CSSServiceMap, HTMLService, HTMLServiceMap, ModuleResolver, Part, PartConvertor, PartType} from './languages'
 import {CompletionItem} from 'vscode-languageserver'
 import {getPathExtension} from './utils'
 
@@ -70,6 +70,31 @@ async function getCompletionItemsInHTML(
 	// `#i` -> `i` to do completion is not working.
 	const matchPart = PartConvertor.toDefinitionMode(fromPart)
 	const labels = new CompletionLabels()
+
+	// Complete only from the CSS Module bound to `styles` in `styles.|` or `styles['|']`.
+	if (fromPart.type === PartType.ImportedCSSModuleProperty) {
+		const moduleNamePart = currentService.findPreviousPart(fromPart)
+		if (!moduleNamePart || moduleNamePart.type !== PartType.ImportedCSSModuleName) {
+			return null
+		}
+
+		const uri = await ModuleResolver.resolveReactCSSModuleURIByName(moduleNamePart.escapedText, document)
+		if (!uri) {
+			return null
+		}
+
+		const cssModuleService = await cssServiceMap.forceGetServiceByURI(uri)
+		if (!cssModuleService) {
+			return null
+		}
+
+		labels.add(
+			CompletionLabelType.Definition,
+			cssModuleService.getCompletionLabels(matchPart, fromPart, configuration.maxHoverStylePropertyCount),
+		)
+
+		return labels.output(fromPart, document)
+	}
 
 	// Complete html element class name.
 	if (fromPart.isHTMLType()) {

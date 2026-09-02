@@ -7,6 +7,7 @@ import {JSTokenNode} from './js-node'
 import {HTMLTokenTree} from './html-tree'
 import {LanguageIds} from '../language-ids'
 import {ClassNamesInJS} from '../class-names-in-js'
+import {walkCSSModuleParts} from '../css-modules'
 
 
 export class JSTokenTree extends JSTokenNode {
@@ -14,12 +15,12 @@ export class JSTokenTree extends JSTokenNode {
 	/** Make a HTML token tree by string. */
 	static fromString(string: string, scannerStart: number = 0, languageId: HTMLLanguageId = 'js'): JSTokenTree {
 		const tokens = new JSTokenScanner(string, scannerStart, languageId).parseToTokens()
-		return JSTokenTree.fromTokens(tokens, languageId)
+		return JSTokenTree.fromTokens(tokens, languageId, string, scannerStart)
 	}
 
 	/** Make a token tree by tokens. */
-	static fromTokens(tokens: Iterable<JSToken>, languageId: HTMLLanguageId = 'js'): JSTokenTree {
-		const tree = new JSTokenTree(languageId)
+	static fromTokens(tokens: Iterable<JSToken>, languageId: HTMLLanguageId = 'js', sourceText: string = '', sourceStart: number = 0): JSTokenTree {
+		const tree = new JSTokenTree(languageId, sourceText, sourceStart)
 
 		for (const token of tokens) {
 			if (token.type === JSTokenType.HTML
@@ -37,8 +38,10 @@ export class JSTokenTree extends JSTokenNode {
 
 	declare children: JSTokenNode[]
 	readonly languageId: HTMLLanguageId
+	readonly sourceText: string
+	readonly sourceStart: number
 
-	constructor(languageId: HTMLLanguageId) {
+	constructor(languageId: HTMLLanguageId, sourceText: string = '', sourceStart: number = 0) {
 		super({
 			type: JSTokenType.Script,
 			text: '',
@@ -47,12 +50,34 @@ export class JSTokenTree extends JSTokenNode {
 		}, null)
 
 		this.languageId = languageId
+		this.sourceText = sourceText
+		this.sourceStart = sourceStart
 		this.children = []
 	}
 
+	/** Walk JS parts, also the css module parts. */
 	*walkParts(): Iterable<Part> {
+		const parts: Part[] = []
+
 		for (const node of this.walk()) {
-			yield* this.parseNodeParts(node)
+			parts.push(...this.parseNodeParts(node))
+		}
+
+		if (this.sourceText) {
+			parts.push(...walkCSSModuleParts(this.sourceText, this.sourceStart))
+		}
+
+		parts.sort((a, b) => a.start - b.start || a.end - b.end || a.type - b.type)
+
+		let previousKey = ''
+
+		for (const part of parts) {
+			const key = `${part.type}:${part.start}:${part.end}`
+
+			if (key !== previousKey) {
+				yield part
+				previousKey = key
+			}
 		}
 	}
 

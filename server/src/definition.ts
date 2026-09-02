@@ -116,9 +116,9 @@ async function findDefinitionsInHTML(
 
 
 	// When mouse locates at `class={style.className}`, search within specified named imported css module.
-	if (fromPart.type === PartType.ReactImportedCSSModuleProperty) {
+	if (fromPart.type === PartType.ImportedCSSModuleProperty) {
 		const importedCSSModulePart = currentService.findPreviousPart(fromPart)
-		if (!importedCSSModulePart || importedCSSModulePart.type !== PartType.ReactImportedCSSModuleName) {
+		if (!importedCSSModulePart || importedCSSModulePart.type !== PartType.ImportedCSSModuleName) {
 			return null
 		}
 

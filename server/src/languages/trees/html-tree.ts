@@ -261,10 +261,10 @@ export class HTMLTokenTree extends HTMLTokenNode {
 				yield new Part(PartType.ClassPotential, token.text, token.start)
 			}
 			else if (token.type === CSSClassInExpressionTokenType.ReactModuleName) {
-				yield new Part(PartType.ReactImportedCSSModuleName, token.text, token.start)
+				yield new Part(PartType.ImportedCSSModuleName, token.text, token.start)
 			}
 			else if (token.type === CSSClassInExpressionTokenType.ReactModuleProperty) {
-				yield new Part(PartType.ReactImportedCSSModuleProperty, token.text, token.start)
+				yield new Part(PartType.ImportedCSSModuleProperty, token.text, token.start)
 			}
 		}
 	}
@@ -306,10 +306,10 @@ export class HTMLTokenTree extends HTMLTokenNode {
 		)
 
 		for (const match of matches) {
-			yield new Part(PartType.ReactImportedCSSModuleName, match.moduleName.text, match.moduleName.start + start)
+			yield new Part(PartType.ImportedCSSModuleName, match.moduleName.text, match.moduleName.start + start)
 
 			const propertyName = match.propertyName1 ?? match.propertyName2
-			yield new Part(PartType.ReactImportedCSSModuleProperty, propertyName.text, propertyName.start + start)
+			yield new Part(PartType.ImportedCSSModuleProperty, propertyName.text, propertyName.start + start)
 		}
 	}
 

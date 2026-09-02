@@ -1,9 +1,10 @@
 import {isCSSLikePath} from '../../utils'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PathResolver} from './path'
+import {findCSSModuleImportPath} from '../css-modules'
 
 
-/** Resolve module path or  */
+/** Resolve module path. */
 export namespace ModuleResolver {
 
 	/** 
@@ -12,7 +13,7 @@ export namespace ModuleResolver {
 	 */
 	export async function resolveReactCSSModuleURIByName(moduleName: string, document: TextDocument): Promise<string | null> {
 		const text = document.getText()
-		const modulePath = resolveDefaultImportedPathByVariableName(moduleName, text)
+		const modulePath = findCSSModuleImportPath(text, moduleName)
 		if (!modulePath) {
 			return null
 		}
@@ -21,22 +22,6 @@ export namespace ModuleResolver {
 		return uri
 	}
 
-	/** Try resolve `path` by matching `import name from path` after known `name`. */
-	function resolveDefaultImportedPathByVariableName(variableName: string, text: string): string | null {
-		const re = /import\s+(?=\*\s+as\s+)?(\w+)\s+from\s+['"`](.+?)['"`]/g
-		let match: RegExpExecArray | null
-
-		while ((match = re.exec(text)) !== null) {
-			const name = match[1]
-			if (name === variableName) {
-				return match[2]
-			}
-		}
-
-		return null
-	}
-
-	
 	/** 
 	 * Scan imported CSS module uris.
 	 * By a `ReactDefaultCSSModule` type of part.

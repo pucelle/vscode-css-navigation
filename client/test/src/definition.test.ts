@@ -171,6 +171,11 @@ describe('Test Finding Definitions in `@import ...`', () => {
 describe('Test Finding Definition from JSX', () => {
 	before(prepare)
 
+	it('Should find CSS Module definitions outside JSX attributes', async () => {
+		assert.deepStrictEqual(await gs(['style.', 'cssModuleClass', ''], jsxDocument), ['.cssModuleClass'])
+		assert.deepStrictEqual(await gs(["style['", 'css-module-bracket', "']"], jsxDocument), ['.css-module-bracket'])
+	})
+
 	it('Should find right definition for query selector', async () => {
 		assert.deepStrictEqual(await gs(['', '.match-jquery-selector', ''], jsxDocument), ['.match-jquery-selector'])
 		assert.deepStrictEqual(await gs(['', '.match-querySelector', ''], jsxDocument), ['.match-querySelector'])

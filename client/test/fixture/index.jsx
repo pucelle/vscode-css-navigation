@@ -3,6 +3,11 @@ import './css/test.scss'
 import './css/app.css'
 
 
+const cssModuleClass = style.cssModuleClass
+const cssModuleBracketClass = style['css-module-bracket']
+const cssModuleCompletion = style.cssModuleComp
+
+
 const styles = StyleSheet.create({
     goalItem: {
         backgroundColor: "#5e0acc",
@@ -90,4 +95,3 @@ function A() {
 		</div>
 	);
 }
-

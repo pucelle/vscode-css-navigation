@@ -190,12 +190,12 @@ export async function searchCompletion([start, selector, end]: [string, string, 
 		assert.fail(`Can't find "${searchText}" in ${path.basename(document.uri.toString())}`)
 	}
 
-	const namesOfEnd = await getCompletionNamesAtPosition(ranges.in.end)
+	const namesOfEnd = await getCompletionNamesAtPosition(ranges.in.end, document)
 	return namesOfEnd
 }
 
-async function getCompletionNamesAtPosition(position: vscode.Position): Promise<string[]> {
-	const list = await vscode.commands.executeCommand<vscode.CompletionList>('vscode.executeCompletionItemProvider', htmlDocument.uri, position)
+async function getCompletionNamesAtPosition(position: vscode.Position, document: vscode.TextDocument): Promise<string[]> {
+	const list = await vscode.commands.executeCommand<vscode.CompletionList>('vscode.executeCompletionItemProvider', document.uri, position)
 	const completionNames = []
 
 	for (const item of list.items) {

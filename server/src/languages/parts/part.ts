@@ -65,8 +65,8 @@ export enum PartType {
 	 * `class={style.className}`
 	 * `class={style['class-name']}`
 	*/
-	ReactImportedCSSModuleName,
-	ReactImportedCSSModuleProperty,
+	ImportedCSSModuleName,
+	ImportedCSSModuleProperty,
 
 	/**
 	 * `import 'xxx.css'`
@@ -186,7 +186,7 @@ export class Part {
 			|| this.type === PartType.CSSVariableAssignment
 			|| this.type === PartType.CSSVariableReference
 			|| this.type === PartType.ReactDefaultImportedCSSModuleClass
-			|| this.type === PartType.ReactImportedCSSModuleProperty
+			|| this.type === PartType.ImportedCSSModuleProperty
 	}
 
 	/** HTML tag and selector tag. */
@@ -211,7 +211,7 @@ export class Part {
 			|| this.type === PartType.CSSSelectorId
 			|| this.type === PartType.CSSSelectorClass
 			|| this.type === PartType.ReactDefaultImportedCSSModuleClass
-			|| this.type === PartType.ReactImportedCSSModuleProperty
+			|| this.type === PartType.ImportedCSSModuleProperty
 	}
 
 	isSelectorDetailedType(): this is CSSSelectorDetailedPart {

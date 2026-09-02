@@ -42,7 +42,7 @@ export class HTMLService extends BaseService {
 
 		const classTexts = [
 			...this.partMap.get(PartType.Class)?.map(p => p.escapedText) || [],
-			...this.partMap.get(PartType.ReactImportedCSSModuleProperty)?.map(p => p.escapedText) || [],
+			...this.partMap.get(PartType.ImportedCSSModuleProperty)?.map(p => p.escapedText) || [],
 			...this.partMap.get(PartType.CSSSelectorQueryClass)?.map(p => p.escapedText.slice(1)) || [],
 			...this.partMap.get(PartType.ReactDefaultImportedCSSModuleClass)?.map(p => p.escapedText) || [],
 		]

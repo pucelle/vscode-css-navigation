@@ -93,7 +93,7 @@ export namespace PartConvertor {
 
 		else if (fromType === PartType.Class
 			|| fromType === PartType.ReactDefaultImportedCSSModuleClass
-			|| fromType === PartType.ReactImportedCSSModuleProperty
+			|| fromType === PartType.ImportedCSSModuleProperty
 		) {
 			if (toType === PartType.CSSSelectorQueryClass || toType === PartType.CSSSelectorClass) {
 				text = '.' + text
@@ -106,7 +106,7 @@ export namespace PartConvertor {
 			if (toType === PartType.Class
 				|| toType === PartType.ClassPotential
 				|| toType === PartType.ReactDefaultImportedCSSModuleClass
-				|| toType === PartType.ReactImportedCSSModuleProperty
+				|| toType === PartType.ImportedCSSModuleProperty
 			) {
 				text = text.slice(1)
 			}
@@ -148,7 +148,7 @@ export namespace PartConvertor {
 			return PartType.CSSVariableDefinition
 		}
 		else if (type === PartType.ReactDefaultImportedCSSModuleClass
-			|| type === PartType.ReactImportedCSSModuleProperty
+			|| type === PartType.ImportedCSSModuleProperty
 		) {
 			return PartType.CSSSelectorClass
 		}

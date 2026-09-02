@@ -41,6 +41,8 @@ Since v2.2.0, this plugin provides full **CSS Variable** service include **Defin
 
 And it provides color preview besides color type css variables, recently supported color formats: hex, rgb, rgba, hsl, hsla.
 
+For CSS Modules imported with a default import, namespace import, or `require`, it provides module-scoped completion and go-to-definition for dot and bracket property access in JavaScript and TypeScript files.
+
 ![css-variable](images/css-variable.gif)
 
 
