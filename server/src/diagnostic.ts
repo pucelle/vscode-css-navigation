@@ -5,6 +5,34 @@ import {getPathExtension} from './utils'
 import {CSSSelectorDetailedPart} from './languages/parts/part-css-selector-detailed'
 
 
+export interface ClassNameDiagnosticData {
+	className: string
+}
+
+
+/** Declare diagnostic fixes. */
+export const ClassNameDiagnosticCode = {
+	DefinitionNotFound: 'css-navigation.class-definition-not-found',
+	ReferenceNotFound: 'css-navigation.class-reference-not-found',
+} as const
+
+
+/** Make a matcher for class names excluded from diagnostics. */
+export function makeDiagnosticIgnoredClassNameMatcher(patterns: readonly string[]): (className: string) => boolean {
+	const regularExpressions = patterns
+		.map(pattern => pattern.trim().replace(/^\./, ''))
+		.filter(Boolean)
+		.map(pattern => new RegExp(
+			'^' + pattern
+				.replace(/[|\\{}()[\]^$+?.]/g, '\\$&')
+				.replace(/\*/g, '.*')
+			+ '$'
+		))
+
+	return className => regularExpressions.some(pattern => pattern.test(className.replace(/^\./, '')))
+}
+
+
 /** Provide class name diagnostics service. */
 export async function getDiagnostics(
 	document: TextDocument,
@@ -23,16 +51,17 @@ export async function getDiagnostics(
 	}
 
 	const diagnostics: Diagnostic[] = []
+	const isIgnored = makeDiagnosticIgnoredClassNameMatcher(configuration.diagnosticIgnoredClassNames ?? [])
 
 	if (shouldProvideDefDiag) {
-		const diags = await getDefinitionDiagnostics(document, htmlServiceMap, cssServiceMap, configuration)
+		const diags = await getDefinitionDiagnostics(document, htmlServiceMap, cssServiceMap, configuration, isIgnored)
 		if (diags) {
 			diagnostics.push(...diags)
 		}
 	}
 
 	if (shouldProvideRefDiag) {
-		const diags = await getReferencedDiagnostics(document, htmlServiceMap, cssServiceMap, configuration)
+		const diags = await getReferencedDiagnostics(document, htmlServiceMap, cssServiceMap, configuration, isIgnored)
 		if (diags) {
 			diagnostics.push(...diags)
 		}
@@ -47,7 +76,8 @@ async function getDefinitionDiagnostics(
 	document: TextDocument,
 	htmlServiceMap: HTMLServiceMap,
 	cssServiceMap: CSSServiceMap,
-	configuration: Configuration
+	configuration: Configuration,
+	isIgnored: (className: string) => boolean
 ): Promise<Diagnostic[] | null> {
 	const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 	if (!currentHTMLService) {
@@ -71,6 +101,9 @@ async function getDefinitionDiagnostics(
 
 		// Without identifier.
 		const className = part.escapedText
+		if (isIgnored(className)) {
+			continue
+		}
 
 		if (currentHTMLService.hasDefinedClassName(className)) {
 			continue
@@ -91,6 +124,8 @@ async function getDefinitionDiagnostics(
             range: {start: document.positionAt(part.start), end: document.positionAt(part.end)},
             message: `Can't find definition for ".${className}".`,
             source: 'CSS Navigation',
+			code: ClassNameDiagnosticCode.DefinitionNotFound,
+			data: {className} satisfies ClassNameDiagnosticData,
 		})
 	}
 
@@ -104,7 +139,8 @@ async function getReferencedDiagnostics(
 	document: TextDocument,
 	htmlServiceMap: HTMLServiceMap,
 	cssServiceMap: CSSServiceMap,
-	configuration: Configuration
+	configuration: Configuration,
+	isIgnored: (className: string) => boolean
 ): Promise<Diagnostic[] | null> {
 	const documentExtension = getPathExtension(document.uri)
 	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
@@ -139,6 +175,9 @@ async function getReferencedDiagnostics(
 
 				// Without identifier.
 				const nonIdentifierClassName = className.slice(1)
+				if (isIgnored(nonIdentifierClassName)) {
+					break
+				}
 
 				// Find only within current document.
 				// Any one of formatted exist, break.
@@ -164,6 +203,8 @@ async function getReferencedDiagnostics(
 					range: {start: document.positionAt(part.start), end: document.positionAt(part.end)},
 					message: `Can't find reference for "${className}".`,
 					source: 'CSS Navigation',
+					code: ClassNameDiagnosticCode.ReferenceNotFound,
+					data: {className: nonIdentifierClassName} satisfies ClassNameDiagnosticData,
 				})
 				break
 			}
@@ -197,6 +238,9 @@ async function getReferencedDiagnostics(
 
 				// Without identifier.
 				const nonIdentifierClassName = className.slice(1)
+				if (isIgnored(nonIdentifierClassName)) {
+					break
+				}
 
 				// Any one of formatted exist, break.
 				if (htmlServiceMap.hasReferencedClassName(nonIdentifierClassName)) {
@@ -214,6 +258,8 @@ async function getReferencedDiagnostics(
 					range: {start: document.positionAt(part.start), end: document.positionAt(part.end)},
 					message: `Can't find reference for "${className}".`,
 					source: 'CSS Navigation',
+					code: ClassNameDiagnosticCode.ReferenceNotFound,
+					data: {className: nonIdentifierClassName} satisfies ClassNameDiagnosticData,
 				})
 				break
 			}

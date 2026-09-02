@@ -65,25 +65,19 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 	protected onAfterUpdated() {
 
 		// Make definition class name set.
-		if (this.config.enableClassNameDefinitionDiagnostic
-			&& this.config.enableGlobalEmbeddedCSS
-		) {
-			this.definedClassNamesSet.clear()
+		this.definedClassNamesSet.clear()
 			
-			for (const service of this.walkAvailableServices()) {
-				for (const [className, count] of service.getDefinedClassNames()) {
-					this.definedClassNamesSet.set(className, (this.definedClassNamesSet.get(className) ?? 0) + count)
-				}
+		for (const service of this.walkAvailableServices()) {
+			for (const [className, count] of service.getDefinedClassNames()) {
+				this.definedClassNamesSet.set(className, (this.definedClassNamesSet.get(className) ?? 0) + count)
 			}
 		}
 
-		if (this.config.enableClassNameReferenceDiagnostic) {
-			this.referencedClassNamesSet.clear()
+		this.referencedClassNamesSet.clear()
 
-			for (const service of this.walkAvailableServices()) {
-				for (const [className, count] of service.getReferencedClassNamesSet()) {
-					this.referencedClassNamesSet.set(className, (this.referencedClassNamesSet.get(className) ?? 0) + count)
-				}
+		for (const service of this.walkAvailableServices()) {
+			for (const [className, count] of service.getReferencedClassNamesSet()) {
+				this.referencedClassNamesSet.set(className, (this.referencedClassNamesSet.get(className) ?? 0) + count)
 			}
 		}
 	}

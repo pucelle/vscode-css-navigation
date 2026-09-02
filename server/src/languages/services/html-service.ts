@@ -36,10 +36,6 @@ export class HTMLService extends BaseService {
 	}
 
 	protected initClassNamesReferenceSet() {
-		if (!this.config.enableClassNameReferenceDiagnostic) {
-			return
-		}
-
 		const classTexts = [
 			...this.partMap.get(PartType.Class)?.map(p => p.escapedText) || [],
 			...this.partMap.get(PartType.ImportedCSSModuleProperty)?.map(p => p.escapedText) || [],

@@ -5,7 +5,7 @@ import {PartType} from '../../server/src/languages/parts'
 
 function moduleProperties(text: string) {
 	return [...walkCSSModuleParts(text)]
-		.filter(part => part.type === PartType.ReactImportedCSSModuleProperty)
+		.filter(part => part.type === PartType.ImportedCSSModuleProperty)
 		.map(part => ({text: part.rawText, start: part.start}))
 }
 

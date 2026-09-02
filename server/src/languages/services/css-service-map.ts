@@ -44,13 +44,11 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 	protected onAfterUpdated() {
 
 		// Make class name set.
-		if (this.config.enableClassNameDefinitionDiagnostic) {
-			this.definedClassNamesSet.clear()
+		this.definedClassNamesSet.clear()
 
-			for (const service of this.walkAvailableServices()) {
-				for (const [className, count] of service.getDefinedClassNames()) {
-					this.definedClassNamesSet.set(className, (this.definedClassNamesSet.get(className) ?? 0) + count)
-				}
+		for (const service of this.walkAvailableServices()) {
+			for (const [className, count] of service.getDefinedClassNames()) {
+				this.definedClassNamesSet.set(className, (this.definedClassNamesSet.get(className) ?? 0) + count)
 			}
 		}
 	}

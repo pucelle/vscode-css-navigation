@@ -57,10 +57,6 @@ export abstract class BaseService {
 	}
 
 	protected initDefinedClassNames() {
-		if (!this.config.enableClassNameDefinitionDiagnostic) {
-			return
-		}
-
 		const classSelectorParts = this.partMap.get(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
 		if (classSelectorParts) {
 			for (const part of classSelectorParts) {

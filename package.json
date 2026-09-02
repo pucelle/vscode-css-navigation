@@ -115,6 +115,14 @@
 					},
 					"description": "JS variable names or property names which used for referencing existing class names, can use `*` to wild match `0~n` word characters."
 				},
+				"CSSNavigation.diagnosticIgnoredClassNames": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"description": "Class names to exclude from missing-definition and missing-reference diagnostics. Names may omit the leading dot and use `*` as a wildcard."
+				},
 				"CSSNavigation.enableDefinitionCodeLens": {
 					"type": "boolean",
 					"default": false,

@@ -6,6 +6,8 @@
 - Preserve VS Code's built-in color decorators in JavaScript and TypeScript files while CSS variable color previews are enabled.
 - Restore the `ignoreSameNameCSSFile` option, which excludes generated CSS files when a same-name SCSS, Sass, or Less source exists.
 - Support CSS Module completion and definition lookup for imported module objects throughout JavaScript and TypeScript files.
+- Add configurable class-name diagnostic exclusions, including wildcard matching and Workspace/User Settings quick fixes.
+- Apply ordinary configuration changes to running language servers; restart only when file tracking or parsing topology changes.
 
 
 ## [2.14.0]

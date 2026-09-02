@@ -2,6 +2,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} from 'vscode-languageclient/node'
 import {getOutmostWorkspaceURI, getPathExtension, generateGlobPatternFromExtensions, getTimeMarker, fetchAsText} from './utils'
+import {shouldRestartForConfigurationChange} from './configuration'
 
 
 /** Wire shape of the `definitions` / `references` server responses. */
@@ -22,6 +23,13 @@ process.on('unhandledRejection', function(reason) {
 
 
 let extension: CSSNavigationExtension
+
+/** Which classname should to be included. */
+interface AddDiagnosticIgnoredClassNameArguments {
+	className: string
+	target: 'workspace' | 'user'
+	uri: string
+}
 
 /** Output interface to activate plugin. */
 export function activate(context: vscode.ExtensionContext): CSSNavigationExtension {
@@ -131,6 +139,13 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 
 	context.subscriptions.push(peekDefinitionsCommand, peekReferencesCommand)
 
+	const addDiagnosticIgnoredClassNameCommand = vscode.commands.registerCommand(
+		'CSSNavigation.addDiagnosticIgnoredClassName',
+		(args: AddDiagnosticIgnoredClassNameArguments) => extension.addDiagnosticIgnoredClassName(args)
+	)
+
+	context.subscriptions.push(addDiagnosticIgnoredClassNameCommand)
+
 
 	// Register a content provider to open remote URI.
 	const httpProvider = new class implements vscode.TextDocumentContentProvider {
@@ -147,8 +162,7 @@ export function activate(context: vscode.ExtensionContext): CSSNavigationExtensi
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration('CSSNavigation')) {
-				extension.loadConfig()
-				void extension.restartAllClients()
+				void extension.onConfigurationChanged(event)
 			}
 		}),
 
@@ -198,8 +212,8 @@ export class CSSNavigationExtension {
 	}
 
 	/** Get configuration object. */
-	private getConfigObject(): Configuration {
-		const config = this.config
+	private getConfigObject(uri?: vscode.Uri): Configuration {
+		const config = uri ? vscode.workspace.getConfiguration('CSSNavigation', uri) : this.config
 
 		return {
 			enableGoToDefinition: config.get('enableGoToDefinition', true),
@@ -222,6 +236,7 @@ export class CSSNavigationExtension {
 			excludeGlobPatterns: config.get('excludeGlobPatterns') || [],
 			alwaysIncludeGlobPatterns: config.get('alwaysIncludeGlobPatterns', []),
 			jsClassNameReferenceNames: config.get('jsClassNameReferenceNames', []),
+			diagnosticIgnoredClassNames: config.get('diagnosticIgnoredClassNames', []),
 
 			ignoreSameNameCSSFile: config.get('ignoreSameNameCSSFile', true),
 			ignoreCustomAndComponentTagDefinition: config.get('ignoreCustomAndComponentTagDefinition', false),
@@ -230,6 +245,59 @@ export class CSSNavigationExtension {
 			maxHoverStylePropertyCount: config.get('maxHoverStylePropertyCount', 0),
 			enableGlobalEmbeddedCSS: config.get('enableGlobalEmbeddedCSS', false),
 			maxFileCount: config.get('maxFileCount', 1000),
+		}
+	}
+
+	/** Restart only when a setting changes tracked files or parsed document structure. */
+	async onConfigurationChanged(event: vscode.ConfigurationChangeEvent) {
+		this.loadConfig()
+
+		if (shouldRestartForConfigurationChange(section => event.affectsConfiguration(section))) {
+			await this.restartAllClients()
+			return
+		}
+
+		await Promise.all([...this.clients.entries()].map(async ([workspaceURI, client]) => {
+			const configuration = this.getConfigObject(vscode.Uri.parse(workspaceURI))
+
+			try {
+				await client.sendNotification('workspace/didChangeConfiguration', {settings: configuration})
+			}
+			catch (err) {
+				this.showChannelMessage(getTimeMarker() + `Failed to update configuration for "${workspaceURI}": ${String(err)}`)
+			}
+		}))
+	}
+
+	/** Persist one diagnostic suppression at the scope selected by a quick fix. */
+	async addDiagnosticIgnoredClassName(args: AddDiagnosticIgnoredClassNameArguments) {
+		const uri = vscode.Uri.parse(args.uri)
+		const config = vscode.workspace.getConfiguration('CSSNavigation', uri)
+		const key = 'diagnosticIgnoredClassNames'
+		const className = args.className.trim().replace(/^\./, '')
+		if (!className) {
+			return
+		}
+
+		const inspected = config.inspect<string[]>(key)
+		const isWorkspace = args.target === 'workspace'
+		const names = isWorkspace
+			? [...config.get<string[]>(key, [])]
+			: [...inspected?.globalValue ?? []]
+
+		if (!names.includes(className)) {
+			names.push(className)
+			await config.update(
+				key,
+				names,
+				isWorkspace ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global
+			)
+		}
+
+		if (!isWorkspace && (inspected?.workspaceValue !== undefined || inspected?.workspaceFolderValue !== undefined)) {
+			void vscode.window.showInformationMessage(
+				`Added "${className}" to User Settings. A workspace-specific ignored-class list may override it here.`
+			)
 		}
 	}
 
@@ -319,7 +387,7 @@ export class CSSNavigationExtension {
 
 		// To notify open / close / content changed for html & css files in specified range, and provide language service.
 		const htmlCSSPattern = generateGlobPatternFromExtensions([...activeHTMLFileExtensions, ...activeCSSFileExtensions])
-		const configuration = this.getConfigObject()
+		const configuration = this.getConfigObject(workspaceFolder.uri)
 
 		const clientOptions: LanguageClientOptions = {
 			documentSelector: [{

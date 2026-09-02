@@ -23,6 +23,7 @@ interface Configuration {
 	excludeGlobPatterns: string[]
 	alwaysIncludeGlobPatterns: string[]
 	jsClassNameReferenceNames: string[]
+	diagnosticIgnoredClassNames: string[]
 
 	ignoreSameNameCSSFile: boolean
 	ignoreCustomAndComponentTagDefinition: boolean

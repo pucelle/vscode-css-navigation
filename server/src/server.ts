@@ -19,7 +19,9 @@ import {
 	ColorInformation,
 	Diagnostic,
 	CodeLens,
-	CodeLensParams
+	CodeLensParams,
+	CodeActionParams,
+	CodeAction,
 } from 'vscode-languageserver/node'
 import {Position, TextDocument} from 'vscode-languageserver-textdocument'
 import {HTMLServiceMap, CSSServiceMap, ClassNamesInJS} from './languages'
@@ -33,6 +35,7 @@ import {getCSSVariableColors} from './css-variable-color'
 import {getDiagnostics} from './diagnostic'
 import {getCodeLens} from './code-lens'
 import {GlobPathSharer} from './core/file-tracker/glob-path-sharer'
+import {getCodeActions} from './code-action'
 
 
 const connection: Connection = createConnection(ProposedFeatures.all)
@@ -105,7 +108,7 @@ connection.onInitialize((params: InitializeParams) => {
 				openClose: true,
 				change: TextDocumentSyncKind.Full
 			},
-			completionProvider: configuration.enableCompletions ? {
+			completionProvider: {
 				resolveProvider: false,
 
 				// #: id
@@ -114,57 +117,43 @@ connection.onInitialize((params: InitializeParams) => {
 				// [: before css module property
 				// '": css module property
 				triggerCharacters: ['.', '#', '-', '[', '"', "'"],
-			} : undefined,
-			definitionProvider: configuration.enableGoToDefinition,
-			referencesProvider: configuration.enableFindAllReferences,
-			workspaceSymbolProvider: configuration.enableWorkspaceSymbols,
-			hoverProvider: configuration.enableHover,
-			codeLensProvider: configuration.enableDefinitionCodeLens || configuration.enableReferenceCodeLens ? {resolveProvider: true} : undefined,
-			colorProvider: configuration.enableCSSVariableColorPreview,
+			},
+			definitionProvider: true,
+			referencesProvider: true,
+			workspaceSymbolProvider: true,
+			hoverProvider: true,
+			codeLensProvider: {resolveProvider: false},
+			colorProvider: true,
+			codeActionProvider: true,
 		}
 	}
 })
 
 // Listening events.
 connection.onInitialized(() => {
-	if (configuration.enableGoToDefinition) {
-		connection.onDefinition(Logger.logQuerierExecutedTime(server.provideDefinitions.bind(server), 'definition'))
-	}
+	connection.onDefinition(Logger.logQuerierExecutedTime(server.provideDefinitions.bind(server), 'definition'))
+	connection.onWorkspaceSymbol(Logger.logQuerierExecutedTime(server.provideSymbols.bind(server), 'workspace symbol'))
+	connection.onCompletion(Logger.logQuerierExecutedTime(server.provideCompletionItems.bind(server), 'completion'))
+	connection.onReferences(Logger.logQuerierExecutedTime(server.provideReferences.bind(server), 'reference'))
+	connection.onHover(Logger.logQuerierExecutedTime(server.provideHover.bind(server), 'hover'))
+	connection.onCodeLens(Logger.logQuerierExecutedTime(server.provideCodeLens.bind(server), 'codeLens'))
+	connection.onCodeAction(server.provideCodeActions.bind(server))
+	connection.onDocumentColor(async (params) => {
+		try {
+			return await server.provideDocumentCSSVariableColors(params, Logger.getTimestamp())
+		}
+		catch (err) {
+			Logger.error(String(err))
+			return []
+		}
+	})
 
-	if (configuration.enableWorkspaceSymbols) {
-		connection.onWorkspaceSymbol(Logger.logQuerierExecutedTime(server.provideSymbols.bind(server), 'workspace symbol'))
-	}
+	// Just ensure no error happens.
+	connection.onColorPresentation(() => [])
+})
 
-	if (configuration.enableCompletions) {
-		connection.onCompletion(Logger.logQuerierExecutedTime(server.provideCompletionItems.bind(server), 'completion'))
-	}
-
-	if (configuration.enableFindAllReferences) {
-		connection.onReferences(Logger.logQuerierExecutedTime(server.provideReferences.bind(server), 'reference'))
-	}
-
-	if (configuration.enableHover) {
-		connection.onHover(Logger.logQuerierExecutedTime(server.provideHover.bind(server), 'hover'))
-	}
-
-	if (configuration.enableDefinitionCodeLens || configuration.enableReferenceCodeLens) {
-		connection.onCodeLens(Logger.logQuerierExecutedTime(server.provideCodeLens.bind(server), 'codeLens'))
-	}
-
-	if (configuration.enableCSSVariableColorPreview) {
-		connection.onDocumentColor(async (params) => {
-			try {
-				return await server.provideDocumentCSSVariableColors(params, Logger.getTimestamp())
-			}
-			catch (err) {
-				Logger.error(String(err))
-				return []
-			}
-		})
-
-		// Just ensure no error happens.
-		connection.onColorPresentation(() => [])
-	}
+connection.onDidChangeConfiguration(params => {
+	void server.onUpdatedConfiguration(params.settings as Configuration)
 })
 
 documents.listen(connection)
@@ -289,6 +278,10 @@ class CSSNavigationServer {
 
 	/** Provide finding definitions service. */
 	async provideDefinitions(params: TextDocumentPositionParams, time: number): Promise<Location[] | null> {
+		if (!configuration.enableGoToDefinition) {
+			return null
+		}
+
 		this.updateTimestamp(time)
 
 		const documentIdentifier = params.textDocument
@@ -306,6 +299,10 @@ class CSSNavigationServer {
 
 	/** Provide finding symbol service. */
 	async provideSymbols(symbol: WorkspaceSymbolParams, time: number): Promise<SymbolInformation[] | null> {
+		if (!configuration.enableWorkspaceSymbols) {
+			return null
+		}
+
 		this.updateTimestamp(time)
 
 		const query = symbol.query
@@ -327,6 +324,10 @@ class CSSNavigationServer {
 
 	/** Provide auto completion service for HTML or CSS document. */
 	async provideCompletionItems(params: TextDocumentPositionParams, time: number): Promise<CompletionItem[] | null> {
+		if (!configuration.enableCompletions) {
+			return null
+		}
+
 		this.updateTimestamp(time)
 
 		const documentIdentifier = params.textDocument
@@ -345,6 +346,10 @@ class CSSNavigationServer {
 
 	/** Provide finding reference service. */
 	async provideReferences(params: ReferenceParams, time: number): Promise<Location[] | null> {
+		if (!configuration.enableFindAllReferences) {
+			return null
+		}
+
 		this.updateTimestamp(time)
 
 		const documentIdentifier = params.textDocument
@@ -362,6 +367,10 @@ class CSSNavigationServer {
 
 	/** Provide finding hover service. */
 	async provideHover(params: HoverParams, time: number): Promise<Hover | null> {
+		if (!configuration.enableHover) {
+			return null
+		}
+
 		this.updateTimestamp(time)
 
 		const documentIdentifier = params.textDocument
@@ -379,6 +388,10 @@ class CSSNavigationServer {
 
 	/** Provide finding code lens service. */
 	async provideCodeLens(params: CodeLensParams, time: number): Promise<CodeLens[] | null> {
+		if (!configuration.enableDefinitionCodeLens && !configuration.enableReferenceCodeLens) {
+			return null
+		}
+
 		this.updateTimestamp(time)
 
 		const documentIdentifier = params.textDocument
@@ -393,6 +406,10 @@ class CSSNavigationServer {
 
 	/** Provide document css variable color service. */
 	async provideDocumentCSSVariableColors(params: DocumentColorParams, time: number): Promise<ColorInformation[]> {
+		if (!configuration.enableCSSVariableColorPreview) {
+			return []
+		}
+
 		this.updateTimestamp(time)
 
 		const documentIdentifier = params.textDocument
@@ -403,6 +420,32 @@ class CSSNavigationServer {
 		}
 
 		return (await getCSSVariableColors(document, this.htmlServiceMap, this.cssServiceMap, configuration)) ?? []
+	}
+
+	/** Provide code action for ignore class name diagnostics. */
+	provideCodeActions(params: CodeActionParams): CodeAction[] {
+		return getCodeActions(params)
+	}
+
+	/** Apply settings that don't require rebuilding the tracked workspace. */
+	async onUpdatedConfiguration(nextConfiguration: Configuration) {
+		const shouldRefreshDiagnostics
+			= configuration.enableClassNameDefinitionDiagnostic !== nextConfiguration.enableClassNameDefinitionDiagnostic
+				|| configuration.enableClassNameReferenceDiagnostic !== nextConfiguration.enableClassNameReferenceDiagnostic
+				|| !sameStringArray(
+					configuration.diagnosticIgnoredClassNames,
+					nextConfiguration.diagnosticIgnoredClassNames,
+				)
+
+		Object.assign(configuration, nextConfiguration)
+		Logger.setLogEnabled(configuration.enableLogLevelMessage)
+
+		if (shouldRefreshDiagnostics) {
+			for (const document of documents.all()) {
+				const diagnostics = await this.getClassNameDiagnostics(document)
+				void connection.sendDiagnostics({uri: document.uri, diagnostics: diagnostics ?? []})
+			}
+		}
 	}
 
 	/** Diagnose class names for a changed document. */
@@ -474,4 +517,9 @@ class CSSNavigationServer {
 		this.diagnosedVersionMap.set(document.uri, document.version)
 		return getDiagnostics(document, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
+}
+
+
+function sameStringArray(a: readonly string[], b: readonly string[]): boolean {
+	return a.length === b.length && a.every((value, index) => value === b[index])
 }
