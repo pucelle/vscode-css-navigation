@@ -256,3 +256,13 @@ div.class-match10{
 @include sass-mixin(
     $variable: var(--css-variable-color)
 );
+
+
+
+:is(.class-is){
+	color: red;
+}
+
+:where(.class-where){
+	color: red;
+}

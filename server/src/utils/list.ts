@@ -97,3 +97,20 @@ export function quickBinaryFindUpper<T>(sortedList: ArrayLike<T>, fn: (v: T) => 
 	return sortedList[index]
 }
 
+
+/** Find maximum value from a list. */
+export function findMaximum<T>(items: readonly T[],	getValue: (item: T) => number): T | undefined {
+	let maximum: T | undefined
+	let maximumValue = -Infinity
+
+	for (const item of items) {
+		const value = getValue(item)
+
+		if (value > maximumValue) {
+			maximum = item
+			maximumValue = value
+		}
+	}
+
+	return maximum
+}

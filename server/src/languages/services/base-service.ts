@@ -2,7 +2,7 @@ import {SymbolInformation, Hover} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PathResolver} from '../resolver'
 import {Part, PartConvertor, PartType, CSSSelectorWrapperPart, PartComparer, CSSVariableDefinitionPart} from '../parts'
-import {groupBy, quickBinaryFindUpper, quickBinaryFindIndex} from '../utils'
+import {groupBy, quickBinaryFindUpper, quickBinaryFindIndex} from '../../utils/list'
 import {URI} from 'vscode-uri'
 import {CompletionLabel} from './types'
 import {CSSSelectorDetailedPart} from '../parts/part-css-selector-detailed'
@@ -423,7 +423,9 @@ export abstract class BaseService {
 		// In css document, resolve `.a` at `.a.b` to both match parts.
 		if (part.isSelectorDetailedType()) {
 			let wrapper = part.getWrapper(this)
-			return wrapper?.details.filter(candidate => candidate !== part) ?? []
+			return wrapper?.details.filter(candidate => {
+				return candidate !== part && candidate.isContextualSiblingOf(part)
+			}) ?? []
 		}
 
 		// In HTML document, firstly search parental tag, then search for child selectors.

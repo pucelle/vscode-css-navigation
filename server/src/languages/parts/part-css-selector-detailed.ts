@@ -25,12 +25,14 @@ export class CSSSelectorDetailedPart extends Part {
 	readonly primary: boolean
 
 	/** 
-	 * Whether current selector is the main selector,
-	 * which means it has no other unioned selectors,
-	 * and not been nested like `.a .b`,
-	 * and not been wrapped by commands.
+	 * When have comments (1.5),
+	 * or selector shorter (-length),
+	 * priority is higher.
 	 */
-	readonly independent: boolean
+	readonly priority: number
+
+	/** Branches containing this selector inside `:is()` / `:where()`. */
+	readonly embeddedSelectorPath: readonly string[]
 
 	constructor(
 		type: PartType,
@@ -39,12 +41,14 @@ export class CSSSelectorDetailedPart extends Part {
 		definitionEnd: number,
 		formatted: string[],
 		primary: boolean,
-		independent: boolean
+		priority: number,
+		embeddedSelectorPath: readonly string[] = []
 	) {
 		super(type, text, start, definitionEnd)
 		this.formatted = formatted
 		this.primary = primary
-		this.independent = independent
+		this.priority = priority
+		this.embeddedSelectorPath = embeddedSelectorPath
 	}
 
 	protected override escapeText(text: string): string {
@@ -64,6 +68,22 @@ export class CSSSelectorDetailedPart extends Part {
 		let wrapperPart = service.findPartAt(this.start) as CSSSelectorWrapperPart | undefined
 		return wrapperPart ?? null
 	}
+
+	/** Whether this part can be a conjunctive context of `source`, without mixing alternative branches. */
+	isContextualSiblingOf(source: CSSSelectorDetailedPart): boolean {
+		let sourcePath = source.embeddedSelectorPath
+		let candidatePath = this.embeddedSelectorPath
+
+		if (sourcePath.length === 0) {
+			return candidatePath.length === 0
+		}
+
+		if (candidatePath.length > sourcePath.length) {
+			return false
+		}
+
+		return candidatePath.every((branch, index) => branch === sourcePath[index])
+	}
 }
 
 
@@ -79,20 +99,23 @@ export function parseDetailedParts(
 	// `.a:hover`, .a is matcher, :hover is decorator.
 	// `.a::before`, .a is filter too, ::before is matcher.
 
-	let matcherFromIndex = group.findLastIndex(token => token.type === CSSSelectorTokenType.Combinator
+	let outerGroup = group.filter(token => !token.embeddedSelectorPath?.length)
+	
+	let matcherFromIndex = outerGroup.findLastIndex(token => token.type === CSSSelectorTokenType.Combinator
 		|| token.type === CSSSelectorTokenType.Separator)
 
 	// Check the pseudo index after matcher.
 	let pseudoIndex = -1
-	for (let i = matcherFromIndex + 1; i < group.length; i++) {
-		let token = group[i]
+
+	for (let i = matcherFromIndex + 1; i < outerGroup.length; i++) {
+		let token = outerGroup[i]
 		if (token.type === CSSSelectorTokenType.PseudoElement) {
 			pseudoIndex = i
 		}
 	}
 
 	let details: CSSSelectorDetailedPart[] = []
-	let independent = commandWrapped || group.length === 1
+	let priority = (commandWrapped ? 1.5 : 0) - (outerGroup.length - 1)
 
 	for (let i = 0; i < group.length; i++) {
 		let token = group[i]
@@ -118,8 +141,22 @@ export function parseDetailedParts(
 		formatted = formatted.map(escapedCSSSelector)
 
 		let type = getDetailedPartType(token.type, formatted)
-		let primary = i > matcherFromIndex && pseudoIndex === -1
-		let part = new CSSSelectorDetailedPart(type, token.text, token.start, definitionEnd, formatted, primary, independent)
+		let outerIndex = outerGroup.indexOf(token)
+
+		let primary = !token.embeddedSelectorPath?.length
+			&& outerIndex > matcherFromIndex
+			&& pseudoIndex === -1
+
+		let part = new CSSSelectorDetailedPart(
+			type,
+			token.text,
+			token.start,
+			definitionEnd,
+			formatted,
+			primary,
+			priority,
+			token.embeddedSelectorPath,
+		)
 
 		details.push(part)
 	}

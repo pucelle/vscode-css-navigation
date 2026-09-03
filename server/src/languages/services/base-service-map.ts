@@ -4,6 +4,7 @@ import {FileTracker, FileTrackerOptions, Logger} from '../../core'
 import {Part, PartConvertor} from '../parts'
 import {BaseService} from './base-service'
 import {CompletionLabel} from './types'
+import {findMaximum} from '../../utils/list'
 
 
 /** Gives HTML/CSS service for multiple files. */
@@ -240,7 +241,10 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		}
 
 		let matches = contextual.length > 0 ? contextual : normal
-		let match = matches.find(({part}) => part.isSelectorDetailedType() && part.independent) ?? matches[0]
+
+		let match = findMaximum(matches, ({part}) =>
+			part.isSelectorDetailedType() ? part.priority : -Infinity
+		) ?? matches[0];
 
 		return match?.service.makeHover(match.part, fromPart, fromDocument, maxStylePropertyCount) ?? null
 	}

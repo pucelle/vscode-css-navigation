@@ -176,7 +176,7 @@ export namespace PartConvertor {
 		// Keep definition-mode selectors detailed so selector matching can safely
 		// use their formatted text contract, including for id selectors.
 		if (part.isSelectorDetailedType.call({type})) {
-			return new CSSSelectorDetailedPart(type, text, -1, -1, [text], true, true)
+			return new CSSSelectorDetailedPart(type, text, -1, -1, [text], true, 0)
 		}
 		else {
 			return new Part(type, text, -1, -1)

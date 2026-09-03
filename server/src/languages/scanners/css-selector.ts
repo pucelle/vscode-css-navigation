@@ -8,15 +8,15 @@ import {AnyTokenScanner} from './any'
 // Score CSS selectors by this matching, and try to sort them.
 // Otherwise try to find HTML references by matching a selector with environment info.
 
-// 2. Supports `:is()` and `:where()`.
-
-
 /** Parsed CSS selector token. */
 export interface CSSSelectorToken {
 	type: CSSSelectorTokenType
 	text: string
 	start: number
 	end: number
+
+	/** Branches containing this token, from outermost `:is()` / `:where()` to innermost. */
+	embeddedSelectorPath?: readonly string[]
 }
 
 
@@ -300,14 +300,27 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 				// `:hover|`
 				this.readUntilNot(IsName)
 
+				let name = this.string.slice(this.start + 1, this.offset).toLowerCase()
+				let argumentsStart = -1
+				let argumentsEnd = -1
+
 				// `:has(...)|`
 				if (this.peekChar() === '(') {
+					argumentsStart = this.offset + 1
 					if (!this.readBracketed()) {
 						break
 					}
+					argumentsEnd = this.offset - 1
 				}
-				
-				yield this.makeToken(CSSSelectorTokenType.Pseudo)
+
+				let token = this.makeToken(CSSSelectorTokenType.Pseudo)
+				yield token
+
+				// `:is()` and `:where()`.
+				if ((name === 'is' || name === 'where') && argumentsStart > -1) {
+					yield* this.parseEmbeddedSelectorTokens(argumentsStart, argumentsEnd, token.start)
+				}
+
 				this.state = ScanState.AnyContent
 				this.needToSeparate = true
 			}
@@ -368,6 +381,23 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 		}
 		else {
 			this.sync()
+		}
+	}
+
+	/** Parse selector-list branches embedded in `:is()` and `:where()`. */
+	private *parseEmbeddedSelectorTokens(argumentsStart: number, argumentsEnd: number, functionStart: number): Iterable<CSSSelectorToken> {
+		let text = this.string.slice(argumentsStart, argumentsEnd)
+		let groups = new CSSSelectorTokenScanner(text, this.scannerStart + argumentsStart, this.languageId).parseToSeparatedTokens()
+
+		for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
+			let branch = `${functionStart}:${groupIndex}`
+
+			for (let token of groups[groupIndex]) {
+				yield {
+					...token,
+					embeddedSelectorPath: [branch, ...token.embeddedSelectorPath ?? []],
+				}
+			}
 		}
 	}
 }
