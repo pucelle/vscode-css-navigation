@@ -332,6 +332,10 @@ export class CSSTokenTree extends CSSTokenNode {
 			}
 		}
 
+		else if (commandName === 'include') {
+			yield* CSSTokenTree.parsePropertyValuePart(node.token.text, node.token.start)
+		}
+
 		else if (commandName === 'at-root') {
 
 			// `@at-root .class`.
