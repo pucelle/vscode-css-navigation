@@ -8,6 +8,7 @@ import {CSSTokenNodeType} from '../trees/css-node'
 import {PartComparer} from './part-comparer'
 import {Color} from '../../utils'
 import {CSSVariableDefinitionPart} from './part-css-variable-definition'
+import {CSSSelectorDetailedPart} from './part-css-selector-detailed'
 
 
 /** Help to convert part type and text. */
@@ -166,7 +167,14 @@ export namespace PartConvertor {
 		const type = PartConvertor.typeToDefinition(part.type)
 		const text = PartConvertor.textToType(part.escapedText, part.type, type)
 
-		return new Part(type, text, -1, -1)
+		// Keep definition-mode selectors detailed so selector matching can safely
+		// use their formatted text contract, including for id selectors.
+		if (part.isSelectorDetailedType.call({type})) {
+			return new CSSSelectorDetailedPart(type, text, -1, -1, [text], true, true)
+		}
+		else {
+			return new Part(type, text, -1, -1)
+		}
 	}
 
 

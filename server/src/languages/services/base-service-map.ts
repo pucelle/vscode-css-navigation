@@ -1,7 +1,7 @@
 import {SymbolInformation, LocationLink, Hover, Location, TextDocuments, RemoteWindow} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {FileTracker, FileTrackerOptions, Logger} from '../../core'
-import {Part} from '../parts'
+import {Part, PartConvertor} from '../parts'
 import {BaseService} from './base-service'
 import {CompletionLabel} from './types'
 
@@ -102,16 +102,36 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	/** Parse document to CSS service. */
 	protected abstract createService(document: TextDocument): S
 
-	async findDefinitions(matchPart: Part, fromPart: Part, fromDocument: TextDocument): Promise<LocationLink[]> {
+	async findDefinitions(
+		matchPart: Part,
+		fromPart: Part,
+		fromDocument: TextDocument,
+		contextMatchParts: readonly Part[] = []
+	): Promise<LocationLink[]> {
 		await this.beFresh()
+		return this.findDefinitionsFromServices([...this.walkAvailableServices()], matchPart, fromPart, fromDocument, contextMatchParts)
+	}
 
-		const locations: LocationLink[] = []
+	/** Collect raw definition matches across services, choose globally, then build locations. */
+	findDefinitionsFromServices(
+		services: readonly BaseService[],
+		matchPart: Part,
+		fromPart: Part,
+		fromDocument: TextDocument,
+		contextMatchParts: readonly Part[] = []
+	): LocationLink[] {
+		const normal: {service: BaseService, part: Part}[] = []
+		const contextual: {service: BaseService, part: Part}[] = []
 
-		for (const service of this.walkAvailableServices()) {
-			locations.push(...service.findDefinitions(matchPart, fromPart, fromDocument))
+		for (const service of services) {
+			const matches = service.findDefinitionMatchParts(matchPart, contextMatchParts)
+			normal.push(...matches.normal.map(part => ({service, part})))
+			contextual.push(...matches.contextual.map(part => ({service, part})))
 		}
 
-		return locations
+		return (contextual.length > 0 ? contextual : normal).map(({service, part}) => {
+			return PartConvertor.toLocationLink(part, service.document, fromPart, fromDocument)
+		})
 	}
 	
 	async findSymbols(query: string): Promise<SymbolInformation[]> {
@@ -160,16 +180,34 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		return labelMap
 	}
 
-	async findReferences(matchDefPart: Part, fromPart: Part): Promise<Location[]> {
+	async findReferences(
+		defMatchPart: Part,
+		fromPart: Part,
+		contextMatchParts: readonly Part[] = []
+	): Promise<Location[]> {
 		await this.beFresh()
-		
-		const locations: Location[] = []
+		return this.findReferencesFromServices([...this.walkAvailableServices()], defMatchPart, fromPart, contextMatchParts)
+	}
 
-		for (const service of this.walkAvailableServices()) {
-			locations.push(...service.findReferences(matchDefPart, fromPart))
+	/** Collect raw reference matches across services, choose globally, then build locations. */
+	findReferencesFromServices(
+		services: readonly BaseService[],
+		defMatchPart: Part,
+		fromPart: Part,
+		contextMatchParts: readonly Part[] = []
+	): Location[] {
+		const normal: {service: BaseService, part: Part}[] = []
+		const contextual: {service: BaseService, part: Part}[] = []
+
+		for (const service of services) {
+			const matches = service.findReferenceMatchParts(defMatchPart, fromPart, contextMatchParts)
+			normal.push(...matches.normal.map(part => ({service, part})))
+			contextual.push(...matches.contextual.map(part => ({service, part})))
 		}
 
-		return locations
+		return (contextual.length > 0 ? contextual : normal).map(({service, part}) => {
+			return PartConvertor.toLocation(part, service.document)
+		})
 	}
 
 	async findHover(matchPart: Part, fromPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Promise<Hover | null> {

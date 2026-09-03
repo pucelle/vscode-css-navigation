@@ -81,6 +81,7 @@ async function findDefinitionsInHTML(
 	configuration: Configuration
 ): Promise<LocationLink[] | null> {
 	const matchPart = PartConvertor.toDefinitionMode(fromPart)
+	const contextMatchParts = currentService.getContextualDefMatchParts(fromPart)
 	const locations: LocationLink[] = []
 
 
@@ -98,20 +99,16 @@ async function findDefinitionsInHTML(
 	// When mouse locates at `styleName="class-name"`, search within default imported css module.
 	if (fromPart.type === PartType.ReactDefaultImportedCSSModuleClass) {
 		const filePaths = await ModuleResolver.resolveReactDefaultCSSModuleURIs(document)
+		const services: CSSService[] = []
 
 		for (const filePath of filePaths) {
 			const cssModuleService = await cssServiceMap.forceGetServiceByURI(filePath)
-			if (!cssModuleService) {
-				return null
-			}
-
-			const defs = cssModuleService.findDefinitions(matchPart, fromPart, document)
-			if (defs.length > 0) {
-				return defs
+			if (cssModuleService) {
+				services.push(cssModuleService)
 			}
 		}
 
-		return null
+		return cssServiceMap.findDefinitionsFromServices(services, matchPart, fromPart, document, contextMatchParts)
 	}
 
 
@@ -132,7 +129,7 @@ async function findDefinitionsInHTML(
 			return null
 		}
 
-		return cssModuleService.findDefinitions(matchPart, fromPart, document)
+		return cssServiceMap.findDefinitionsFromServices([cssModuleService], matchPart, fromPart, document, contextMatchParts)
 	}
 
 
@@ -153,14 +150,14 @@ async function findDefinitionsInHTML(
 
 
 	// Find embedded style definitions or definitions from all imported css files, if any found, stop.
-	locations.push(...await findEmbeddedOrImported(matchPart, fromPart, currentService, document, cssServiceMap))
+	locations.push(...await findEmbeddedOrImported(matchPart, fromPart, currentService, document, cssServiceMap, contextMatchParts))
 	if (locations.length > 0) {
 		return locations
 	}
 	
 
 	// Search across all CSS files.
-	locations.push(...await cssServiceMap.findDefinitions(matchPart, fromPart, document))
+	locations.push(...await cssServiceMap.findDefinitions(matchPart, fromPart, document, contextMatchParts))
 	if (locations.length > 0) {
 		return locations
 	}
@@ -168,7 +165,7 @@ async function findDefinitionsInHTML(
 
 	// Find css fragments in HTML.
 	if (configuration.enableGlobalEmbeddedCSS) {
-		locations.push(...await htmlServiceMap.findDefinitions(matchPart, fromPart, document))
+		locations.push(...await htmlServiceMap.findDefinitions(matchPart, fromPart, document, contextMatchParts))
 	}
 
 
@@ -226,34 +223,27 @@ async function findEmbeddedOrImported(
 	fromPart: Part,
 	currentService: HTMLService | CSSService,
 	document: TextDocument,
-	cssServiceMap: CSSServiceMap
+	cssServiceMap: CSSServiceMap,
+	contextMatchParts: readonly Part[] = []
 ): Promise<LocationLink[]> {
-	const locations: LocationLink[] = []
-
-	// Find embedded style definitions, if found, stop.
-	locations.push(...currentService.findDefinitions(matchPart, fromPart, document))
-
-	if (locations.length > 0) {
-		return locations
-	}
-	
-
-	// Having CSS files imported, firstly search within these files, if found, not searching more.
+	// Load imported services before choosing between contextual and normal definitions.
 	const cssURIs = await currentService.getImportedCSSURIs()
 	const cssURIChain = cssServiceMap.trackingMap.resolveChainedImportedURIs(cssURIs)
+	const importedServices: CSSService[] = []
 
 	for (const cssURI of cssURIChain) {
 		const cssService = await cssServiceMap.forceGetServiceByURI(cssURI)
 		if (!cssService) {
 			continue
 		}
-
-		locations.push(...cssService.findDefinitions(matchPart, fromPart, document))
+		importedServices.push(cssService)
 	}
 
-	if (locations.length > 0) {
-		return locations
-	}
-
-	return locations
+	return cssServiceMap.findDefinitionsFromServices(
+		[currentService, ...importedServices],
+		matchPart,
+		fromPart,
+		document,
+		contextMatchParts,
+	)
 }

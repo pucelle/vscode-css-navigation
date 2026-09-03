@@ -247,8 +247,6 @@
 		"watch": "tsc -b -w",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
 		"e2e-test": "sh ./client/test/scripts/e2e.sh",
-		"lint": "eslint client/src server/src client/test/src",
-		"lint:fix": "eslint client/src server/src client/test/src --fix",
 		"test": "vitest tests",
 		"package": "vsce package",
 		"publish": "vsce publish"

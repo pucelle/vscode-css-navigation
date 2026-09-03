@@ -128,11 +128,15 @@ export class Part {
 	/** End of Definition. */
 	defEnd: number
 
-	constructor(type: PartType, text: string, start: number, declarationEnd: number = -1) {
+	/** End of the containing syntax construct, when it differs from the definition. */
+	readonly containerEnd: number
+
+	constructor(type: PartType, text: string, start: number, defEnd: number = -1, containerEnd: number = defEnd) {
 		this.type = type
 		this.rawText = text
 		this.start = start
-		this.defEnd = declarationEnd
+		this.defEnd = defEnd
+		this.containerEnd = containerEnd
 		this.escapedText = this.escapeText(text)
 	}
 
@@ -174,6 +178,13 @@ export class Part {
 			|| this.type === PartType.CSSSelectorId
 			|| this.type === PartType.CSSSelectorClass
 			|| this.type === PartType.CSSVariableDefinition
+	}
+
+	/** Definition, and can be used to compare contextual. */
+	isDefinitionContextualType() {
+		return this.type === PartType.CSSSelectorTag
+			|| this.type === PartType.CSSSelectorId
+			|| this.type === PartType.CSSSelectorClass
 	}
 
 	isReferenceType() {
@@ -220,7 +231,10 @@ export class Part {
 			|| this.type === PartType.CSSSelectorClass
 	}
 
-	/** Only definition part has formatted list. */
+	/** 
+	 * `&-name -> xxx-name`.
+	 * Only definition part has formatted list.
+	 */
 	hasFormattedList(): this is CSSSelectorWrapperPart | CSSSelectorDetailedPart {
 		return this.type === PartType.CSSSelectorWrapper
 			|| this.type === PartType.CSSSelectorTag
@@ -274,4 +288,3 @@ export class Part {
 		}
 	}
 }
-

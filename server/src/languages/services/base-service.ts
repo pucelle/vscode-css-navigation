@@ -1,4 +1,4 @@
-import {SymbolInformation, LocationLink, Location, Hover} from 'vscode-languageserver'
+import {SymbolInformation, Hover} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-textdocument'
 import {PathResolver} from '../resolver'
 import {Part, PartConvertor, PartType, CSSSelectorWrapperPart, PartComparer, CSSVariableDefinitionPart} from '../parts'
@@ -9,12 +9,20 @@ import {CSSSelectorDetailedPart} from '../parts/part-css-selector-detailed'
 import {isRelativePath} from '../../utils'
 
 
+/** A definition or reference search result. */
+export interface PartMatchResult {
+	normal: Part[]
+	contextual: Part[]
+}
+
+
 /** Base of HTML or CSS service for one file. */
 export abstract class BaseService {
 
 	readonly document: TextDocument
 	readonly config: Configuration
 
+	/** Already sort by token index. */
 	protected parts: Part[]
 
 	/** Contains primary selector part, bot not all details. */
@@ -185,18 +193,17 @@ export abstract class BaseService {
 
 
 	/** 
-	 * Find definitions match part.
-	 * `matchDefPart` must have been converted to definition type.
+	 * Find definitions match parts.
+	 * `defMatchPart` must have been converted to definition type.
 	 */
-	findDefinitions(matchDefPart: Part, fromPart: Part, fromDocument: TextDocument): LocationLink[] {
-		const locations: LocationLink[] = []
+	findDefinitionMatchParts(defMatchPart: Part, contextDefMatchParts: readonly Part[] = []): PartMatchResult {
+		const result: PartMatchResult = {normal: [], contextual: []}
 
-		for (const part of this.getPartsByType(matchDefPart.type)) {
-			if (!PartComparer.isMayFormattedListMatch(part, matchDefPart)) {
+		for (const part of this.getPartsByType(defMatchPart.type)) {
+			if (!PartComparer.isMayFormattedListMatch(part, defMatchPart)) {
 				continue
 			}
 
-			// Not match non-primary detailed.
 			if (part.isSelectorDetailedType() && !part.primary) {
 				continue
 			}
@@ -206,10 +213,39 @@ export abstract class BaseService {
 				continue
 			}
 
-			locations.push(PartConvertor.toLocationLink(part, this.document, fromPart, fromDocument))
+			result.normal.push(part)
+
+			// Contextual match results.
+			if (contextDefMatchParts.length > 0
+				&& this.isDefMatchPartsSubset(this.getContextualDefMatchParts(part), contextDefMatchParts)
+			) {
+				result.contextual.push(part)
+			}
 		}
 
-		return locations
+		return result
+	}
+
+	/** Check whether two definition type contextual parts list match. */
+	private isDefMatchPartsSubset(defRequired: readonly Part[], defAvailable: readonly Part[]): boolean {
+		if (defRequired.length === 0) {
+			return false
+		}
+
+		for (const requiredPart of defRequired) {
+			const requiredTexts = PartComparer.mayFormatted(requiredPart)
+
+			const matched = defAvailable.some(availablePart => {
+				return availablePart.type === requiredPart.type
+					&& PartComparer.isReferenceTextMatch(availablePart, requiredPart.type, requiredTexts)
+			})
+
+			if (!matched) {
+				return false
+			}
+		}
+
+		return true
 	}
 
 	/**
@@ -240,7 +276,7 @@ export abstract class BaseService {
 	
 	/** 
 	 * Get completion labels match part.
-	 * `matchDefPart` must have been converted to definition type.
+	 * `defMatchPart` must have been converted to definition type.
 	 */
 	getCompletionLabels(matchPart: Part, fromPart: Part, maxStylePropertyCount: number): Map<string, CompletionLabel | null> {
 		const labelMap: Map<string, CompletionLabel | null> = new Map()
@@ -295,12 +331,12 @@ export abstract class BaseService {
 	getReferencedCompletionLabels(fromPart: Part): Map<string, CompletionLabel | null> {
 		const labelMap: Map<string, CompletionLabel | null> = new Map()
 		const re = PartConvertor.makeIdentifiedStartsMatchExp(PartComparer.mayFormatted(fromPart), fromPart.type)
-		const matchDefPart = PartConvertor.toDefinitionMode(fromPart)
+		const defMatchPart = PartConvertor.toDefinitionMode(fromPart)
 
 		for (const type of this.partMap.keys()) {
 
 			// Filter by type.
-			if (!PartComparer.isReferenceTypeMatch(type, matchDefPart.type)) {
+			if (!PartComparer.isReferenceTypeMatch(type, defMatchPart.type)) {
 				continue
 			}
 
@@ -336,18 +372,18 @@ export abstract class BaseService {
 
 	/** 
 	 * Find the reference locations in the HTML document from a class or id selector.
-	 * `matchDefPart` must have been converted to definition type.
+	 * `defMatchPart` must have been converted to definition type.
 	 */
-	findReferences(matchDefPart: Part, fromPart: Part): Location[] {
-		const locations: Location[] = []
+	findReferenceMatchParts(defMatchPart: Part, fromPart: Part, contextDefMatchParts: readonly Part[] = []): PartMatchResult {
+		const result: PartMatchResult = {normal: [], contextual: []}
 
 		// Important, use may formatted text, and also must use definition text.
-		const texts = fromPart.hasFormattedList() ? PartComparer.mayFormatted(fromPart) : [matchDefPart.escapedText]
+		const texts = fromPart.hasFormattedList() ? PartComparer.mayFormatted(fromPart) : [defMatchPart.escapedText]
 
 		for (const type of this.partMap.keys()) {
 
 			// Filter by type.
-			if (!PartComparer.isReferenceTypeMatch(type, matchDefPart.type)) {
+			if (!PartComparer.isReferenceTypeMatch(type, defMatchPart.type)) {
 				continue
 			}
 
@@ -360,29 +396,93 @@ export abstract class BaseService {
 				// }
 
 				// Filter by text.
-				if (!PartComparer.isReferenceTextMatch(part, matchDefPart.type, texts)) {
+				if (!PartComparer.isReferenceTextMatch(part, defMatchPart.type, texts)) {
 					continue
 				}
 
-				locations.push(PartConvertor.toLocation(part, this.document))
+				result.normal.push(part)
+
+				if (contextDefMatchParts.length > 0
+					&& this.isDefMatchPartsSubset(contextDefMatchParts, this.getContextualDefMatchParts(part))
+				) {
+					result.contextual.push(part)
+				}
 			}
 		}
 
-		return locations
+		return result
 	}
-	
+
+	/** 
+	 * Find selector siblings from the nearest HTML tag or CSS selector wrapper.
+	 * The source part itself is excluded.
+	 */
+	getContextualDefMatchParts(part: Part): Part[] {
+
+		// In css document, resolve `.a` at `.a.b` to both match parts.
+		if (part.isSelectorDetailedType()) {
+			const wrapper = part.getWrapper(this)
+			return wrapper?.details.filter(candidate => candidate !== part) ?? []
+		}
+
+		// In HTML document, firstly search parental tag, then search for child selectors.
+		const partIndex = quickBinaryFindIndex(this.parts, p => p.start - part.start)
+		if (partIndex < 0) {
+			return []
+		}
+
+		let tag: Part | undefined
+		let tagIndex = -1
+		
+		for (let i = partIndex; i >= 0; i--) {
+			const candidate = this.parts[i]
+			if ((candidate.type === PartType.Tag || candidate.type === PartType.ComponentTag)
+				&& candidate.start <= part.start
+				&& candidate.containerEnd >= part.end
+			) {
+				tag = candidate
+				tagIndex = i
+				break
+			}
+		}
+
+		if (!tag) {
+			return []
+		}
+
+		const defMatchParts: Part[] = tag === part ? [] : [PartConvertor.toDefinitionMode(tag)]
+
+		for (let i = tagIndex + 1; i < this.parts.length; i++) {
+			const candidate = this.parts[i]
+
+			if (candidate.end > tag.containerEnd) {
+				break
+			}
+			if (candidate === part) {
+				continue
+			}
+
+			const defCandidate = PartConvertor.toDefinitionMode(candidate)
+			if (defCandidate.isDefinitionContextualType()) {
+				defMatchParts.push(defCandidate)
+			}
+		}
+
+		return defMatchParts
+	}
+
 	/** Find hover from CSS document for providing class or id name hover for a HTML document. */
-	findHover(matchDefPart: Part, fromPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Hover | null {
+	findHover(defMatchPart: Part, fromPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Hover | null {
 		const parts: Part[] = []
 
-		for (const part of this.getPartsByType(matchDefPart.type)) {
+		for (const part of this.getPartsByType(defMatchPart.type)) {
 
 			// Not match non-primary detailed.
 			if (part.isSelectorDetailedType() && !part.primary) {
 				continue
 			}
 
-			if (!PartComparer.isMayFormattedListMatch(part, matchDefPart)) {
+			if (!PartComparer.isMayFormattedListMatch(part, defMatchPart)) {
 				continue
 			}
 

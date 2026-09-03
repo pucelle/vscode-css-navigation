@@ -4,7 +4,7 @@ import {describe, expect, it} from 'vitest'
 import {TextDocument} from '../server/node_modules/vscode-languageserver-textdocument'
 import {getCompletionItems} from '../server/src/completion'
 import {findDefinitions} from '../server/src/definition'
-import {CSSService, HTMLService} from '../server/src/languages'
+import {CSSService, CSSServiceMap, HTMLService} from '../server/src/languages'
 import {URI} from '../server/node_modules/vscode-uri'
 
 
@@ -35,6 +35,7 @@ function prepareServices(source: string) {
 	} as any
 	const cssServiceMap = {
 		forceGetServiceByURI: async (uri: string) => uri === cssURI ? cssService : undefined,
+		findDefinitionsFromServices: CSSServiceMap.prototype.findDefinitionsFromServices,
 	} as any
 
 	return {document, htmlServiceMap, cssServiceMap}

@@ -64,16 +64,17 @@ async function findReferencesInHTML(
 	pureReference: boolean
 ): Promise<Location[] | null> {
 	const matchPart = PartConvertor.toDefinitionMode(fromPart)
+	const contextMatchParts = currentService.getContextualDefMatchParts(fromPart)
 	const locations: Location[] = []
 
 
 	if (pureReference) {
 		if (fromPart.isDefinitionType()) {
 			if (configuration.enableGlobalEmbeddedCSS) {
-				locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
+				locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart, contextMatchParts))
 			}
 			else {
-				locations.push(...currentService.findReferences(matchPart, fromPart))
+				locations.push(...htmlServiceMap.findReferencesFromServices([currentService], matchPart, fromPart, contextMatchParts))
 			}
 		}
 	}
@@ -81,13 +82,13 @@ async function findReferencesInHTML(
 	// Find for both definition and reference parts by default.
 	else {
 		if (fromPart.isDefinitionType() || fromPart.isReferenceType()) {
-			locations.push(...await cssServiceMap.findReferences(matchPart, fromPart))
+			locations.push(...await cssServiceMap.findReferences(matchPart, fromPart, contextMatchParts))
 
 			if (configuration.enableGlobalEmbeddedCSS) {
-				locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
+				locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart, contextMatchParts))
 			}
 			else {
-				locations.push(...currentService.findReferences(matchPart, fromPart))
+				locations.push(...htmlServiceMap.findReferencesFromServices([currentService], matchPart, fromPart, contextMatchParts))
 			}
 		}
 	}
@@ -100,25 +101,26 @@ async function findReferencesInHTML(
 /** In CSS files, or a sass file. */
 async function findReferencesInCSS(
 	fromPart: Part,
-	_currentService: HTMLService | CSSService,
+	currentService: HTMLService | CSSService,
 	htmlServiceMap: HTMLServiceMap,
 	cssServiceMap: CSSServiceMap,
 	pureReference: boolean
 ): Promise<Location[] | null> {
 	const matchPart = PartConvertor.toDefinitionMode(fromPart)
+	const contextMatchParts = currentService.getContextualDefMatchParts(fromPart)
 	const locations: Location[] = []
 
 
 	if (pureReference) {
 		if (fromPart.isDefinitionType()) {
-			locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
+			locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart, contextMatchParts))
 		}
 	}
 
 	// Find for both definition and reference parts by default.
 	else if (fromPart.isDefinitionType() || fromPart.isReferenceType()) {
-		locations.push(...await cssServiceMap.findReferences(matchPart, fromPart))
-		locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart))
+		locations.push(...await cssServiceMap.findReferences(matchPart, fromPart, contextMatchParts))
+		locations.push(...await htmlServiceMap.findReferences(matchPart, fromPart, contextMatchParts))
 	}
 
 

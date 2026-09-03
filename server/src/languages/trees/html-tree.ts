@@ -73,14 +73,18 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 			else if (token.type === HTMLTokenType.TagEnd) {
 				if (current && current.token.type === HTMLTokenType.StartTagName
-					&& SelfClosingTags.includes(current.token.text)
 				) {
-					current = current.parent ?? tree
+					current.tagEnd = token.end
+					
+					if (SelfClosingTags.includes(current.token.text)) {
+						current = current.parent ?? tree
+					}
 				}
 			}
 
 			else if (token.type === HTMLTokenType.SelfCloseTagEnd) {
 				if (current && current.token.type === HTMLTokenType.StartTagName) {
+					current.tagEnd = token.end
 					current = current.parent ?? tree
 				}
 			}
@@ -136,7 +140,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 	protected *parseNodeParts(node: HTMLTokenNode): Iterable<Part> {
 		if (node.token.type === HTMLTokenType.StartTagName) {
 			const partType = /^[A-Z]/.test(node.token.text) ? PartType.ComponentTag : PartType.Tag
-			yield new Part(partType, node.token.text, node.token.start, node.tagLikeEnd)
+			yield new Part(partType, node.token.text, node.token.start, node.token.end, node.tagLikeEnd)
 
 			// Parse attributes and sort them.
 			yield* this.sortParts(this.parseAttrParts(node))
