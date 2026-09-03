@@ -7,7 +7,7 @@
 - Add configurable class-name diagnostic exclusions, including wildcard matching and Workspace/User Settings quick fixes. for #128.
 - Prefer CSS definitions whose selector-wrapper children match the source HTML tag, id, and class selectors, and use the same context to narrow references. for #126.
 - Support class name discovery for expressions like `xxxClassName = ['classes', ...] / {'class': true} / a ? 'class1' : 'class2'`, for #122.
-- Support property selectors: [disabled] [checked] [selected] [hidden] [type=...] [aria-=...] [data-=...], for #53 and #121.
+- Support property selectors: [disabled] [checked] [selected] [hidden] [type=...] [aria-*=...] [data-*=...], for #53 and #121.
 - Support `@include` sass mixin code parsing, for #110.
 - Support `:is` and `:where` as reference, for #80.
 - Preserve VS Code's built-in color decorators in JavaScript and TypeScript files while CSS variable color previews are enabled.

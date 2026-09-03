@@ -14,7 +14,7 @@ Provides CSS **Completion**, **Finding Definition**, **Finding References**, **D
 In v2.15, we support:
 
 - class and id renaming.
-- property selectors: [disabled] [checked] [selected] [hidden] [type=...] [aria-=...] [data-=...].
+- property selectors: [disabled] [checked] [selected] [hidden] [type=...] [aria-*=...] [data-*=...].
 `:is` and `:where`.
 - `ignoreSameNameCSSFile` option, which excludes generated CSS files when a same-name SCSS, Sass, or Less source exists.
 
