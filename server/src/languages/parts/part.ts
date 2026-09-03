@@ -36,7 +36,7 @@ export enum PartType {
 	/** To do completion like `class="|"`. */
 	ClassPotential,
 
-	/** Partial HTML attribute used for selector matching. */
+	/** HTML attribute represented as a normalized attribute selector. */
 	Attribute,
 
 	/**
@@ -56,6 +56,9 @@ export enum PartType {
 	 * `$('.class-name')`
 	 */
 	CSSSelectorQueryClass,
+
+	/** `querySelector('[attribute=value]')` */
+	CSSSelectorQueryAttribute,
 
 	/** `style.setProperty('--variable-name', ...)` */
 	CSSVariableAssignment,
@@ -183,6 +186,7 @@ export class Part {
 		return this.type === PartType.CSSSelectorTag
 			|| this.type === PartType.CSSSelectorId
 			|| this.type === PartType.CSSSelectorClass
+			|| this.type === PartType.CSSSelectorAttribute
 			|| this.type === PartType.CSSVariableDefinition
 	}
 
@@ -198,9 +202,11 @@ export class Part {
 		return this.type === PartType.Tag
 			|| this.type === PartType.Id
 			|| this.type === PartType.Class
+			|| this.type === PartType.Attribute
 			|| this.type === PartType.CSSSelectorQueryTag
 			|| this.type === PartType.CSSSelectorQueryId
 			|| this.type === PartType.CSSSelectorQueryClass
+			|| this.type === PartType.CSSSelectorQueryAttribute
 			|| this.type === PartType.CSSVariableAssignment
 			|| this.type === PartType.CSSVariableReference
 			|| this.type === PartType.ReactDefaultImportedCSSModuleClass
@@ -221,13 +227,16 @@ export class Part {
 		return this.type === PartType.Tag
 			|| this.type === PartType.Id
 			|| this.type === PartType.Class
+			|| this.type === PartType.Attribute
 			|| this.type === PartType.CSSSelectorQueryTag
 			|| this.type === PartType.CSSSelectorQueryId
 			|| this.type === PartType.CSSSelectorQueryClass
+			|| this.type === PartType.CSSSelectorQueryAttribute
 			|| this.type === PartType.CSSSelectorWrapper
 			|| this.type === PartType.CSSSelectorTag
 			|| this.type === PartType.CSSSelectorId
 			|| this.type === PartType.CSSSelectorClass
+			|| this.type === PartType.CSSSelectorAttribute
 			|| this.type === PartType.ReactDefaultImportedCSSModuleClass
 			|| this.type === PartType.ImportedCSSModuleProperty
 	}

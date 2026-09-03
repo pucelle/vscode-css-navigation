@@ -1,5 +1,5 @@
 import {HTMLToken, HTMLTokenScanner, HTMLTokenType, CSSClassInExpressionTokenScanner, CSSClassInExpressionTokenType, WhiteListHTMLTokenScanner} from '../scanners'
-import {Part, PartType, isSelectableAttributeName, makeAttributeSelector} from '../parts'
+import {AttributeSelectorReferencePart, Part, PartType, isSelectableAttributeName, makeAttributeSelector} from '../parts'
 import {hasQuotes, isExpressionLike, removeQuotesFromToken} from './utils'
 import {Picker} from './picker'
 import {CSSTokenTree} from './css-tree'
@@ -170,7 +170,7 @@ export class HTMLTokenTree extends HTMLTokenNode {
 
 		if (isSelectableAttributeName(name)) {
 			let value = attrValue && !isExpressionLike(attrValue.text) ? unQuotedAttrValue?.text : undefined
-			yield new Part(PartType.Attribute, makeAttributeSelector(name, value), attrName.start)
+			yield new AttributeSelectorReferencePart(PartType.Attribute, makeAttributeSelector(name, value), attrName.start, attrValue?.end ?? attrName.end)
 		}
 
 		if (name === 'id') {

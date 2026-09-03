@@ -1,5 +1,5 @@
 import {JSToken, JSTokenScanner, JSTokenType, CSSSelectorTokenScanner, CSSSelectorTokenType, WhiteListHTMLTokenScanner} from '../scanners'
-import {Part, PartType} from '../parts'
+import {AttributeSelectorReferencePart, Part, PartType, normalizeAttributeSelector} from '../parts'
 import {Picker} from './picker'
 import {isCSSLikePath} from '../../utils'
 import {CSSTokenTree} from './css-tree'
@@ -115,15 +115,15 @@ export class JSTokenTree extends JSTokenNode {
 
 		// `querySelect('.class-name')`
 	 	// `$('.class-name')`
-		let matches = Picker.locateAllMatches(
+		let selectorMatches = Picker.locateAllMatches(
 			text,
-			/(?:\$|\.querySelector|\.querySelectorAll)\s*\(\s*['"`](.*?)['"`]/g,
-			[1]
+			/(?:\$|\.querySelector|\.querySelectorAll)\s*\(\s*(['"`])((?:(?!\1).)*)\1/g,
+			[2]
 		)
 
-		for (let match of matches) {
-			let selector = match[1].text
-			let selectorStart = match[1].start + start
+		for (let match of selectorMatches) {
+			let selector = match[2].text
+			let selectorStart = match[2].start + start
 			let tokens = new CSSSelectorTokenScanner(selector, selectorStart, 'css').parseToTokens()
 
 			for (let token of tokens) {
@@ -136,12 +136,18 @@ export class JSTokenTree extends JSTokenNode {
 				else if (token.type === CSSSelectorTokenType.Class) {
 					yield new Part(PartType.CSSSelectorQueryClass, token.text, token.start)
 				}
+				else if (token.type === CSSSelectorTokenType.Attribute) {
+					let normalized = normalizeAttributeSelector(token.text)
+					if (normalized) {
+						yield new AttributeSelectorReferencePart(PartType.CSSSelectorQueryAttribute, normalized, token.start, token.end)
+					}
+				}
 			}
 		}
 
 		
 		// `.classList.add('...')`
-		matches = Picker.locateAllMatches(
+		let matches = Picker.locateAllMatches(
 			text,
 			/\.classList\.add\s*\(\s*['"`]([\w-]*)['"`]/g,
 			[1]

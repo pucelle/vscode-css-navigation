@@ -1,7 +1,25 @@
+import {Part, PartType} from './part'
+
+
 const BooleanContextualAttributes = new Set(['disabled', 'checked', 'selected', 'hidden'])
 
 
-/** Whether an HTML attribute participates in contextual selector matching. */
+/** An attribute reference whose normalized comparison text differs from its source range. */
+export class AttributeSelectorReferencePart extends Part {
+	private readonly sourceEnd: number
+
+	constructor(type: PartType.Attribute | PartType.CSSSelectorQueryAttribute, text: string, start: number, end: number) {
+		super(type, text, start, end)
+		this.sourceEnd = end
+	}
+
+	override get end() {
+		return this.sourceEnd
+	}
+}
+
+
+/** Whether an HTML attribute is supported as an attribute selector. */
 export function isSelectableAttributeName(name: string): boolean {
 	name = name.toLowerCase()
 

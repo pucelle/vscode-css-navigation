@@ -144,6 +144,9 @@ export namespace PartConvertor {
 		else if (type === PartType.CSSSelectorQueryClass) {
 			return PartType.CSSSelectorClass
 		}
+		else if (type === PartType.CSSSelectorQueryAttribute) {
+			return PartType.CSSSelectorAttribute
+		}
 		else if (type === PartType.CSSVariableAssignment
 			|| type === PartType.CSSVariableReference
 			|| type === PartType.CSSVariableReferenceNoVar
@@ -211,6 +214,7 @@ export namespace PartConvertor {
 			|| part.type === PartType.CSSSelectorTag
 			|| part.type === PartType.CSSSelectorClass
 			|| part.type === PartType.CSSSelectorId
+			|| part.type === PartType.CSSSelectorAttribute
 				? SymbolKind.Class
 				: SymbolKind.Variable
 

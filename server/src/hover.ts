@@ -67,19 +67,20 @@ async function findHoverInHTML(
 
 	let hover: Hover | null
 	let matchPart = PartConvertor.toDefinitionMode(fromPart)
+	let contextMatchParts = currentService.getContextualDefMatchParts(fromPart)
 
 
 	if (fromPart.isSelectorType() || fromPart.isCSSVariableType()) {
 
 		// Find within current document.
-		hover = await findEmbeddedOrImported(matchPart, fromPart, currentService, document, cssServiceMap, configuration)
+		hover = await findEmbeddedOrImported(matchPart, fromPart, currentService, document, cssServiceMap, configuration, contextMatchParts)
 		if (hover) {
 			return hover
 		}
 
 
 		// Find across all css documents.
-		hover = await cssServiceMap.findHover(matchPart, fromPart, document, configuration.maxHoverStylePropertyCount)
+		hover = await cssServiceMap.findHover(matchPart, fromPart, document, configuration.maxHoverStylePropertyCount, contextMatchParts)
 		if (hover) {
 			return hover
 		}
@@ -87,7 +88,7 @@ async function findHoverInHTML(
 
 		// Find across all html documents.
 		if (configuration.enableGlobalEmbeddedCSS) {
-			hover = await htmlServiceMap.findHover(matchPart, fromPart, document, configuration.maxHoverStylePropertyCount)
+			hover = await htmlServiceMap.findHover(matchPart, fromPart, document, configuration.maxHoverStylePropertyCount, contextMatchParts)
 			if (hover) {
 				return hover
 			}
@@ -139,14 +140,10 @@ async function findEmbeddedOrImported(
 	currentService: HTMLService | CSSService,
 	document: TextDocument,
 	cssServiceMap: CSSServiceMap,
-	configuration: Configuration
+	configuration: Configuration,
+	contextMatchParts: readonly Part[] = []
 ): Promise<Hover | null> {
-
-	// Find embedded hover.
-	let hover = currentService.findHover(matchPart, fromPart, document, configuration.maxHoverStylePropertyCount)
-	if (hover) {
-		return hover
-	}
+	let services: (HTMLService | CSSService)[] = [currentService]
 	
 
 	// Having CSS files imported, firstly search within these files, if found, not searching more.
@@ -159,12 +156,15 @@ async function findEmbeddedOrImported(
 			continue
 		}
 
-		let hover = cssService.findHover(matchPart, fromPart, document, configuration.maxHoverStylePropertyCount)
-		if (hover) {
-			return hover
-		}
+		services.push(cssService)
 	}
 
-
-	return null
+	return cssServiceMap.findHoverFromServices(
+		services,
+		matchPart,
+		fromPart,
+		document,
+		configuration.maxHoverStylePropertyCount,
+		contextMatchParts,
+	)
 }

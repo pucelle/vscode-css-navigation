@@ -238,7 +238,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			}
 
 			else if (this.state === ScanState.WithinExpression) {
-				if (!this.readUntilToMatch(this.stopAfterExpression ? /['"`{\[\w\},;]/g : /['"`{\[\w\}]/g)) {
+				if (!this.readUntilToMatch(/['"`{\[\w\},;]/g)) {
 					break
 				}
 
@@ -280,7 +280,10 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 				// Stop only at the boundary of the root assignment or property value.
 				else if (char === ',' || char === ';') {
 					this.offset += 1
-					this.state = ScanState.EOF
+
+					if (this.stopAfterExpression) {
+						this.state = ScanState.EOF
+					}
 				}
 
 				// `|a`

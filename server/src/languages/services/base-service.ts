@@ -472,34 +472,8 @@ export abstract class BaseService {
 		return defMatchParts
 	}
 
-	/** Find hover from CSS document for providing class or id name hover for a HTML document. */
-	findHover(defMatchPart: Part, fromPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Hover | null {
-		let parts: Part[] = []
-
-		for (let part of this.getPartsByType(defMatchPart.type)) {
-
-			// Not match non-primary detailed.
-			if (part.isSelectorDetailedType() && !part.primary) {
-				continue
-			}
-
-			if (!PartComparer.isMayFormattedListMatch(part, defMatchPart)) {
-				continue
-			}
-
-			parts.push(part)
-		}
-
-		// Find independent part, if not found, use first part.
-		let part = parts.find(part => part.isSelectorDetailedType() && part.independent)
-		if (!part && parts.length > 0) {
-			part = parts[0]
-		}
-
-		if (!part) {
-			return null
-		}
-
+	/** Build hover information from a selected definition match. */
+	makeHover(part: Part, fromPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Hover | null {
 		if (part.isSelectorDetailedType()) {
 			let wrapperPart = part.getWrapper(this)
 			if (!wrapperPart) {

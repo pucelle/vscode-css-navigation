@@ -77,6 +77,32 @@ describe('contextual class navigation', () => {
 		expect(locationStart(secondCSSDocument, definitions[0].targetSelectionRange)).toBe(secondCSSText.indexOf('.a'))
 	})
 
+	it('uses a contextual definition for Quick Info after collecting matches from every service', () => {
+		const htmlText = `<div class="a b"></div>`
+		const firstCSSText = `.a { color: red; }`
+		const secondCSSText = `.a.b { color: blue; }`
+		const htmlDocument = TextDocument.create('file:///workspace/index.html', 'html', 1, htmlText)
+		const firstCSSDocument = TextDocument.create('file:///workspace/first.css', 'css', 1, firstCSSText)
+		const secondCSSDocument = TextDocument.create('file:///workspace/second.css', 'css', 1, secondCSSText)
+		const htmlService = new HTMLService(htmlDocument, configuration)
+		const firstCSSService = new CSSService(firstCSSDocument, configuration)
+		const secondCSSService = new CSSService(secondCSSDocument, configuration)
+		const fromPart = htmlService.findPartAt(htmlText.indexOf('a b'))!
+		const serviceMap = Object.create(CSSServiceMap.prototype) as CSSServiceMap
+
+		const hover = serviceMap.findHoverFromServices(
+			[firstCSSService, secondCSSService],
+			PartConvertor.toDefinitionMode(fromPart),
+			fromPart,
+			htmlDocument,
+			20,
+			htmlService.getContextualDefMatchParts(fromPart),
+		)
+
+		expect(JSON.stringify(hover?.contents)).toContain('blue')
+		expect(JSON.stringify(hover?.contents)).not.toContain('red')
+	})
+
 	it('prefers references containing every class in the source selector compound', () => {
 		const cssText = `div#root.a.b {}`
 		const htmlText = [
@@ -189,6 +215,84 @@ describe('contextual class navigation', () => {
 			'[aria-current=page]',
 			'[data-state=open]',
 		])
+	})
+
+	it('finds attribute selector definitions from HTML attributes', () => {
+		const htmlText = `<input type="checkbox">`
+		const cssText = `[type=text] {}\n[type="checkbox"] {}`
+		const htmlDocument = TextDocument.create('file:///workspace/index.html', 'html', 1, htmlText)
+		const cssDocument = TextDocument.create('file:///workspace/style.css', 'css', 1, cssText)
+		const htmlService = new HTMLService(htmlDocument, configuration)
+		const cssService = new CSSService(cssDocument, configuration)
+		const fromPart = htmlService.findPartAt(htmlText.indexOf('type'))!
+		const serviceMap = Object.create(CSSServiceMap.prototype) as CSSServiceMap
+
+		expect(fromPart.type).toBe(PartType.Attribute)
+		expect(fromPart.isReferenceType()).toBe(true)
+		expect(fromPart.isSelectorType()).toBe(true)
+		expect(htmlText.slice(fromPart.start, fromPart.end)).toBe('type="checkbox"')
+
+		const definitions = serviceMap.findDefinitionsFromServices(
+			[cssService],
+			PartConvertor.toDefinitionMode(fromPart),
+			fromPart,
+			htmlDocument,
+			htmlService.getContextualDefMatchParts(fromPart),
+		)
+
+		expect(definitions).toHaveLength(1)
+		expect(locationStart(cssDocument, definitions[0].targetSelectionRange)).toBe(cssText.indexOf('[type="checkbox"]'))
+	})
+
+	it('finds HTML attribute references from attribute selectors', () => {
+		const cssText = `[type="checkbox"] {}`
+		const htmlText = `<input type="text">\n<input type="checkbox">`
+		const cssDocument = TextDocument.create('file:///workspace/style.css', 'css', 1, cssText)
+		const htmlDocument = TextDocument.create('file:///workspace/index.html', 'html', 1, htmlText)
+		const cssService = new CSSService(cssDocument, configuration)
+		const htmlService = new HTMLService(htmlDocument, configuration)
+		const fromPart = cssService.findDetailedPartAt(cssText.indexOf('type'))!
+		const serviceMap = Object.create(HTMLServiceMap.prototype) as HTMLServiceMap
+
+		expect(fromPart.type).toBe(PartType.CSSSelectorAttribute)
+		expect(fromPart.isDefinitionType()).toBe(true)
+		expect(fromPart.isSelectorType()).toBe(true)
+
+		const references = serviceMap.findReferencesFromServices(
+			[htmlService],
+			PartConvertor.toDefinitionMode(fromPart),
+			fromPart,
+			cssService.getContextualDefMatchParts(fromPart),
+		)
+
+		expect(references).toHaveLength(1)
+		const range = references[0].range
+		expect(htmlText.slice(htmlDocument.offsetAt(range.start), htmlDocument.offsetAt(range.end))).toBe('type="checkbox"')
+	})
+
+	it('finds attribute selector definitions from querySelector references', () => {
+		const jsText = `document.querySelector('[aria-current="page"]')`
+		const cssText = `[aria-current=page] {}`
+		const jsDocument = TextDocument.create('file:///workspace/index.js', 'javascript', 1, jsText)
+		const cssDocument = TextDocument.create('file:///workspace/style.css', 'css', 1, cssText)
+		const jsService = new HTMLService(jsDocument, configuration)
+		const cssService = new CSSService(cssDocument, configuration)
+		const fromPart = jsService.findPartAt(jsText.indexOf('aria-current'))!
+		const serviceMap = Object.create(CSSServiceMap.prototype) as CSSServiceMap
+
+		expect(fromPart.type).toBe(PartType.CSSSelectorQueryAttribute)
+		expect(jsText.slice(fromPart.start, fromPart.end)).toBe('[aria-current="page"]')
+
+		const definitions = serviceMap.findDefinitionsFromServices(
+			[cssService],
+			PartConvertor.toDefinitionMode(fromPart),
+			fromPart,
+			jsDocument,
+			jsService.getContextualDefMatchParts(fromPart),
+		)
+
+		expect(definitions).toHaveLength(1)
+		expect(locationStart(cssDocument, definitions[0].targetSelectionRange)).toBe(0)
 	})
 
 	it('prefers a class definition with matching attribute selectors', () => {

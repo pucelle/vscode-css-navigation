@@ -210,17 +210,39 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		})
 	}
 
-	async findHover(matchPart: Part, fromPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Promise<Hover | null> {
+	async findHover(
+		matchPart: Part,
+		fromPart: Part,
+		fromDocument: TextDocument,
+		maxStylePropertyCount: number,
+		contextMatchParts: readonly Part[] = []
+	): Promise<Hover | null> {
 		await this.beFresh()
+		return this.findHoverFromServices([...this.walkAvailableServices()], matchPart, fromPart, fromDocument, maxStylePropertyCount, contextMatchParts)
+	}
 
-		for (let service of this.walkAvailableServices()) {
-			let hover = service.findHover(matchPart, fromPart, fromDocument, maxStylePropertyCount)
-			if (hover) {
-				return hover
-			}
+	/** Collect definition matches globally, prefer contextual ones, then build Quick Info. */
+	findHoverFromServices(
+		services: readonly BaseService[],
+		matchPart: Part,
+		fromPart: Part,
+		fromDocument: TextDocument,
+		maxStylePropertyCount: number,
+		contextMatchParts: readonly Part[] = []
+	): Hover | null {
+		let normal: {service: BaseService, part: Part}[] = []
+		let contextual: {service: BaseService, part: Part}[] = []
+
+		for (let service of services) {
+			let matches = service.findDefinitionMatchParts(matchPart, contextMatchParts)
+			normal.push(...matches.normal.map(part => ({service, part})))
+			contextual.push(...matches.contextual.map(part => ({service, part})))
 		}
 
-		return null
+		let matches = contextual.length > 0 ? contextual : normal
+		let match = matches.find(({part}) => part.isSelectorDetailedType() && part.independent) ?? matches[0]
+
+		return match?.service.makeHover(match.part, fromPart, fromDocument, maxStylePropertyCount) ?? null
 	}
 
 	/** Find all css variable values. */

@@ -63,7 +63,7 @@ export namespace ClassNamesInJS {
 				}
 			}
 
-			startMatchRegExp.lastIndex = scanner.offset
+			startMatchRegExp.lastIndex = expressionStart + scanner.offset
 		}
 	}
 }

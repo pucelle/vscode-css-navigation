@@ -47,4 +47,12 @@ describe('ClassNamesInJS', () => {
 
 		expect(classes).toEqual(['enabled', 'disabled'])
 	})
+
+	it('advances past an assignment located late in the source', () => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		const source = `${'const unrelated = 1;\n'.repeat(20)}const itemClassName = 'inside';`
+		const classes = [...ClassNamesInJS.walkParts(source)].map(part => part.escapedText)
+
+		expect(classes).toEqual(['inside'])
+	})
 })
