@@ -22,6 +22,9 @@ import {
 	CodeLensParams,
 	CodeActionParams,
 	CodeAction,
+	PrepareRenameParams,
+	RenameParams,
+	WorkspaceEdit,
 } from 'vscode-languageserver/node'
 import {Position, TextDocument} from 'vscode-languageserver-textdocument'
 import {HTMLServiceMap, CSSServiceMap, ClassNamesInJS} from './languages'
@@ -36,6 +39,7 @@ import {getDiagnostics, updateDiagnosticIgnoredClassNameMatcher} from './diagnos
 import {getCodeLens} from './code-lens'
 import {GlobPathSharer} from './core/file-tracker/glob-path-sharer'
 import {getCodeActions} from './code-action'
+import {prepareRename, rename, PrepareRenameResult} from './rename'
 
 
 let connection: Connection = createConnection(ProposedFeatures.all)
@@ -126,6 +130,7 @@ connection.onInitialize((params: InitializeParams) => {
 			codeLensProvider: {resolveProvider: false},
 			colorProvider: true,
 			codeActionProvider: true,
+			renameProvider: {prepareProvider: true},
 		}
 	}
 })
@@ -139,6 +144,8 @@ connection.onInitialized(() => {
 	connection.onHover(Logger.logQuerierExecutedTime(server.provideHover.bind(server), 'hover'))
 	connection.onCodeLens(Logger.logQuerierExecutedTime(server.provideCodeLens.bind(server), 'codeLens'))
 	connection.onCodeAction(server.provideCodeActions.bind(server))
+	connection.onPrepareRename(Logger.logQuerierExecutedTime(server.providePrepareRename.bind(server), 'prepare rename'))
+	connection.onRenameRequest(Logger.logQuerierExecutedTime(server.provideRename.bind(server), 'rename'))
 	connection.onDocumentColor(async (params) => {
 		try {
 			return await server.provideDocumentCSSVariableColors(params, Logger.getTimestamp())
@@ -364,6 +371,30 @@ class CSSNavigationServer {
 		let offset = document.offsetAt(position)
 
 		return findReferences(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration, false)
+	}
+
+	/** Validate and identify a class or id rename target. */
+	async providePrepareRename(params: PrepareRenameParams, time: number): Promise<PrepareRenameResult | null> {
+		this.updateTimestamp(time)
+
+		let document = documents.get(params.textDocument.uri)
+		if (!document) {
+			return null
+		}
+
+		return prepareRename(document, document.offsetAt(params.position), this.htmlServiceMap, this.cssServiceMap, configuration)
+	}
+
+	/** Provide a workspace-wide class or id rename. */
+	async provideRename(params: RenameParams, time: number): Promise<WorkspaceEdit | null> {
+		this.updateTimestamp(time)
+
+		let document = documents.get(params.textDocument.uri)
+		if (!document) {
+			return null
+		}
+
+		return rename(document, document.offsetAt(params.position), params.newName, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
 
 	/** Provide finding hover service. */

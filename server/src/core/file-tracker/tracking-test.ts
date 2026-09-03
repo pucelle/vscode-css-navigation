@@ -37,6 +37,11 @@ export class TrackingTest {
 		return false
 	}
 
+	/** Match only explicit excludes, even when an always-include pattern also matches. */
+	matchesExcludePath(fsPath: string): boolean {
+		return !!this.excludeMatcher?.match(fsPath)
+	}
+
 	/** Returns whether should track uri. */
 	shouldTrackURI(uri: string): boolean {
 		let parsed = URI.parse(uri)

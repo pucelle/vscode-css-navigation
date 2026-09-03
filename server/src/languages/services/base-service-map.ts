@@ -5,6 +5,13 @@ import {Part, PartConvertor} from '../parts'
 import {BaseService} from './base-service'
 import {CompletionLabel} from './types'
 import {findMaximum} from '../../utils/list'
+import {URI} from 'vscode-uri'
+
+
+export interface PartDocumentMatch {
+	part: Part
+	document: TextDocument
+}
 
 
 /** Gives HTML/CSS service for multiple files. */
@@ -209,6 +216,29 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		return (contextual.length > 0 ? contextual : normal).map(({service, part}) => {
 			return PartConvertor.toLocation(part, service.document)
 		})
+	}
+
+	/** Find every exact selector/reference match for rename, without contextual narrowing. */
+	async findRenameMatches(defMatchPart: Part, fromPart: Part): Promise<PartDocumentMatch[]> {
+		await this.beFresh()
+		return this.findRenameMatchesFromServices([...this.walkAvailableServices()], defMatchPart, fromPart)
+	}
+
+	protected findRenameMatchesFromServices(services: readonly BaseService[], defMatchPart: Part, fromPart: Part): PartDocumentMatch[] {
+		let matches: PartDocumentMatch[] = []
+
+		for (let service of services) {
+			let result = service.findReferenceMatchParts(defMatchPart, fromPart)
+			matches.push(...result.normal.map(part => ({part, document: service.document})))
+		}
+
+		return matches
+	}
+
+	/** Whether a URI is explicitly excluded from rename. Always-include does not override this. */
+	isRenameExcludedURI(uri: string): boolean {
+		let parsed = URI.parse(uri)
+		return parsed.scheme !== 'file' || this.test.matchesExcludePath(parsed.fsPath)
 	}
 
 	async findHover(
