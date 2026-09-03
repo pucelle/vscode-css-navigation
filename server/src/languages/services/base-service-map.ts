@@ -47,7 +47,7 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	// eslint-disable-next-line @typescript-eslint/require-await -- overrides FileTracker.parseDocument, whose contract returns a Promise
 	protected async parseDocument(uri: string, document: TextDocument) {
 		try {
-			const service = this.createService(document)
+			let service = this.createService(document)
 			this.serviceMap.set(uri, service)
 		}
 		catch (err) {
@@ -57,7 +57,7 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	}
 
 	protected *walkAvailableServices(): IterableIterator<S> {
-		for (const uri of this.trackingMap.walkActiveURIs()) {
+		for (let uri of this.trackingMap.walkActiveURIs()) {
 			if (this.serviceMap.has(uri)) {
 				this.trackingMap.setUseTime(uri, this.timestamp)
 				yield this.serviceMap.get(uri)!
@@ -78,7 +78,7 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 
 	/** Force get a service by document, create it and cache as opened document. */
 	async forceGetServiceByDocument(document: TextDocument): Promise<S | undefined> {
-		const uri = document.uri
+		let uri = document.uri
 
 		if (!this.trackingMap.has(uri)) {
 			this.trackOpenedDocument(document)
@@ -120,11 +120,11 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		fromDocument: TextDocument,
 		contextMatchParts: readonly Part[] = []
 	): LocationLink[] {
-		const normal: {service: BaseService, part: Part}[] = []
-		const contextual: {service: BaseService, part: Part}[] = []
+		let normal: {service: BaseService, part: Part}[] = []
+		let contextual: {service: BaseService, part: Part}[] = []
 
-		for (const service of services) {
-			const matches = service.findDefinitionMatchParts(matchPart, contextMatchParts)
+		for (let service of services) {
+			let matches = service.findDefinitionMatchParts(matchPart, contextMatchParts)
 			normal.push(...matches.normal.map(part => ({service, part})))
 			contextual.push(...matches.contextual.map(part => ({service, part})))
 		}
@@ -137,9 +137,9 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async findSymbols(query: string): Promise<SymbolInformation[]> {
 		await this.beFresh()
 
-		const symbols: SymbolInformation[] = []
+		let symbols: SymbolInformation[] = []
 
-		for (const service of this.walkAvailableServices()) {
+		for (let service of this.walkAvailableServices()) {
 			symbols.push(...service.findSymbols(query))
 		}
 
@@ -149,9 +149,9 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async getCompletionLabels(matchPart: Part, fromPart: Part, maxHoverStylePropertyCount: number): Promise<Map<string, CompletionLabel | null>> {
 		await this.beFresh()
 
-		const labelMap: Map<string, CompletionLabel | null> = new Map()
+		let labelMap: Map<string, CompletionLabel | null> = new Map()
 
-		for (const service of this.walkAvailableServices()) {
+		for (let service of this.walkAvailableServices()) {
 			for (const [label, item] of service.getCompletionLabels(matchPart, fromPart, maxHoverStylePropertyCount)) {
 				labelMap.set(label, item)
 			}
@@ -169,9 +169,9 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async getReferencedCompletionLabels(fromPart: Part): Promise<Map<string, CompletionLabel | null>> {
 		await this.beFresh()
 
-		const labelMap: Map<string, CompletionLabel | null> = new Map()
+		let labelMap: Map<string, CompletionLabel | null> = new Map()
 
-		for (const service of this.walkAvailableServices()) {
+		for (let service of this.walkAvailableServices()) {
 			for (const [label, detail] of service.getReferencedCompletionLabels(fromPart)) {
 				labelMap.set(label, detail)
 			}
@@ -196,11 +196,11 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		fromPart: Part,
 		contextMatchParts: readonly Part[] = []
 	): Location[] {
-		const normal: {service: BaseService, part: Part}[] = []
-		const contextual: {service: BaseService, part: Part}[] = []
+		let normal: {service: BaseService, part: Part}[] = []
+		let contextual: {service: BaseService, part: Part}[] = []
 
-		for (const service of services) {
-			const matches = service.findReferenceMatchParts(defMatchPart, fromPart, contextMatchParts)
+		for (let service of services) {
+			let matches = service.findReferenceMatchParts(defMatchPart, fromPart, contextMatchParts)
 			normal.push(...matches.normal.map(part => ({service, part})))
 			contextual.push(...matches.contextual.map(part => ({service, part})))
 		}
@@ -213,8 +213,8 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async findHover(matchPart: Part, fromPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Promise<Hover | null> {
 		await this.beFresh()
 
-		for (const service of this.walkAvailableServices()) {
-			const hover = service.findHover(matchPart, fromPart, fromDocument, maxStylePropertyCount)
+		for (let service of this.walkAvailableServices()) {
+			let hover = service.findHover(matchPart, fromPart, fromDocument, maxStylePropertyCount)
 			if (hover) {
 				return hover
 			}
@@ -227,9 +227,9 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 	async getCSSVariables(names: Set<string>): Promise<Map<string, string>> {
 		await this.beFresh()
 
-		const map: Map<string, string> = new Map()
+		let map: Map<string, string> = new Map()
 
-		for (const service of this.walkAvailableServices()) {
+		for (let service of this.walkAvailableServices()) {
 			for (const [name, value] of service.getCSSVariables(names)) {
 				map.set(name, value)
 			}

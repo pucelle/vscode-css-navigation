@@ -12,17 +12,17 @@ export async function findHover(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<Hover | null> {
-	const documentExtension = getPathExtension(document.uri)
-	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-	const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+	let documentExtension = getPathExtension(document.uri)
+	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
 	if (isHTMLFile) {
-		const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 		if (!currentHTMLService) {
 			return null
 		}
 
-		const fromPart = currentHTMLService.findDetailedPartAt(offset)
+		let fromPart = currentHTMLService.findDetailedPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -35,12 +35,12 @@ export async function findHover(
 		return await findHoverInHTML(fromPart, currentHTMLService, document, htmlServiceMap, cssServiceMap, configuration)
 	}
 	else if (isCSSFile) {
-		const currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
 		if (!currentCSSService) {
 			return null
 		}
 
-		const fromPart = currentCSSService.findDetailedPartAt(offset)
+		let fromPart = currentCSSService.findDetailedPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -66,7 +66,7 @@ async function findHoverInHTML(
 	}
 
 	let hover: Hover | null
-	const matchPart = PartConvertor.toDefinitionMode(fromPart)
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 
 
 	if (fromPart.isSelectorType() || fromPart.isCSSVariableType()) {
@@ -112,7 +112,7 @@ async function findHoverInCSS(
 	}
 
 	let hover: Hover | null
-	const matchPart = PartConvertor.toDefinitionMode(fromPart)
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
 
 	if (fromPart.isCSSVariableType()) {
 
@@ -143,23 +143,23 @@ async function findEmbeddedOrImported(
 ): Promise<Hover | null> {
 
 	// Find embedded hover.
-	const hover = currentService.findHover(matchPart, fromPart, document, configuration.maxHoverStylePropertyCount)
+	let hover = currentService.findHover(matchPart, fromPart, document, configuration.maxHoverStylePropertyCount)
 	if (hover) {
 		return hover
 	}
 	
 
 	// Having CSS files imported, firstly search within these files, if found, not searching more.
-	const cssURIs = await currentService.getImportedCSSURIs()
-	const cssURIChain = cssServiceMap.trackingMap.resolveChainedImportedURIs(cssURIs)
+	let cssURIs = await currentService.getImportedCSSURIs()
+	let cssURIChain = cssServiceMap.trackingMap.resolveChainedImportedURIs(cssURIs)
 
-	for (const cssURI of cssURIChain) {
-		const cssService = await cssServiceMap.forceGetServiceByURI(cssURI)
+	for (let cssURI of cssURIChain) {
+		let cssService = await cssServiceMap.forceGetServiceByURI(cssURI)
 		if (!cssService) {
 			continue
 		}
 
-		const hover = cssService.findHover(matchPart, fromPart, document, configuration.maxHoverStylePropertyCount)
+		let hover = cssService.findHover(matchPart, fromPart, document, configuration.maxHoverStylePropertyCount)
 		if (hover) {
 			return hover
 		}

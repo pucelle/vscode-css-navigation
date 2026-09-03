@@ -16,12 +16,12 @@ export namespace ClassNamesInJS {
 
 	/** Set variable names wild match expressions. */
 	export function initWildNames(wildNames: string[]) {
-		const nameSource = wildNames.map(n => n.replace(/\*/g, '\\w*?')).join('|')
+		let nameSource = wildNames.map(n => n.replace(/\*/g, '\\w*?')).join('|')
 
 		try {
 			nameMatchRegExp = new RegExp('^' + nameSource + '$', '')
 
-			const wrappedNameSource = '(?:' + nameSource + ')'
+			let wrappedNameSource = '(?:' + nameSource + ')'
 
 			expressionMathRegExp = new RegExp(
 				`\\b(?:let|var|const)\\s+${wrappedNameSource}\\s*=\\s*["'\`]([\\w-]*?)["'\`]|\\.${wrappedNameSource}\\s*=\\s*["'\`]([\\w-]*?)["'\`]|[{,]\\s*${wrappedNameSource}\\s*:\\s*["'\`]([\\w-]*?)["'\`]`,
@@ -44,14 +44,14 @@ export namespace ClassNamesInJS {
 			return
 		}
 
-		const matches = Picker.locateAllMatches(
+		let matches = Picker.locateAllMatches(
 			text,
 			expressionMathRegExp,
 			[1, 2, 3]
 		)
 
-		for (const match of matches) {
-			const subMatch = match[1] ?? match[2] ?? match[3]
+		for (let match of matches) {
+			let subMatch = match[1] ?? match[2] ?? match[3]
 			if (subMatch) {
 				yield (new Part(PartType.Class, subMatch.text, subMatch.start + start)).trim()
 			}

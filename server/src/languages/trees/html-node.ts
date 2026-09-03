@@ -57,7 +57,7 @@ export class HTMLTokenNode extends AnyTokenNode<HTMLToken> {
 			return null
 		}
 
-		const attr = this.attrs.find(attr => attr.name.text === name)
+		let attr = this.attrs.find(attr => attr.name.text === name)
 		if (attr && attr.value) {
 			return removeQuotesFromToken(attr.value)
 		}
@@ -68,7 +68,7 @@ export class HTMLTokenNode extends AnyTokenNode<HTMLToken> {
 	
 	/** Attribute value text, with quotes removed. */
 	getAttributeValue(name: string): string | null {
-		const attr = this.getAttribute(name)
+		let attr = this.getAttribute(name)
 		if (attr) {
 			return attr.text
 		}

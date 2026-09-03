@@ -25,13 +25,13 @@ export class CSSTokenTree extends CSSTokenNode {
 	
 	/** Make a CSS token tree by tokens. */
 	static fromTokens(tokens: Iterable<CSSToken>, string: string, tokenOffset: number, languageId: CSSLanguageId): CSSTokenTree {
-		const tree = new CSSTokenTree(string, tokenOffset, languageId)
+		let tree = new CSSTokenTree(string, tokenOffset, languageId)
 		let current: CSSTokenNode = tree
 		let latestComment: CSSToken | null = null
 		let notDetermined: CSSToken[] = []
 
 		function parseNotDetermined(mayBeSelector: boolean) {
-			const joint = joinTokens(notDetermined, string, tokenOffset)
+			let joint = joinTokens(notDetermined, string, tokenOffset)
 
 			if (isCommandToken(joint)) {
 				current.children!.push(new CSSTokenNode(CSSTokenNodeType.Command, joint, current))
@@ -47,7 +47,7 @@ export class CSSTokenTree extends CSSTokenNode {
 
 				// Not complete variable definition.
 				else if (/^\s*-/.test(joint.text)) {
-					const nameToken = parsePropertyNameToken(joint)!
+					let nameToken = parsePropertyNameToken(joint)!
 					current.children!.push(new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, latestComment))
 				}
 
@@ -67,16 +67,16 @@ export class CSSTokenTree extends CSSTokenNode {
 		}
 
 		function parseAsPropertyDeclaration(token: CSSToken) {
-			const o = splitPropertyTokens(token)
+			let o = splitPropertyTokens(token)
 			if (o) {
 				const [restNameToken, nameToken, valueToken] = o
-				const nameNode = new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, restNameToken ? null : latestComment)
-				const valueNode = new CSSTokenNode(CSSTokenNodeType.PropertyValue, valueToken, current)
+				let nameNode = new CSSTokenNode(CSSTokenNodeType.PropertyName, nameToken, current, restNameToken ? null : latestComment)
+				let valueNode = new CSSTokenNode(CSSTokenNodeType.PropertyValue, valueToken, current)
 
 				nameNode.defEnd = valueToken.end
 
 				if (restNameToken) {
-					const restNameNode = new CSSTokenNode(CSSTokenNodeType.PropertyName, restNameToken, current, latestComment)
+					let restNameNode = new CSSTokenNode(CSSTokenNodeType.PropertyName, restNameToken, current, latestComment)
 					current.children!.push(restNameNode)
 				}
 
@@ -85,7 +85,7 @@ export class CSSTokenTree extends CSSTokenNode {
 		}
 
 
-		for (const token of tokens) {
+		for (let token of tokens) {
 			if (token.type === CSSTokenType.NotDetermined) {
 				notDetermined.push(token)
 			}
@@ -101,9 +101,9 @@ export class CSSTokenTree extends CSSTokenNode {
 
 			else if (token.type === CSSTokenType.ClosureStart) {
 				if (notDetermined.length > 0) {
-					const joint = joinTokens(notDetermined, string, tokenOffset)
-					const type = getSelectorLikeNodeType(joint, current)
-					const node: CSSTokenNode = new CSSTokenNode(type, joint, current, latestComment)
+					let joint = joinTokens(notDetermined, string, tokenOffset)
+					let type = getSelectorLikeNodeType(joint, current)
+					let node: CSSTokenNode = new CSSTokenNode(type, joint, current, latestComment)
 
 					current.children!.push(node)
 					current = node
@@ -165,9 +165,9 @@ export class CSSTokenTree extends CSSTokenNode {
 	 * Be static for the usage parsing inline style.
 	 */
 	static *parsePropertyValuePart(text: string, start: number): Iterable<Part> {
-		const varMatches = Picker.locateAllMatches(text, /var\(\s*([\w-]*)\s*\)|^\s*(-[\w-]*)|(--[\w-]*)/g, [0, 1])
+		let varMatches = Picker.locateAllMatches(text, /var\(\s*([\w-]*)\s*\)|^\s*(-[\w-]*)|(--[\w-]*)/g, [0, 1])
 
-		for (const match of varMatches) {
+		for (let match of varMatches) {
 
 			// `var()`, can't find captured match.
 			if (!match[1]) {
@@ -213,7 +213,7 @@ export class CSSTokenTree extends CSSTokenNode {
 	 * Note it ignores all non-primary selectors.
 	 */
 	*walkParts(): Iterable<Part> {
-		for (const node of this.walk()) {
+		for (let node of this.walk()) {
 			yield* this.parseNodePart(node)
 		}
 	}
@@ -244,16 +244,16 @@ export class CSSTokenTree extends CSSTokenNode {
 
 	/** For property name part. */
 	private *parsePropertyNamePart(node: CSSTokenNode): Iterable<Part> {
-		const text = node.token.text
+		let text = node.token.text
 		if (!text.startsWith('-')) {
 			return
 		}
 
-		const commentText = node.commentToken?.text
-		const nextNode = node.getNextSibling()
+		let commentText = node.commentToken?.text
+		let nextNode = node.getNextSibling()
 
 		// CSS Variable value.
-		const cssVariableValue = nextNode && nextNode.type === CSSTokenNodeType.PropertyValue
+		let cssVariableValue = nextNode && nextNode.type === CSSTokenNodeType.PropertyValue
 			? nextNode.token.text
 			: undefined
 
@@ -269,14 +269,14 @@ export class CSSTokenTree extends CSSTokenNode {
 
 	/** Parse a selector content to parts. */
 	private *parseSelectorString(text: string, start: number, node: CSSTokenNode, breaksSeparatorNesting: boolean): Iterable<Part> {
-		const groups = new CSSSelectorTokenScanner(text, start, this.languageId).parseToSeparatedTokens()
-		const parentParts = this.nodePartMap.get(node.parent!)
-		const commandWrapped = node.parent ? !!this.commandWrappedMap.get(node.parent) : false
+		let groups = new CSSSelectorTokenScanner(text, start, this.languageId).parseToSeparatedTokens()
+		let parentParts = this.nodePartMap.get(node.parent!)
+		let commandWrapped = node.parent ? !!this.commandWrappedMap.get(node.parent) : false
 
-		for (const group of groups) {
-			const joint = joinTokens(group, this.string, this.tokenOffset)
+		for (let group of groups) {
+			let joint = joinTokens(group, this.string, this.tokenOffset)
 
-			const part = CSSSelectorWrapperPart.parseFrom(
+			let part = CSSSelectorWrapperPart.parseFrom(
 				joint,
 				group,
 				parentParts,
@@ -297,7 +297,7 @@ export class CSSTokenTree extends CSSTokenNode {
 	
 	/** Parse a command string to parts. */
 	private *parseCommandPart(node: CSSTokenNode): Iterable<Part> {
-		const commandName = getCommandName(node.token.text)
+		let commandName = getCommandName(node.token.text)
 
 		// For workspace symbol searching.
 		if (commandName !== 'at-root') {
@@ -311,7 +311,7 @@ export class CSSTokenTree extends CSSTokenNode {
 			|| commandName === 'scope'
 			|| commandName === 'container'
 		) {
-			const parentParts = this.nodePartMap.get(node.parent!)
+			let parentParts = this.nodePartMap.get(node.parent!)
 			if (parentParts) {
 				this.nodePartMap.set(node, parentParts)
 			}
@@ -321,7 +321,7 @@ export class CSSTokenTree extends CSSTokenNode {
 
 			// `@import ''`.
 			// `class={style['class-name']}`.
-			const match = Picker.locateMatches(
+			let match = Picker.locateMatches(
 				node.token.text,
 				/@import\s+['"](.+?)['"]/,
 				[1]
@@ -335,7 +335,7 @@ export class CSSTokenTree extends CSSTokenNode {
 		else if (commandName === 'at-root') {
 
 			// `@at-root .class`.
-			const selectorMatch = Picker.locateMatches(
+			let selectorMatch = Picker.locateMatches(
 				node.token.text,
 				/@at-root\s+(.+)/,
 				[1]
@@ -384,15 +384,15 @@ function getSelectorLikeNodeType(token: CSSToken, current: CSSTokenNode): CSSTok
 function splitPropertyTokens(token: CSSToken): [CSSToken | null, CSSToken, CSSToken] | null {
 
 	// Here ignores comments.
-	const match = Picker.locateMatches(token.text, /([\w-]+)\s*:\s*(.+?)\s*$/, [1, 2])
+	let match = Picker.locateMatches(token.text, /([\w-]+)\s*:\s*(.+?)\s*$/, [1, 2])
 	if (!match) {
 		return null
 	}
 
 	// Name before property name.
 	let restName: CSSToken | null = null
-	const restText = token.text.slice(0, match[1].start)
-	const restNameMatch = Picker.locateMatches(restText, /[\w-]+/, [0])
+	let restText = token.text.slice(0, match[1].start)
+	let restNameMatch = Picker.locateMatches(restText, /[\w-]+/, [0])
 	if (restNameMatch) {
 		restName = {
 			type: CSSTokenType.NotDetermined,
@@ -402,14 +402,14 @@ function splitPropertyTokens(token: CSSToken): [CSSToken | null, CSSToken, CSSTo
 		}
 	}
 
-	const name: CSSToken = {
+	let name: CSSToken = {
 		type: CSSTokenType.NotDetermined,
 		text: match[1].text,
 		start: token.start + match[1].start,
 		end: token.start + match[1].start + match[1].text.length,
 	}
 
-	const value: CSSToken = {
+	let value: CSSToken = {
 		type: CSSTokenType.NotDetermined,
 		text: match[2].text,
 		start: token.start + match[2].start,
@@ -421,13 +421,13 @@ function splitPropertyTokens(token: CSSToken): [CSSToken | null, CSSToken, CSSTo
 
 
 function parsePropertyNameToken(token: CSSToken): CSSToken | null {
-	const match = Picker.locateMatches(token.text, /[\w-_]+/, [0])
+	let match = Picker.locateMatches(token.text, /[\w-_]+/, [0])
 	if (!match) {
 		return null
 	}
 
 	// Exclude whitespaces.
-	const name: CSSToken = {
+	let name: CSSToken = {
 		type: CSSTokenType.NotDetermined,
 		text: match[0].text,
 		start: token.start + match[0].start,

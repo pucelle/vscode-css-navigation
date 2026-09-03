@@ -60,7 +60,7 @@ export class CSSSelectorDetailedPart extends Part {
 
 	/** Get the owning selector wrapper, which is also its contextual selector container. */
 	getWrapper(service: BaseService): CSSSelectorWrapperPart | null {
-		const wrapperPart = service.findPartAt(this.start) as CSSSelectorWrapperPart | undefined
+		let wrapperPart = service.findPartAt(this.start) as CSSSelectorWrapperPart | undefined
 		return wrapperPart ?? null
 	}
 }
@@ -78,25 +78,25 @@ export function parseDetailedParts(
 	// `.a:hover`, .a is matcher, :hover is decorator.
 	// `.a::before`, .a is filter too, ::before is matcher.
 
-	const matcherFromIndex = group.findLastIndex(token => token.type === CSSSelectorTokenType.Combinator
+	let matcherFromIndex = group.findLastIndex(token => token.type === CSSSelectorTokenType.Combinator
 		|| token.type === CSSSelectorTokenType.Separator)
 
 	// Check the pseudo index after matcher.
 	let pseudoIndex = -1
 	for (let i = matcherFromIndex + 1; i < group.length; i++) {
-		const token = group[i]
+		let token = group[i]
 		if (token.type === CSSSelectorTokenType.PseudoElement) {
 			pseudoIndex = i
 		}
 	}
 
-	const details: CSSSelectorDetailedPart[] = []
-	const independent = commandWrapped || group.length === 1
+	let details: CSSSelectorDetailedPart[] = []
+	let independent = commandWrapped || group.length === 1
 
 	for (let i = 0; i < group.length; i++) {
-		const token = group[i]
+		let token = group[i]
 
-		const beDetailed = token.type === CSSSelectorTokenType.Tag
+		let beDetailed = token.type === CSSSelectorTokenType.Tag
 			|| token.type === CSSSelectorTokenType.Nesting
 			|| token.type === CSSSelectorTokenType.Class
 			|| token.type === CSSSelectorTokenType.Id
@@ -112,9 +112,9 @@ export function parseDetailedParts(
 
 		formatted = formatted.map(escapedCSSSelector)
 
-		const type = getDetailedPartType(token.type, formatted)
-		const primary = i > matcherFromIndex && pseudoIndex === -1
-		const part = new CSSSelectorDetailedPart(type, token.text, token.start, definitionEnd, formatted, primary, independent)
+		let type = getDetailedPartType(token.type, formatted)
+		let primary = i > matcherFromIndex && pseudoIndex === -1
+		let part = new CSSSelectorDetailedPart(type, token.text, token.start, definitionEnd, formatted, primary, independent)
 
 		details.push(part)
 	}
@@ -125,8 +125,8 @@ export function parseDetailedParts(
 
 /** Join parent selectors, but only handle `&-` joining. */
 function joinMainReferenceSelectorWithParent(token: CSSSelectorToken, parents: CSSSelectorWrapperPart[] | undefined): string[] {
-	const text = token.text
-	const re = /&/g
+	let text = token.text
+	let re = /&/g
 
 	// `a{&-b}` -> `a-b`, not handle joining multiply & when several `&` exist.
 	if (re.test(text)) {
@@ -134,14 +134,14 @@ function joinMainReferenceSelectorWithParent(token: CSSSelectorToken, parents: C
 			return [text]
 		}
 
-		const joint: string[] = []
+		let joint: string[] = []
 
-		for (const parent of parents) {
+		for (let parent of parents) {
 			if (!parent.primary) {
 				continue
 			}
 
-			for (const primaryFormatted of parent.primary.formatted) {
+			for (let primaryFormatted of parent.primary.formatted) {
 				joint.push(text.replace(re, primaryFormatted))
 			}
 		}

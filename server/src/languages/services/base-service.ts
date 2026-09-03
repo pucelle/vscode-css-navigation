@@ -38,7 +38,7 @@ export abstract class BaseService {
 		this.document = document
 		this.config = config
 		
-		const tree = this.makeTree()
+		let tree = this.makeTree()
 		this.parts = [...tree.walkParts()]
 		this.partMap = groupBy(this.parts, part => [part.type, part])
 
@@ -47,7 +47,7 @@ export abstract class BaseService {
 	}
 
 	protected initAdditionalParts() {
-		const selectorParts = this.partMap.get(PartType.CSSSelectorWrapper) as CSSSelectorWrapperPart[] | undefined
+		let selectorParts = this.partMap.get(PartType.CSSSelectorWrapper) as CSSSelectorWrapperPart[] | undefined
 		if (!selectorParts) {
 			return
 		}
@@ -57,23 +57,23 @@ export abstract class BaseService {
 		this.partMap.set(PartType.CSSSelectorClass, [])
 		this.partMap.set(PartType.CSSSelectorId, [])
 
-		for (const part of selectorParts) {
-			for (const detail of part.details) {
+		for (let part of selectorParts) {
+			for (let detail of part.details) {
 				this.partMap.get(detail.type)!.push(detail)
 			}
 		}
 	}
 
 	protected initDefinedClassNames() {
-		const classSelectorParts = this.partMap.get(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
+		let classSelectorParts = this.partMap.get(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
 		if (classSelectorParts) {
-			for (const part of classSelectorParts) {
+			for (let part of classSelectorParts) {
 				if (part.escapedText === '&') {
 					continue
 				}
 				
-				for (const formatted of part.formatted) {
-					const className = formatted.slice(1)
+				for (let formatted of part.formatted) {
+					let className = formatted.slice(1)
 					this.definedClassNames.set(className, (this.definedClassNames.get(className) ?? 0) + 1)
 				}
 			}
@@ -95,17 +95,17 @@ export abstract class BaseService {
 			return this.resolvedImportedCSSURIs
 		}
 
-		const uris: string[] = []
+		let uris: string[] = []
 
-		for (const part of this.getPartsByType(PartType.CSSImportPath)) {
-			const protocol = isRelativePath(part.escapedText) ? '' : URI.parse(part.escapedText).scheme
+		for (let part of this.getPartsByType(PartType.CSSImportPath)) {
+			let protocol = isRelativePath(part.escapedText) ? '' : URI.parse(part.escapedText).scheme
 
 			// Relative path, or file, http or https.
 			if (protocol !== '' && protocol !== 'file' && protocol !== 'http' && protocol !== 'https') {
 				continue
 			}
 
-			const uri = await PathResolver.resolveImportURI(part.escapedText, this.document)
+			let uri = await PathResolver.resolveImportURI(part.escapedText, this.document)
 			if (uri) {
 				uris.push(uri)
 			}
@@ -134,7 +134,7 @@ export abstract class BaseService {
 	 * Note it never get detailed part.
 	 */
 	findPartAt(offset: number) {
-		const part = quickBinaryFindUpper(this.parts, (part) => {
+		let part = quickBinaryFindUpper(this.parts, (part) => {
 			if (part.start > offset) {
 				return 1
 			}
@@ -154,13 +154,13 @@ export abstract class BaseService {
 	 * Note if match a css selector part, it may return a selector detail part.
 	 */
 	findDetailedPartAt(offset: number): Part | undefined {
-		const part = this.findPartAt(offset)
+		let part = this.findPartAt(offset)
 
 		// Returns detail if in range.
 		if (part && part.type === PartType.CSSSelectorWrapper) {
-			const details = (part as CSSSelectorWrapperPart).details
+			let details = (part as CSSSelectorWrapperPart).details
 
-			for (const detail of details) {
+			for (let detail of details) {
 				if (detail
 					&& detail.start <= offset
 					&& detail.end >= offset
@@ -180,7 +180,7 @@ export abstract class BaseService {
 	 * Not it will not look up detailed parts.
 	 */
 	findPreviousPart(part: Part): Part | null {
-		const partIndex = quickBinaryFindIndex(this.parts, p => {
+		let partIndex = quickBinaryFindIndex(this.parts, p => {
 			return p.start - part.start
 		})
 
@@ -197,9 +197,9 @@ export abstract class BaseService {
 	 * `defMatchPart` must have been converted to definition type.
 	 */
 	findDefinitionMatchParts(defMatchPart: Part, contextDefMatchParts: readonly Part[] = []): PartMatchResult {
-		const result: PartMatchResult = {normal: [], contextual: []}
+		let result: PartMatchResult = {normal: [], contextual: []}
 
-		for (const part of this.getPartsByType(defMatchPart.type)) {
+		for (let part of this.getPartsByType(defMatchPart.type)) {
 			if (!PartComparer.isMayFormattedListMatch(part, defMatchPart)) {
 				continue
 			}
@@ -232,10 +232,10 @@ export abstract class BaseService {
 			return false
 		}
 
-		for (const requiredPart of defRequired) {
-			const requiredTexts = PartComparer.mayFormatted(requiredPart)
+		for (let requiredPart of defRequired) {
+			let requiredTexts = PartComparer.mayFormatted(requiredPart)
 
-			const matched = defAvailable.some(availablePart => {
+			let matched = defAvailable.some(availablePart => {
 				return availablePart.type === requiredPart.type
 					&& PartComparer.isReferenceTextMatch(availablePart, requiredPart.type, requiredTexts)
 			})
@@ -258,10 +258,10 @@ export abstract class BaseService {
 	 * and may have more decorated selectors followed.
 	 */
 	findSymbols(query: string): SymbolInformation[] {
-		const symbols: SymbolInformation[] = []
-		const re = PartConvertor.makeWordStartsMatchExp(query)
+		let symbols: SymbolInformation[] = []
+		let re = PartConvertor.makeWordStartsMatchExp(query)
 
-		for (const part of this.parts) {
+		for (let part of this.parts) {
 
 			// Match text list with regexp, not match type.
 			if (!PartComparer.isMayFormattedListExpMatch(part, re)) {
@@ -279,10 +279,10 @@ export abstract class BaseService {
 	 * `defMatchPart` must have been converted to definition type.
 	 */
 	getCompletionLabels(matchPart: Part, fromPart: Part, maxStylePropertyCount: number): Map<string, CompletionLabel | null> {
-		const labelMap: Map<string, CompletionLabel | null> = new Map()
-		const re = PartConvertor.makeStartsMatchExp(matchPart.escapedText)
+		let labelMap: Map<string, CompletionLabel | null> = new Map()
+		let re = PartConvertor.makeStartsMatchExp(matchPart.escapedText)
 
-		for (const part of this.getPartsByType(matchPart.type)) {
+		for (let part of this.getPartsByType(matchPart.type)) {
 
 			// Now allow to complete itself.
 			if (part === fromPart) {
@@ -295,14 +295,14 @@ export abstract class BaseService {
 
 			// Show variable details.
 			if (part.type === PartType.CSSVariableDefinition) {
-				const labelText = (part as CSSVariableDefinitionPart).value
+				let labelText = (part as CSSVariableDefinitionPart).value
 				labelMap.set(part.escapedText, labelText ? {text: labelText, markdown: undefined} : null)
 			}
 			else {
 				let label: CompletionLabel | null = null
 
 				if (part.isSelectorDetailedType()) {
-					const wrapperPart = part.getWrapper(this)
+					let wrapperPart = part.getWrapper(this)
 					if (wrapperPart) {
 						label = {
 							text: wrapperPart.comment,
@@ -312,8 +312,8 @@ export abstract class BaseService {
 				}
 
 				// Convert text from current type to original type of text.
-				for (const text of PartComparer.mayFormatted(part)) {
-					const originalTypeOfText = PartConvertor.textToType(text, matchPart.type, fromPart.type)
+				for (let text of PartComparer.mayFormatted(part)) {
+					let originalTypeOfText = PartConvertor.textToType(text, matchPart.type, fromPart.type)
 					labelMap.set(originalTypeOfText, label)
 				}
 			}
@@ -329,18 +329,18 @@ export abstract class BaseService {
 	 * but current parts are reference types of parts.
 	 */
 	getReferencedCompletionLabels(fromPart: Part): Map<string, CompletionLabel | null> {
-		const labelMap: Map<string, CompletionLabel | null> = new Map()
-		const re = PartConvertor.makeIdentifiedStartsMatchExp(PartComparer.mayFormatted(fromPart), fromPart.type)
-		const defMatchPart = PartConvertor.toDefinitionMode(fromPart)
+		let labelMap: Map<string, CompletionLabel | null> = new Map()
+		let re = PartConvertor.makeIdentifiedStartsMatchExp(PartComparer.mayFormatted(fromPart), fromPart.type)
+		let defMatchPart = PartConvertor.toDefinitionMode(fromPart)
 
-		for (const type of this.partMap.keys()) {
+		for (let type of this.partMap.keys()) {
 
 			// Filter by type.
 			if (!PartComparer.isReferenceTypeMatch(type, defMatchPart.type)) {
 				continue
 			}
 
-			for (const part of this.getPartsByType(type)) {
+			for (let part of this.getPartsByType(type)) {
 
 				// Now allow to complete itself.
 				if (part === fromPart) {
@@ -352,10 +352,10 @@ export abstract class BaseService {
 					continue
 				}
 
-				for (const text of PartComparer.mayFormatted(part)) {
+				for (let text of PartComparer.mayFormatted(part)) {
 
 					// Replace back from `a-b` to `&-b`.
-					const mayNestedText = PartConvertor.textToType(text, part.type, fromPart.type).replace(re, fromPart.escapedText)
+					let mayNestedText = PartConvertor.textToType(text, part.type, fromPart.type).replace(re, fromPart.escapedText)
 
 					if (mayNestedText === text) {
 						labelMap.set(mayNestedText, null)
@@ -375,19 +375,19 @@ export abstract class BaseService {
 	 * `defMatchPart` must have been converted to definition type.
 	 */
 	findReferenceMatchParts(defMatchPart: Part, fromPart: Part, contextDefMatchParts: readonly Part[] = []): PartMatchResult {
-		const result: PartMatchResult = {normal: [], contextual: []}
+		let result: PartMatchResult = {normal: [], contextual: []}
 
 		// Important, use may formatted text, and also must use definition text.
-		const texts = fromPart.hasFormattedList() ? PartComparer.mayFormatted(fromPart) : [defMatchPart.escapedText]
+		let texts = fromPart.hasFormattedList() ? PartComparer.mayFormatted(fromPart) : [defMatchPart.escapedText]
 
-		for (const type of this.partMap.keys()) {
+		for (let type of this.partMap.keys()) {
 
 			// Filter by type.
 			if (!PartComparer.isReferenceTypeMatch(type, defMatchPart.type)) {
 				continue
 			}
 
-			for (const part of this.getPartsByType(type)) {
+			for (let part of this.getPartsByType(type)) {
 
 				// No include from part.
 				// Beware this will cause some reference tests can't pass because of the build-in reference.
@@ -421,12 +421,12 @@ export abstract class BaseService {
 
 		// In css document, resolve `.a` at `.a.b` to both match parts.
 		if (part.isSelectorDetailedType()) {
-			const wrapper = part.getWrapper(this)
+			let wrapper = part.getWrapper(this)
 			return wrapper?.details.filter(candidate => candidate !== part) ?? []
 		}
 
 		// In HTML document, firstly search parental tag, then search for child selectors.
-		const partIndex = quickBinaryFindIndex(this.parts, p => p.start - part.start)
+		let partIndex = quickBinaryFindIndex(this.parts, p => p.start - part.start)
 		if (partIndex < 0) {
 			return []
 		}
@@ -435,7 +435,7 @@ export abstract class BaseService {
 		let tagIndex = -1
 		
 		for (let i = partIndex; i >= 0; i--) {
-			const candidate = this.parts[i]
+			let candidate = this.parts[i]
 			if ((candidate.type === PartType.Tag || candidate.type === PartType.ComponentTag)
 				&& candidate.start <= part.start
 				&& candidate.containerEnd >= part.end
@@ -450,10 +450,10 @@ export abstract class BaseService {
 			return []
 		}
 
-		const defMatchParts: Part[] = tag === part ? [] : [PartConvertor.toDefinitionMode(tag)]
+		let defMatchParts: Part[] = tag === part ? [] : [PartConvertor.toDefinitionMode(tag)]
 
 		for (let i = tagIndex + 1; i < this.parts.length; i++) {
-			const candidate = this.parts[i]
+			let candidate = this.parts[i]
 
 			if (candidate.end > tag.containerEnd) {
 				break
@@ -462,7 +462,7 @@ export abstract class BaseService {
 				continue
 			}
 
-			const defCandidate = PartConvertor.toDefinitionMode(candidate)
+			let defCandidate = PartConvertor.toDefinitionMode(candidate)
 			if (defCandidate.isDefinitionContextualType()) {
 				defMatchParts.push(defCandidate)
 			}
@@ -473,9 +473,9 @@ export abstract class BaseService {
 
 	/** Find hover from CSS document for providing class or id name hover for a HTML document. */
 	findHover(defMatchPart: Part, fromPart: Part, fromDocument: TextDocument, maxStylePropertyCount: number): Hover | null {
-		const parts: Part[] = []
+		let parts: Part[] = []
 
-		for (const part of this.getPartsByType(defMatchPart.type)) {
+		for (let part of this.getPartsByType(defMatchPart.type)) {
 
 			// Not match non-primary detailed.
 			if (part.isSelectorDetailedType() && !part.primary) {
@@ -500,7 +500,7 @@ export abstract class BaseService {
 		}
 
 		if (part.isSelectorDetailedType()) {
-			const wrapperPart = part.getWrapper(this)
+			let wrapperPart = part.getWrapper(this)
 			if (!wrapperPart) {
 				return null
 			}
@@ -516,9 +516,9 @@ export abstract class BaseService {
 
 	/** Find all css variable values. */
 	getCSSVariables(names: Set<string>): Map<string, string> {
-		const map: Map<string, string> = new Map()
+		let map: Map<string, string> = new Map()
 
-		for (const part of this.getPartsByType(PartType.CSSVariableDefinition) as CSSVariableDefinitionPart[]) {
+		for (let part of this.getPartsByType(PartType.CSSVariableDefinition) as CSSVariableDefinitionPart[]) {
 			if (!names.has(part.escapedText)) {
 				continue
 			}

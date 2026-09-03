@@ -19,20 +19,20 @@ export async function getCodeLens(
 		return null
 	}
 
-	const documentExtension = getPathExtension(document.uri)
-	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-	const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
-	const codeLens: CodeLens[] = []
+	let documentExtension = getPathExtension(document.uri)
+	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+	let codeLens: CodeLens[] = []
 
 	if (isHTMLFile && configuration.enableDefinitionCodeLens) {
-		const diags = await getDefinitionCodeLens(document, htmlServiceMap, cssServiceMap, configuration)
+		let diags = await getDefinitionCodeLens(document, htmlServiceMap, cssServiceMap, configuration)
 		if (diags) {
 			codeLens.push(...diags)
 		}
 	}
 
 	if ((isHTMLFile || isCSSFile) && configuration.enableReferenceCodeLens) {
-		const diags = await getReferencedCodeLens(document, htmlServiceMap, cssServiceMap, configuration)
+		let diags = await getReferencedCodeLens(document, htmlServiceMap, cssServiceMap, configuration)
 		if (diags) {
 			codeLens.push(...diags)
 		}
@@ -49,14 +49,14 @@ async function getDefinitionCodeLens(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<CodeLens[] | null> {
-	const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+	let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 	if (!currentHTMLService) {
 		return null
 	}
 
-	const codeLens: CodeLens[] = []
+	let codeLens: CodeLens[] = []
 
-	const classNameParts = [
+	let classNameParts = [
 		...currentHTMLService.getPartsByType(PartType.Class),
 		...currentHTMLService.getPartsByType(PartType.ReactDefaultImportedCSSModuleClass),
 		...currentHTMLService.getPartsByType(PartType.ImportedCSSModuleProperty),
@@ -72,10 +72,10 @@ async function getDefinitionCodeLens(
 		await htmlServiceMap.beFresh()
 	}
 
-	for (const part of classNameParts) {
+	for (let part of classNameParts) {
 
 		// Without identifier.
-		const className = part.escapedText
+		let className = part.escapedText
 		let count = 0
 
 		count += cssServiceMap.getDefinedClassNameCount(className)
@@ -111,18 +111,18 @@ async function getReferencedCodeLens(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<CodeLens[] | null> {
-	const documentExtension = getPathExtension(document.uri)
-	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-	const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
-	const codeLens: CodeLens[] = []
+	let documentExtension = getPathExtension(document.uri)
+	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+	let codeLens: CodeLens[] = []
 
 	if (isHTMLFile) {
-		const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 		if (!currentHTMLService) {
 			return null
 		}
 
-		const classNameParts = currentHTMLService.getPartsByType(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
+		let classNameParts = currentHTMLService.getPartsByType(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
 		if (!classNameParts || classNameParts.length === 0) {
 			return codeLens
 		}
@@ -131,20 +131,20 @@ async function getReferencedCodeLens(
 			await htmlServiceMap.beFresh()
 		}
 
-		for (const part of classNameParts) {
+		for (let part of classNameParts) {
 
 			// Totally reference parent, no need to diagnose.
 			if (part.escapedText === '&') {
 				continue
 			}
 
-			const classNames = part.formatted
+			let classNames = part.formatted
 			let count = 0
 
-			for (const className of classNames) {
+			for (let className of classNames) {
 
 				// Without identifier.
-				const nonIdentifierClassName = className.slice(1)
+				let nonIdentifierClassName = className.slice(1)
 
 				if (configuration.enableGlobalEmbeddedCSS) {
 					count += htmlServiceMap.getReferencedClassNameCount(nonIdentifierClassName)
@@ -169,32 +169,32 @@ async function getReferencedCodeLens(
 		return codeLens
 	}
 	else if (isCSSFile) {
-		const currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
 		if (!currentCSSService) {
 			return null
 		}
 
-		const classNameParts = currentCSSService.getPartsByType(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
+		let classNameParts = currentCSSService.getPartsByType(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
 		if (!classNameParts || classNameParts.length === 0) {
 			return codeLens
 		}
 
 		await htmlServiceMap.beFresh()
 
-		for (const part of classNameParts) {
+		for (let part of classNameParts) {
 			
 			// Totally reference parent, no need to diagnose.
 			if (part.escapedText === '&') {
 				continue
 			}
 
-			const classNames = part.formatted
+			let classNames = part.formatted
 			let count = 0
 
-			for (const className of classNames) {
+			for (let className of classNames) {
 
 				// Without identifier.
-				const nonIdentifierClassName = className.slice(1)
+				let nonIdentifierClassName = className.slice(1)
 
 				// Any one of formatted exist, break.
 				count += htmlServiceMap.getReferencedClassNameCount(nonIdentifierClassName)

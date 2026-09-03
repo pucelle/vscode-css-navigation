@@ -12,18 +12,18 @@ export async function findDefinitions(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<Location[] | null> {
-	const documentExtension = getPathExtension(document.uri)
-	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-	const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+	let documentExtension = getPathExtension(document.uri)
+	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 	let locations: LocationLink[] | null = null
 
 	if (isHTMLFile) {
-		const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 		if (!currentHTMLService) {
 			return null
 		}
 
-		const fromPart = currentHTMLService.findPartAt(offset)
+		let fromPart = currentHTMLService.findPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -36,12 +36,12 @@ export async function findDefinitions(
 		locations = await findDefinitionsInHTML(fromPart, currentHTMLService, document, htmlServiceMap, cssServiceMap, configuration)
 	}
 	else if (isCSSFile) {
-		const currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
 		if (!currentCSSService) {
 			return null
 		}
 
-		const fromPart = currentCSSService.findPartAt(offset)
+		let fromPart = currentCSSService.findPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -54,7 +54,7 @@ export async function findDefinitions(
 	}
 
 	// Sort by the longest common subsequence.
-	const items = locations.map(l => {
+	let items = locations.map(l => {
 		return {
 			location: l,
 			subsequence: getLongestCommonSubsequenceLength(l.targetUri, document.uri),
@@ -80,14 +80,14 @@ async function findDefinitionsInHTML(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<LocationLink[] | null> {
-	const matchPart = PartConvertor.toDefinitionMode(fromPart)
-	const contextMatchParts = currentService.getContextualDefMatchParts(fromPart)
-	const locations: LocationLink[] = []
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
+	let contextMatchParts = currentService.getContextualDefMatchParts(fromPart)
+	let locations: LocationLink[] = []
 
 
 	// When mouse locates at `<link rel="stylesheet" href="|...|">` or `<style src="|...|">`, goto file start.
 	if (fromPart.type === PartType.CSSImportPath) {
-		const link = await PathResolver.resolveImportLocationLink(fromPart, document)
+		let link = await PathResolver.resolveImportLocationLink(fromPart, document)
 		if (!link) {
 			return null
 		}
@@ -98,11 +98,11 @@ async function findDefinitionsInHTML(
 
 	// When mouse locates at `styleName="class-name"`, search within default imported css module.
 	if (fromPart.type === PartType.ReactDefaultImportedCSSModuleClass) {
-		const filePaths = await ModuleResolver.resolveReactDefaultCSSModuleURIs(document)
-		const services: CSSService[] = []
+		let filePaths = await ModuleResolver.resolveReactDefaultCSSModuleURIs(document)
+		let services: CSSService[] = []
 
-		for (const filePath of filePaths) {
-			const cssModuleService = await cssServiceMap.forceGetServiceByURI(filePath)
+		for (let filePath of filePaths) {
+			let cssModuleService = await cssServiceMap.forceGetServiceByURI(filePath)
 			if (cssModuleService) {
 				services.push(cssModuleService)
 			}
@@ -114,17 +114,17 @@ async function findDefinitionsInHTML(
 
 	// When mouse locates at `class={style.className}`, search within specified named imported css module.
 	if (fromPart.type === PartType.ImportedCSSModuleProperty) {
-		const importedCSSModulePart = currentService.findPreviousPart(fromPart)
+		let importedCSSModulePart = currentService.findPreviousPart(fromPart)
 		if (!importedCSSModulePart || importedCSSModulePart.type !== PartType.ImportedCSSModuleName) {
 			return null
 		}
 
-		const uri = await ModuleResolver.resolveReactCSSModuleURIByName(importedCSSModulePart.escapedText, document)
+		let uri = await ModuleResolver.resolveReactCSSModuleURIByName(importedCSSModulePart.escapedText, document)
 		if (!uri) {
 			return null
 		}
 
-		const cssModuleService = await cssServiceMap.forceGetServiceByURI(uri)
+		let cssModuleService = await cssServiceMap.forceGetServiceByURI(uri)
 		if (!cssModuleService) {
 			return null
 		}
@@ -183,7 +183,7 @@ async function findDefinitionsInCSS(
 
 	// When mouse locates at `@import`, goto file start.
 	if (fromPart.type === PartType.CSSImportPath) {
-		const link = await PathResolver.resolveImportLocationLink(fromPart, document)
+		let link = await PathResolver.resolveImportLocationLink(fromPart, document)
 		if (!link) {
 			return null
 		}
@@ -197,8 +197,8 @@ async function findDefinitionsInCSS(
 	}
 
 
-	const matchPart = PartConvertor.toDefinitionMode(fromPart)
-	const locations: LocationLink[] = []
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
+	let locations: LocationLink[] = []
 
 
 	// For `var(--variable-name)`, find at current document or imported.
@@ -227,12 +227,12 @@ async function findEmbeddedOrImported(
 	contextMatchParts: readonly Part[] = []
 ): Promise<LocationLink[]> {
 	// Load imported services before choosing between contextual and normal definitions.
-	const cssURIs = await currentService.getImportedCSSURIs()
-	const cssURIChain = cssServiceMap.trackingMap.resolveChainedImportedURIs(cssURIs)
-	const importedServices: CSSService[] = []
+	let cssURIs = await currentService.getImportedCSSURIs()
+	let cssURIChain = cssServiceMap.trackingMap.resolveChainedImportedURIs(cssURIs)
+	let importedServices: CSSService[] = []
 
-	for (const cssURI of cssURIChain) {
-		const cssService = await cssServiceMap.forceGetServiceByURI(cssURI)
+	for (let cssURI of cssURIChain) {
+		let cssService = await cssServiceMap.forceGetServiceByURI(cssURI)
 		if (!cssService) {
 			continue
 		}

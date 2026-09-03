@@ -92,11 +92,11 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 
 	/** `.a, .b` -> `[.a, .b]`. */
 	parseToSeparatedTokens(): CSSSelectorToken[][] {
-		const tokens = this.parseToTokens()
-		const groups: CSSSelectorToken[][] = []
+		let tokens = this.parseToTokens()
+		let groups: CSSSelectorToken[][] = []
 
 		// Split by comma.
-		for (const token of tokens) {
+		for (let token of tokens) {
 			if (token.type === CSSSelectorTokenType.Comma) {
 				if (groups.length === 0 || groups[groups.length - 1].length > 0) {
 					groups.push([])
@@ -125,7 +125,7 @@ export class CSSSelectorTokenScanner extends AnyTokenScanner<CSSSelectorTokenTyp
 					break
 				}
 
-				const char = this.peekChar()
+				let char = this.peekChar()
 
 				// `|&`
 				if (char === '&') {

@@ -11,12 +11,12 @@ export async function getCSSVariableColors(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<ColorInformation[] | null> {
-	const documentExtension = getPathExtension(document.uri)
-	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-	const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+	let documentExtension = getPathExtension(document.uri)
+	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
 	if (isHTMLFile) {
-		const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 		if (!currentHTMLService) {
 			return null
 		}
@@ -24,7 +24,7 @@ export async function getCSSVariableColors(
 		return getCSSVariableColorsInAny(currentHTMLService, cssServiceMap, document)
 	}
 	else if (isCSSFile) {
-		const currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
 		if (!currentCSSService) {
 			return null
 		}
@@ -42,35 +42,35 @@ async function getCSSVariableColorsInAny(
 	cssServiceMap: CSSServiceMap,
 	document: TextDocument
 ): Promise<ColorInformation[]> {
-	const parts = currentService.getPartsByType(PartType.CSSVariableReference)
+	let parts = currentService.getPartsByType(PartType.CSSVariableReference)
 
-	const variableNames = new Set(parts.map(part => part.escapedText))
+	let variableNames = new Set(parts.map(part => part.escapedText))
 	if (variableNames.size === 0) {
 		return []
 	}
 
-	const currentVariableMap = currentService.getCSSVariables(variableNames)
+	let currentVariableMap = currentService.getCSSVariables(variableNames)
 
 	// Stop searching if find all within current document.
 	if (currentVariableMap.size === variableNames.size) {
 		return makeColorInformation(parts, currentVariableMap, document)
 	}
 
-	const variableMap = await cssServiceMap.getCSSVariables(variableNames)
+	let variableMap = await cssServiceMap.getCSSVariables(variableNames)
 	return makeColorInformation(parts, variableMap, document)
 }
 
 
 function makeColorInformation(parts: Part[], variableMap: Map<string, string>, document: TextDocument): ColorInformation[] {
-	const items: ColorInformation[] = []
+	let items: ColorInformation[] = []
 
-	for (const part of parts) {
-		const value = variableMap.get(part.escapedText)
+	for (let part of parts) {
+		let value = variableMap.get(part.escapedText)
 		if (!value) {
 			continue
 		}
 
-		const info = PartConvertor.toColorInformation(part, value, document)
+		let info = PartConvertor.toColorInformation(part, value, document)
 		if (info) {
 			items.push(info)
 		}

@@ -14,20 +14,20 @@ export class JSTokenTree extends JSTokenNode {
 
 	/** Make a HTML token tree by string. */
 	static fromString(string: string, scannerStart: number = 0, languageId: HTMLLanguageId = 'js'): JSTokenTree {
-		const tokens = new JSTokenScanner(string, scannerStart, languageId).parseToTokens()
+		let tokens = new JSTokenScanner(string, scannerStart, languageId).parseToTokens()
 		return JSTokenTree.fromTokens(tokens, languageId, string, scannerStart)
 	}
 
 	/** Make a token tree by tokens. */
 	static fromTokens(tokens: Iterable<JSToken>, languageId: HTMLLanguageId = 'js', sourceText: string = '', sourceStart: number = 0): JSTokenTree {
-		const tree = new JSTokenTree(languageId, sourceText, sourceStart)
+		let tree = new JSTokenTree(languageId, sourceText, sourceStart)
 
-		for (const token of tokens) {
+		for (let token of tokens) {
 			if (token.type === JSTokenType.HTML
 				|| token.type === JSTokenType.CSS
 				|| token.type === JSTokenType.Script
 			) {
-				const tagNode: JSTokenNode = new JSTokenNode(token, tree)
+				let tagNode: JSTokenNode = new JSTokenNode(token, tree)
 				tree.children.push(tagNode)
 			}
 		}
@@ -57,9 +57,9 @@ export class JSTokenTree extends JSTokenNode {
 
 	/** Walk JS parts, also the css module parts. */
 	*walkParts(): Iterable<Part> {
-		const parts: Part[] = []
+		let parts: Part[] = []
 
-		for (const node of this.walk()) {
+		for (let node of this.walk()) {
 			parts.push(...this.parseNodeParts(node))
 		}
 
@@ -71,8 +71,8 @@ export class JSTokenTree extends JSTokenNode {
 
 		let previousKey = ''
 
-		for (const part of parts) {
-			const key = `${part.type}:${part.start}:${part.end}`
+		for (let part of parts) {
+			let key = `${part.type}:${part.start}:${part.end}`
 
 			if (key !== previousKey) {
 				yield part
@@ -98,20 +98,20 @@ export class JSTokenTree extends JSTokenNode {
 	protected *parseHTMLParts(node: JSTokenNode): Iterable<Part> {
 
 		// HTML tree accept current language, and it affects some actions.
-		const htmlTree = HTMLTokenTree.fromString(node.token.text, node.token.start, this.languageId)
+		let htmlTree = HTMLTokenTree.fromString(node.token.text, node.token.start, this.languageId)
 		yield* htmlTree.walkParts()
 	}
 
 	/** Parse css template part. */
 	protected *parseCSSParts(node: JSTokenNode): Iterable<Part> {
-		const cssTree = CSSTokenTree.fromString(node.token.text, node.token.start, 'css')
+		let cssTree = CSSTokenTree.fromString(node.token.text, node.token.start, 'css')
 		yield* cssTree.walkParts()
 	}
 
 	/** Parse script text for parts. */
 	protected *parseScriptParts(node: JSTokenNode): Iterable<Part> {
-		const text = node.token.text
-		const start = node.token.start
+		let text = node.token.text
+		let start = node.token.start
 
 		// `querySelect('.class-name')`
 	 	// `$('.class-name')`
@@ -121,12 +121,12 @@ export class JSTokenTree extends JSTokenNode {
 			[1]
 		)
 
-		for (const match of matches) {
-			const selector = match[1].text
-			const selectorStart = match[1].start + start
-			const tokens = new CSSSelectorTokenScanner(selector, selectorStart, 'css').parseToTokens()
+		for (let match of matches) {
+			let selector = match[1].text
+			let selectorStart = match[1].start + start
+			let tokens = new CSSSelectorTokenScanner(selector, selectorStart, 'css').parseToTokens()
 
-			for (const token of tokens) {
+			for (let token of tokens) {
 				if (token.type === CSSSelectorTokenType.Tag) {
 					yield new Part(PartType.CSSSelectorQueryTag, token.text, token.start)
 				}
@@ -147,13 +147,13 @@ export class JSTokenTree extends JSTokenNode {
 			[1]
 		)
 
-		for (const match of matches) {
+		for (let match of matches) {
 			yield (new Part(PartType.Class, match[1].text, match[1].start + start)).trim()
 		}
 
 
 		// `var xxxClassNameXXX = `
-		for (const part of ClassNamesInJS.walkParts(text, start)) {
+		for (let part of ClassNamesInJS.walkParts(text, start)) {
 			yield part
 		}
 
@@ -165,7 +165,7 @@ export class JSTokenTree extends JSTokenNode {
 			[1]
 		)
 
-		for (const match of matches) {
+		for (let match of matches) {
 			yield (new Part(PartType.CSSVariableAssignment, match[1].text, match[1].start + start)).trim()
 		}
 
@@ -179,8 +179,8 @@ export class JSTokenTree extends JSTokenNode {
 			[1]
 		)
 
-		for (const match of matches) {
-			const path = match[1].text
+		for (let match of matches) {
+			let path = match[1].text
 
 			if (isCSSLikePath(path)) {
 				yield (new Part(PartType.CSSImportPath, match[1].text, match[1].start + start)).trim()
@@ -196,12 +196,12 @@ export class JSTokenTree extends JSTokenNode {
 
 	/** Parse react elements. */
 	protected *parseReactElementParts(node: JSTokenNode): Iterable<Part> {
-		const text = node.token.text
-		const start = node.token.start
+		let text = node.token.text
+		let start = node.token.start
 
 		// Start a white list HTML tree to parse for React Elements.
-		const tokens = new WhiteListHTMLTokenScanner(text, start, this.languageId).parseToTokens()
-		const htmlTree = HTMLTokenTree.fromTokens(tokens, this.languageId)
+		let tokens = new WhiteListHTMLTokenScanner(text, start, this.languageId).parseToTokens()
+		let htmlTree = HTMLTokenTree.fromTokens(tokens, this.languageId)
 		yield* htmlTree.walkParts()
 	}
 }

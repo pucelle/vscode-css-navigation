@@ -19,11 +19,11 @@ export const ClassNameDiagnosticCode = {
 
 /** Make a matcher for class names excluded from diagnostics. */
 export function makeDiagnosticIgnoredClassNameMatcher(patterns: readonly string[]): (className: string) => boolean {
-	const fullMatchNames = new Set<string>()
-	const wildcardPatterns: RegExp[] = []
+	let fullMatchNames = new Set<string>()
+	let wildcardPatterns: RegExp[] = []
 
-	for (const configuredName of patterns) {
-		const name = configuredName.trim().replace(/^\./, '')
+	for (let configuredName of patterns) {
+		let name = configuredName.trim().replace(/^\./, '')
 		if (!name) {
 			continue
 		}
@@ -64,26 +64,26 @@ export async function getDiagnostics(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<Diagnostic[] | null> {
-	const documentExtension = getPathExtension(document.uri)
-	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-	const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
-	const shouldProvideDefDiag = isHTMLFile && configuration.enableClassNameDefinitionDiagnostic
-	const shouldProvideRefDiag = (isHTMLFile || isCSSFile) && configuration.enableClassNameReferenceDiagnostic
+	let documentExtension = getPathExtension(document.uri)
+	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+	let shouldProvideDefDiag = isHTMLFile && configuration.enableClassNameDefinitionDiagnostic
+	let shouldProvideRefDiag = (isHTMLFile || isCSSFile) && configuration.enableClassNameReferenceDiagnostic
 
 	if (!shouldProvideDefDiag && !shouldProvideRefDiag) {
 		return null
 	}
 
-	const diagnostics: Diagnostic[] = []
+	let diagnostics: Diagnostic[] = []
 	if (shouldProvideDefDiag) {
-		const diags = await getDefinitionDiagnostics(document, htmlServiceMap, cssServiceMap, configuration)
+		let diags = await getDefinitionDiagnostics(document, htmlServiceMap, cssServiceMap, configuration)
 		if (diags) {
 			diagnostics.push(...diags)
 		}
 	}
 
 	if (shouldProvideRefDiag) {
-		const diags = await getReferencedDiagnostics(document, htmlServiceMap, cssServiceMap, configuration)
+		let diags = await getReferencedDiagnostics(document, htmlServiceMap, cssServiceMap, configuration)
 		if (diags) {
 			diagnostics.push(...diags)
 		}
@@ -100,14 +100,14 @@ async function getDefinitionDiagnostics(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<Diagnostic[] | null> {
-	const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+	let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 	if (!currentHTMLService) {
 		return null
 	}
 
-	const diagnostics: Diagnostic[] = []
+	let diagnostics: Diagnostic[] = []
 
-	const classNameParts = currentHTMLService.getPartsByType(PartType.Class)
+	let classNameParts = currentHTMLService.getPartsByType(PartType.Class)
 	if (!classNameParts || classNameParts.length === 0) {
 		return diagnostics
 	}
@@ -118,10 +118,10 @@ async function getDefinitionDiagnostics(
 		await htmlServiceMap.beFresh()
 	}
 
-	for (const part of classNameParts) {
+	for (let part of classNameParts) {
 
 		// Without identifier.
-		const className = part.escapedText
+		let className = part.escapedText
 		if (isDiagnosticIgnoredClassName(className)) {
 			continue
 		}
@@ -162,18 +162,18 @@ async function getReferencedDiagnostics(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<Diagnostic[] | null> {
-	const documentExtension = getPathExtension(document.uri)
-	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-	const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
-	const diagnostics: Diagnostic[] = []
+	let documentExtension = getPathExtension(document.uri)
+	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+	let diagnostics: Diagnostic[] = []
 
 	if (isHTMLFile) {
-		const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 		if (!currentHTMLService) {
 			return null
 		}
 
-		const classNameParts = currentHTMLService.getPartsByType(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
+		let classNameParts = currentHTMLService.getPartsByType(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
 		if (!classNameParts || classNameParts.length === 0) {
 			return diagnostics
 		}
@@ -182,19 +182,19 @@ async function getReferencedDiagnostics(
 			await htmlServiceMap.beFresh()
 		}
 
-		for (const part of classNameParts) {
+		for (let part of classNameParts) {
 
 			// Totally reference parent, no need to diagnose.
 			if (part.escapedText === '&') {
 				continue
 			}
 
-			const classNames = part.formatted
+			let classNames = part.formatted
 
-			for (const className of classNames) {
+			for (let className of classNames) {
 
 				// Without identifier.
-				const nonIdentifierClassName = className.slice(1)
+				let nonIdentifierClassName = className.slice(1)
 				if (isDiagnosticIgnoredClassName(nonIdentifierClassName)) {
 					break
 				}
@@ -213,7 +213,7 @@ async function getReferencedDiagnostics(
 				}
 
 				// Has `@css-ignore` comment.
-				const wrapper = part.getWrapper(currentHTMLService)
+				let wrapper = part.getWrapper(currentHTMLService)
 				if (wrapper && wrapper.comment?.includes('@css-ignore')) {
 					break
 				}
@@ -233,31 +233,31 @@ async function getReferencedDiagnostics(
 		return diagnostics
 	}
 	else if (isCSSFile) {
-		const currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
 		if (!currentCSSService) {
 			return null
 		}
 
-		const classNameParts = currentCSSService.getPartsByType(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
+		let classNameParts = currentCSSService.getPartsByType(PartType.CSSSelectorClass) as CSSSelectorDetailedPart[] | undefined
 		if (!classNameParts || classNameParts.length === 0) {
 			return diagnostics
 		}
 
 		await htmlServiceMap.beFresh()
 
-		for (const part of classNameParts) {
+		for (let part of classNameParts) {
 
 			// Totally reference parent, no need to diagnose.
 			if (part.escapedText === '&') {
 				continue
 			}
 
-			const classNames = part.formatted
+			let classNames = part.formatted
 
-			for (const className of classNames) {
+			for (let className of classNames) {
 
 				// Without identifier.
-				const nonIdentifierClassName = className.slice(1)
+				let nonIdentifierClassName = className.slice(1)
 				if (isDiagnosticIgnoredClassName(nonIdentifierClassName)) {
 					break
 				}
@@ -268,7 +268,7 @@ async function getReferencedDiagnostics(
 				}
 
 				// Has `@css-ignore` comment.
-				const wrapper = part.getWrapper(currentCSSService)
+				let wrapper = part.getWrapper(currentCSSService)
 				if (wrapper && wrapper.comment?.includes('@css-ignore')) {
 					break
 				}

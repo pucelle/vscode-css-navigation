@@ -13,7 +13,7 @@ export namespace Picker {
 	 * `re` must not be global.
 	 */
 	export function locateMatches<I extends number>(text: string, re: RegExp, matchIndices: I[]): Record<I, Picked> | null {
-		const match = text.match(re)
+		let match = text.match(re)
 		if (!match) {
 			return null
 		}
@@ -42,7 +42,7 @@ export namespace Picker {
 	 * `re` must not be global.
 	 */
 	export function locateMatchGroups(text: string, re: RegExp): Record<string, Picked> | null {
-		const match = text.match(re)
+		let match = text.match(re)
 		if (!match) {
 			return null
 		}
@@ -68,16 +68,16 @@ export namespace Picker {
 	 * Note it may not 100% get correct result.
 	 */
 	function addOffsetToMatches(match: RegExpMatchArray | RegExpExecArray, matchIndices: number[]): Record<number, Picked> {
-		const o: Record<number, Picked> = {}
+		let o: Record<number, Picked> = {}
 		let lastIndex = 0
 
-		for (const matchIndex of matchIndices) {
-			const m = match[matchIndex]
+		for (let matchIndex of matchIndices) {
+			let m = match[matchIndex]
 			if (!m) {
 				continue
 			}
 			
-			const start = matchIndex === 0 ? 0 : match[0].indexOf(m, lastIndex)
+			let start = matchIndex === 0 ? 0 : match[0].indexOf(m, lastIndex)
 
 			o[matchIndex] = {
 				text: m,
@@ -98,9 +98,9 @@ export namespace Picker {
 	 * `re` must not be global.
 	 */
 	function addOffsetToMatchGroup(match: RegExpMatchArray | RegExpExecArray): Record<string, Picked> {
-		const o: Record<string, Picked> = {}
+		let o: Record<string, Picked> = {}
 
-		const groups = match.groups
+		let groups = match.groups
 		if (!groups) {
 			return o
 		}
@@ -112,7 +112,7 @@ export namespace Picker {
 				continue
 			}
 			
-			const start = match[0].indexOf(m, lastIndex)
+			let start = match[0].indexOf(m, lastIndex)
 
 			o[k] = {
 				text: m,

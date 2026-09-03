@@ -85,7 +85,7 @@ export class AnyTokenScanner<T extends number> {
 		let readSome = false
 
 		while (true) {
-			const m = re.exec(this.string)
+			let m = re.exec(this.string)
 			if (!m) {
 				break
 			}
@@ -111,7 +111,7 @@ export class AnyTokenScanner<T extends number> {
 	 */
 	protected readUntilToMatch(re: RegExp): RegExpExecArray | null {
 		re.lastIndex = this.offset
-		const m = re.exec(this.string)
+		let m = re.exec(this.string)
 
 		if (m) {
 			this.offset = m.index
@@ -130,7 +130,7 @@ export class AnyTokenScanner<T extends number> {
 	 */
 	protected readOutToMatch(re: RegExp): RegExpExecArray | null {
 		re.lastIndex = this.offset
-		const m = re.exec(this.string)
+		let m = re.exec(this.string)
 
 		if (m) {
 			this.offset = m.index + m[0].length
@@ -148,7 +148,7 @@ export class AnyTokenScanner<T extends number> {
 	 * Cursor must before first quote `|"`.
 	 */
 	protected readString(): boolean {
-		const quote = this.peekChar()
+		let quote = this.peekChar()
 
 		// Avoid read start quote.
 		this.offset += 1
@@ -160,7 +160,7 @@ export class AnyTokenScanner<T extends number> {
 				break
 			}
 
-			const char = this.peekChar(-1)
+			let char = this.peekChar(-1)
 			
 			if (char === quote) {
 				break
@@ -221,16 +221,16 @@ export class AnyTokenScanner<T extends number> {
 	 * Supported language js, css, sass, less.
 	 */
 	protected readBracketed(): boolean {
-		const stack: string[] = []
+		let stack: string[] = []
 		let expect: string | null = null
-		const re = /[()\[\]{}"'`\/]/g
+		let re = /[()\[\]{}"'`\/]/g
 
 		while (!this.isEnded()) {
 			if (!this.readUntilToMatch(re)) {
 				break
 			}
 			
-			const char = this.peekChar()
+			let char = this.peekChar()
 
 			// `|"..."`
 			if (char === '"' || char === '\'') {
@@ -297,7 +297,7 @@ export class AnyTokenScanner<T extends number> {
 
 	/** Read `...`, must ensure the current char is `|``. */
 	protected readTemplateLiteral(): boolean {
-		const re = /[`\\$]/g
+		let re = /[`\\$]/g
 
 		// Avoid read start quote.
 		this.offset += 1
@@ -307,7 +307,7 @@ export class AnyTokenScanner<T extends number> {
 				break
 			}
 
-			const char = this.peekChar(-1)
+			let char = this.peekChar(-1)
 			
 			if (char === '`') {
 				break
@@ -335,7 +335,7 @@ export class AnyTokenScanner<T extends number> {
 	 */
 	protected tryReadRegExp(): boolean {
 		let withinCharList = false
-		const startOffset = this.offset
+		let startOffset = this.offset
 
 		// Move cursor to `/|`
 		this.offset += 1
@@ -346,7 +346,7 @@ export class AnyTokenScanner<T extends number> {
 				return false
 			}
 
-			const char = this.peekChar(-1)
+			let char = this.peekChar(-1)
 			
 			// `\|.`, skip next char, even within character list.
 			if (char === '\\') {
@@ -391,10 +391,10 @@ export class AnyTokenScanner<T extends number> {
 	 * Can only search one character each time.
 	 */
 	protected backSearchChar(from: number, match: RegExp, maxCount: number = Infinity): number {
-		const until = Math.max(from - maxCount, 0)
+		let until = Math.max(from - maxCount, 0)
 
 		for (let i = from; i >= until; i--) {
-			const char = this.string[i]
+			let char = this.string[i]
 			if (match.test(char)) {
 				return i
 			}
@@ -405,9 +405,9 @@ export class AnyTokenScanner<T extends number> {
 
 	/** Note it will sync start to offset. */
 	protected makeToken(type: T, startOffset: number = 0, endOffset: number = 0): AnyToken<T> {
-		const start = this.start + startOffset
-		const end = this.offset + endOffset
-		const text = this.string.slice(start, end)
+		let start = this.start + startOffset
+		let end = this.offset + endOffset
+		let text = this.string.slice(start, end)
 
 		this.sync()
 

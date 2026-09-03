@@ -206,8 +206,8 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 		// `<abc|`
 		this.readUntilNot(IsTagName)
 
-		const tagName = this.peekText()
-		const lowerTagName = tagName.toLowerCase()
+		let tagName = this.peekText()
+		let lowerTagName = tagName.toLowerCase()
 		yield this.makeToken(HTMLTokenType.StartTagName)
 
 		if (lowerTagName === 'script' || lowerTagName === 'style') {
@@ -222,8 +222,8 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 		// `</abc|>` or `</|>`
 		this.readUntilNot(IsTagName)
 
-		const tagName = this.peekText()
-		const lowerTagName = tagName.toLowerCase()
+		let tagName = this.peekText()
+		let lowerTagName = tagName.toLowerCase()
 
 		// Must end when `</style>` or `</script>`
 		if (this.endTagNameMustMatch && lowerTagName !== this.endTagNameMustMatch) {
@@ -250,7 +250,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 		// Skip whitespaces.
 		this.readWhiteSpaces()
 
-		const char = this.peekChar()
+		let char = this.peekChar()
 
 		if (char === '>') {
 
@@ -321,7 +321,7 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	}
 
 	protected *onWithinAttributeValue(): Iterable<HTMLToken> {
-		const char = this.peekChar()
+		let char = this.peekChar()
 
 		// `=|"..."`
 		if (char === '"' || char === '\'') {
@@ -358,16 +358,16 @@ export class HTMLTokenScanner extends AnyTokenScanner<HTMLTokenType> {
 	 * brackets or quotes must appear in pairs.
 	 */
 	protected readExpressionLikeAttrValue() {
-		const stack: string[] = []
+		let stack: string[] = []
 		let expect: string | null = null
-		const re = /[()\[\]{}"'`\/\s>]/g
+		let re = /[()\[\]{}"'`\/\s>]/g
 
 		while (this.state !== ScanState.EOF) {
 			if (!this.readUntilToMatch(re)) {
 				return
 			}
 			
-			const char = this.peekChar()
+			let char = this.peekChar()
 
 			// Only difference with `readBracketed`.
 			if (!expect && /[\s>]/.test(char)) {
@@ -458,12 +458,12 @@ export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 		// Normally when parsing jsx or tsx, when meet `<` and expect an expression,
 		// it recognizes as React Element.
 
-		const scanner = new HTMLTokenScanner(this.string, 0, this.languageId)
-		const startTags: Set<string> = new Set()
-		const whiteList: Set<string> = new Set()
+		let scanner = new HTMLTokenScanner(this.string, 0, this.languageId)
+		let startTags: Set<string> = new Set()
+		let whiteList: Set<string> = new Set()
 		let currentTagName: string | null = null
 
-		for (const token of scanner.parseToTokens()) {
+		for (let token of scanner.parseToTokens()) {
 			if (token.type !== HTMLTokenType.StartTagName
 				&& token.type !== HTMLTokenType.EndTagName
 				&& token.type !== HTMLTokenType.SelfCloseTagEnd
@@ -471,7 +471,7 @@ export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 				continue
 			}
 	
-			const tagName: string = token.type === HTMLTokenType.SelfCloseTagEnd ? currentTagName! : token.text
+			let tagName: string = token.type === HTMLTokenType.SelfCloseTagEnd ? currentTagName! : token.text
 
 			if (DOMElementNames.has(tagName)) {
 				whiteList.add(tagName)
@@ -500,7 +500,7 @@ export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 		this.readUntilNot(IsTagName)
 		
 
-		const tagName = this.peekText()
+		let tagName = this.peekText()
 
 		// If not in white list.
 		if (!this.whiteList.has(tagName)) {
@@ -522,7 +522,7 @@ export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 		// `</abc|>` or `</|>`
 		this.readUntilNot(IsTagName)
 
-		const tagName = this.peekText()
+		let tagName = this.peekText()
 
 		if (!this.whiteList.has(tagName)) {
 			this.state = ScanState.AnyContent

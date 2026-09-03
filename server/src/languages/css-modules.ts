@@ -12,18 +12,18 @@ export interface CSSModuleImport {
 
 /** Find default, namespace, and CommonJS CSS Module imports. */
 export function findCSSModuleImports(text: string): CSSModuleImport[] {
-	const imports: CSSModuleImport[] = []
+	let imports: CSSModuleImport[] = []
 
-	const patterns = [
+	let patterns = [
 		/import\s+(?:\*\s+as\s+)?([\w$]+)\s+from\s+['"`](.+?)['"`]/g,
 		/(?:const|let|var)\s+([\w$]+)\s*=\s*require\(\s*['"`](.+?)['"`]\s*\)/g,
 	]
 
-	for (const pattern of patterns) {
+	for (let pattern of patterns) {
 		let match: RegExpExecArray | null
 
 		while ((match = pattern.exec(text)) !== null) {
-			const importPath = match[2]
+			let importPath = match[2]
 			if (!isCSSLikePath(importPath)) {
 				continue
 			}
@@ -48,29 +48,29 @@ export function findCSSModuleImportPath(text: string, moduleName: string): strin
 
 /** Parse property accesses for bindings that are known CSS Module imports. */
 export function* walkCSSModuleParts(text: string, start: number = 0): Iterable<Part> {
-	const imports = findCSSModuleImports(text)
-	const moduleNames = [...new Set(imports.map(item => item.name))]
+	let imports = findCSSModuleImports(text)
+	let moduleNames = [...new Set(imports.map(item => item.name))]
 
-	for (const moduleName of moduleNames) {
-		const escapedName = escapeAsRegExpSource(moduleName)
-		const pattern = new RegExp(`\\b${escapedName}\\s*(?:\\.\\s*[\\w$]*|\\[\\s*['\"\`][\\w$-]*)`, 'g')
+	for (let moduleName of moduleNames) {
+		let escapedName = escapeAsRegExpSource(moduleName)
+		let pattern = new RegExp(`\\b${escapedName}\\s*(?:\\.\\s*[\\w$]*|\\[\\s*['\"\`][\\w$-]*)`, 'g')
 		let match: RegExpExecArray | null
 
 		while ((match = pattern.exec(text)) !== null) {
-			const matchedText = match[0]
-			const moduleNameOffset = match.index + matchedText.indexOf(moduleName)
+			let matchedText = match[0]
+			let moduleNameOffset = match.index + matchedText.indexOf(moduleName)
 			let propertyOffset: number
 			let propertyText: string
 
-			const dotOffset = matchedText.indexOf('.')
+			let dotOffset = matchedText.indexOf('.')
 			if (dotOffset > -1) {
-				const afterDot = matchedText.slice(dotOffset + 1)
-				const whitespaceLength = afterDot.length - afterDot.trimStart().length
+				let afterDot = matchedText.slice(dotOffset + 1)
+				let whitespaceLength = afterDot.length - afterDot.trimStart().length
 				propertyOffset = match.index + dotOffset + 1 + whitespaceLength
 				propertyText = afterDot.trimStart()
 			}
 			else {
-				const quoteMatch = /['"`]/.exec(matchedText)
+				let quoteMatch = /['"`]/.exec(matchedText)
 				if (!quoteMatch) {
 					continue
 				}
@@ -84,7 +84,7 @@ export function* walkCSSModuleParts(text: string, start: number = 0): Iterable<P
 		}
 	}
 
-	for (const item of imports) {
+	for (let item of imports) {
 		yield new Part(PartType.CSSImportPath, item.path, start + item.pathStart)
 	}
 }

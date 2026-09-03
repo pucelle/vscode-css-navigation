@@ -12,13 +12,13 @@ export namespace ModuleResolver {
 	 * By a `ReactImportedCSSModuleName` type of part.
 	 */
 	export async function resolveReactCSSModuleURIByName(moduleName: string, document: TextDocument): Promise<string | null> {
-		const text = document.getText()
-		const modulePath = findCSSModuleImportPath(text, moduleName)
+		let text = document.getText()
+		let modulePath = findCSSModuleImportPath(text, moduleName)
 		if (!modulePath) {
 			return null
 		}
 
-		const uri = await PathResolver.resolveImportURI(modulePath, document)
+		let uri = await PathResolver.resolveImportURI(modulePath, document)
 		return uri
 	}
 
@@ -27,11 +27,11 @@ export namespace ModuleResolver {
 	 * By a `ReactDefaultCSSModule` type of part.
 	 */
 	export async function resolveReactDefaultCSSModuleURIs(document: TextDocument): Promise<string[]> {
-		const text = document.getText()
-		const uris: string[] = []
+		let text = document.getText()
+		let uris: string[] = []
 
-		for (const modulePath of resolveNonNamedImportedPaths(text)) {
-			const uri = await PathResolver.resolveImportURI(modulePath, document)
+		for (let modulePath of resolveNonNamedImportedPaths(text)) {
+			let uri = await PathResolver.resolveImportURI(modulePath, document)
 			if (uri) {
 				uris.push(uri)
 			}
@@ -42,11 +42,11 @@ export namespace ModuleResolver {
 
 	/** Resolve `import '....css'`. */
 	function* resolveNonNamedImportedPaths(text: string): Iterable<string> {
-		const re = /import\s+['"`](.+?)['"`]/g
+		let re = /import\s+['"`](.+?)['"`]/g
 		let match: RegExpExecArray | null
 
 		while ((match = re.exec(text)) !== null) {
-			const path = match[1]
+			let path = match[1]
 
 			if (isCSSLikePath(path)) {
 				yield path

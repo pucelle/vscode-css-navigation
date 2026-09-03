@@ -38,9 +38,9 @@ import {GlobPathSharer} from './core/file-tracker/glob-path-sharer'
 import {getCodeActions} from './code-action'
 
 
-const connection: Connection = createConnection(ProposedFeatures.all)
+let connection: Connection = createConnection(ProposedFeatures.all)
 let configuration: Configuration
-const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument)
+let documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument)
 let server: CSSNavigationServer
 
 
@@ -52,7 +52,7 @@ let server: CSSNavigationServer
 
 // Server side request handlers.
 connection.onRequest('definitions', async({uri, position}: {uri: string, position: Position}) => {
-	const document = documents.get(uri)
+	let document = documents.get(uri)
 	if (!document) {
 		return {
 			success: false,
@@ -68,7 +68,7 @@ connection.onRequest('definitions', async({uri, position}: {uri: string, positio
 
 // Server side request handlers.
 connection.onRequest('references', async({uri, position}: {uri: string, position: Position}) => {
-	const document = documents.get(uri)
+	let document = documents.get(uri)
 	if (!document) {
 		return {
 			success: false,
@@ -86,7 +86,7 @@ connection.onRequest('references', async({uri, position}: {uri: string, position
 
 // Do initializing.
 connection.onInitialize((params: InitializeParams) => {
-	const options = params.initializationOptions as InitializationOptions
+	let options = params.initializationOptions as InitializationOptions
 	configuration = options.configuration
 	updateDiagnosticIgnoredClassNameMatcher(configuration.diagnosticIgnoredClassNames)
 	server = new CSSNavigationServer(options)
@@ -173,16 +173,16 @@ class CSSNavigationServer {
 		this.options = options
 		ClassNamesInJS.initWildNames(configuration.jsClassNameReferenceNames)
 		
-		const startPath = options.workspaceFolderPath
+		let startPath = options.workspaceFolderPath
 		
-		const alwaysIncludeGlobPattern = configuration.alwaysIncludeGlobPatterns
+		let alwaysIncludeGlobPattern = configuration.alwaysIncludeGlobPatterns
 			? generateGlobPatternByPatterns(configuration.alwaysIncludeGlobPatterns)
 			: undefined
 
 		// Shared glob querying.
-		const alwaysIncludeGlobSharer = alwaysIncludeGlobPattern ? new GlobPathSharer(alwaysIncludeGlobPattern, startPath) : undefined
+		let alwaysIncludeGlobSharer = alwaysIncludeGlobPattern ? new GlobPathSharer(alwaysIncludeGlobPattern, startPath) : undefined
 
-		const maxFileCount = configuration.maxFileCount;
+		let maxFileCount = configuration.maxFileCount;
 
 		this.htmlServiceMap = new HTMLServiceMap(documents, connection.window, {
 			includeFileGlobPattern: generateGlobPatternByExtensions(configuration.activeHTMLFileExtensions)!,
@@ -215,7 +215,7 @@ class CSSNavigationServer {
 		// All these events can't register for twice, or the first one will not work.
 
 		documents.onDidChangeContent(async (event: TextDocumentChangeEvent<TextDocument>) => {
-			const map = this.pickServiceMap(event.document)
+			let map = this.pickServiceMap(event.document)
 			map?.onDocumentOpenOrContentChanged(event.document)
 
 			// Update class name diagnostic results.
@@ -225,12 +225,12 @@ class CSSNavigationServer {
 		})
 
 		documents.onDidSave((event: TextDocumentChangeEvent<TextDocument>) => {
-			const map = this.pickServiceMap(event.document)
+			let map = this.pickServiceMap(event.document)
 			map?.onDocumentSaved(event.document)
 		})
 
 		documents.onDidClose((event: TextDocumentChangeEvent<TextDocument>) => {
-			const map = this.pickServiceMap(event.document)
+			let map = this.pickServiceMap(event.document)
 			map?.onDocumentClosed(event.document)
 			this.diagnosedVersionMap.delete(event.document.uri)
 		})
@@ -244,10 +244,10 @@ class CSSNavigationServer {
 	}
 
 	private pickServiceMap(document: TextDocument): HTMLServiceMap | CSSServiceMap | null {
-		const uri = document.uri
-		const documentExtension = getPathExtension(uri)
-		const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-		const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+		let uri = document.uri
+		let documentExtension = getPathExtension(uri)
+		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
 		if (isHTMLFile) {
 			return this.htmlServiceMap
@@ -262,13 +262,13 @@ class CSSNavigationServer {
 
 	/** Get definitions by document and position. */
 	async getDefinitions(document: TextDocument, position: Position): Promise<Location[] | null> {
-		const offset = document.offsetAt(position)
+		let offset = document.offsetAt(position)
 		return findDefinitions(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
 
 	/** Get references by document and position. */
 	async getReferences(document: TextDocument, position: Position): Promise<Location[] | null> {
-		const offset = document.offsetAt(position)
+		let offset = document.offsetAt(position)
 		return findReferences(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration, true)
 	}
 
@@ -285,15 +285,15 @@ class CSSNavigationServer {
 
 		this.updateTimestamp(time)
 
-		const documentIdentifier = params.textDocument
-		const document = documents.get(documentIdentifier.uri)
+		let documentIdentifier = params.textDocument
+		let document = documents.get(documentIdentifier.uri)
 
 		if (!document) {
 			return null
 		}
 
-		const position = params.position
-		const offset = document.offsetAt(position)
+		let position = params.position
+		let offset = document.offsetAt(position)
 
 		return findDefinitions(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
@@ -306,14 +306,14 @@ class CSSNavigationServer {
 
 		this.updateTimestamp(time)
 
-		const query = symbol.query
+		let query = symbol.query
 
 		// Returns nothing if haven't inputted.
 		if (!query) {
 			return null
 		}
 
-		const symbols: SymbolInformation[] = []
+		let symbols: SymbolInformation[] = []
 		symbols.push(...await this.cssServiceMap.findSymbols(query))
 
 		if (configuration.enableGlobalEmbeddedCSS) {
@@ -331,16 +331,16 @@ class CSSNavigationServer {
 
 		this.updateTimestamp(time)
 
-		const documentIdentifier = params.textDocument
-		const document = documents.get(documentIdentifier.uri)
+		let documentIdentifier = params.textDocument
+		let document = documents.get(documentIdentifier.uri)
 
 		if (!document) {
 			return null
 		}
 
 		// HTML or CSS file.
-		const position = params.position
-		const offset = document.offsetAt(position)
+		let position = params.position
+		let offset = document.offsetAt(position)
 
 		return getCompletionItems(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
@@ -353,15 +353,15 @@ class CSSNavigationServer {
 
 		this.updateTimestamp(time)
 
-		const documentIdentifier = params.textDocument
-		const document = documents.get(documentIdentifier.uri)
+		let documentIdentifier = params.textDocument
+		let document = documents.get(documentIdentifier.uri)
 
 		if (!document) {
 			return null
 		}
 
-		const position = params.position
-		const offset = document.offsetAt(position)
+		let position = params.position
+		let offset = document.offsetAt(position)
 
 		return findReferences(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration, false)
 	}
@@ -374,15 +374,15 @@ class CSSNavigationServer {
 
 		this.updateTimestamp(time)
 
-		const documentIdentifier = params.textDocument
-		const document = documents.get(documentIdentifier.uri)
+		let documentIdentifier = params.textDocument
+		let document = documents.get(documentIdentifier.uri)
 
 		if (!document) {
 			return null
 		}
 
-		const position = params.position
-		const offset = document.offsetAt(position)
+		let position = params.position
+		let offset = document.offsetAt(position)
 		
 		return findHover(document, offset, this.htmlServiceMap, this.cssServiceMap, configuration)
 	}
@@ -395,8 +395,8 @@ class CSSNavigationServer {
 
 		this.updateTimestamp(time)
 
-		const documentIdentifier = params.textDocument
-		const document = documents.get(documentIdentifier.uri)
+		let documentIdentifier = params.textDocument
+		let document = documents.get(documentIdentifier.uri)
 
 		if (!document) {
 			return null
@@ -413,8 +413,8 @@ class CSSNavigationServer {
 
 		this.updateTimestamp(time)
 
-		const documentIdentifier = params.textDocument
-		const document = documents.get(documentIdentifier.uri)
+		let documentIdentifier = params.textDocument
+		let document = documents.get(documentIdentifier.uri)
 
 		if (!document) {
 			return []
@@ -430,11 +430,11 @@ class CSSNavigationServer {
 
 	/** Apply settings that don't require rebuilding the tracked workspace. */
 	async onUpdatedConfiguration(nextConfiguration: Configuration) {
-		const didIgnoredClassNamesChange = !sameStringArray(
+		let didIgnoredClassNamesChange = !sameStringArray(
 			configuration.diagnosticIgnoredClassNames,
 			nextConfiguration.diagnosticIgnoredClassNames,
 		)
-		const shouldRefreshDiagnostics
+		let shouldRefreshDiagnostics
 			= configuration.enableClassNameDefinitionDiagnostic !== nextConfiguration.enableClassNameDefinitionDiagnostic
 				|| configuration.enableClassNameReferenceDiagnostic !== nextConfiguration.enableClassNameReferenceDiagnostic
 				|| didIgnoredClassNamesChange
@@ -446,8 +446,8 @@ class CSSNavigationServer {
 		}
 
 		if (shouldRefreshDiagnostics) {
-			for (const document of documents.all()) {
-				const diagnostics = await this.getClassNameDiagnostics(document)
+			for (let document of documents.all()) {
+				let diagnostics = await this.getClassNameDiagnostics(document)
 				void connection.sendDiagnostics({uri: document.uri, diagnostics: diagnostics ?? []})
 			}
 		}
@@ -455,23 +455,23 @@ class CSSNavigationServer {
 
 	/** Diagnose class names for a changed document. */
 	async diagnoseOpenedOrChanged(document: TextDocument) {
-		const documentExtension = getPathExtension(document.uri)
-		const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-		const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+		let documentExtension = getPathExtension(document.uri)
+		let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+		let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
 		if (!isHTMLFile && !isCSSFile) {
 			return
 		}
 
-		const previousVersion = this.diagnosedVersionMap.get(document.uri)
-		const isChanged = previousVersion !== undefined && document.version > previousVersion
+		let previousVersion = this.diagnosedVersionMap.get(document.uri)
+		let isChanged = previousVersion !== undefined && document.version > previousVersion
 		let fileCount = 0
-		const sharedCSSFragments = configuration.enableGlobalEmbeddedCSS
+		let sharedCSSFragments = configuration.enableGlobalEmbeddedCSS
 
 		Logger.timeStart('diagnostic-of-' + document.uri)
 
 		try {
-			const diagnostics = await this.getClassNameDiagnostics(document)
+			let diagnostics = await this.getClassNameDiagnostics(document)
 			if (diagnostics) {
 				void connection.sendDiagnostics({uri: document.uri, diagnostics})
 				fileCount++
@@ -498,16 +498,16 @@ class CSSNavigationServer {
 	private async diagnoseMoreOfType(type: 'html' | 'css' | 'any'): Promise<number> {
 		let fileCount = 0
 
-		for (const document of documents.all()) {
-			const documentExtension = getPathExtension(document.uri)
-			const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-			const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+		for (let document of documents.all()) {
+			let documentExtension = getPathExtension(document.uri)
+			let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+			let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
 			if (type === 'html' && !isHTMLFile || type === 'css' && !isCSSFile) {
 				continue
 			}
 
-			const diagnostics = await this.getClassNameDiagnostics(document)
+			let diagnostics = await this.getClassNameDiagnostics(document)
 			if (diagnostics) {
 				void connection.sendDiagnostics({uri: document.uri, diagnostics})
 				fileCount++

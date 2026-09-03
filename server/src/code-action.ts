@@ -15,10 +15,10 @@ function isClassNameDiagnostic(diagnostic: Diagnostic): boolean {
 
 /** Provide persistent suppression fixes for CSS Navigation class-name diagnostics. */
 export function getCodeActions(params: CodeActionParams): CodeAction[] {
-	const actions: CodeAction[] = []
-	const addedActions = new Set<string>()
+	let actions: CodeAction[] = []
+	let addedActions = new Set<string>()
 
-	for (const diagnostic of params.context.diagnostics) {
+	for (let diagnostic of params.context.diagnostics) {
 		if (!isClassNameDiagnostic(diagnostic)) {
 			continue
 		}
@@ -26,14 +26,14 @@ export function getCodeActions(params: CodeActionParams): CodeAction[] {
 		const {className} = diagnostic.data as ClassNameDiagnosticData
 
 		for (const [target, targetTitle] of [['workspace', 'Workspace'], ['user', 'User']] as const) {
-			const actionKey = `${target}:${className}`
+			let actionKey = `${target}:${className}`
 			if (addedActions.has(actionKey)) {
 				continue
 			}
-			
+
 			addedActions.add(actionKey)
 
-			const title = `Ignore "${className}" in ${targetTitle} Settings`
+			let title = `Ignore "${className}" in ${targetTitle} Settings`
 
 			actions.push({
 				title,

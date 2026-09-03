@@ -12,17 +12,17 @@ export async function getCompletionItems(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<CompletionItem[] | null> {
-	const documentExtension = getPathExtension(document.uri)
-	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-	const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+	let documentExtension = getPathExtension(document.uri)
+	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 
 	if (isHTMLFile) {
-		const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 		if (!currentHTMLService) {
 			return null
 		}
 
-		const fromPart = currentHTMLService.findDetailedPartAt(offset)
+		let fromPart = currentHTMLService.findDetailedPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -36,12 +36,12 @@ export async function getCompletionItems(
 		return await getCompletionItemsInHTML(fromPart, currentHTMLService, document, cssServiceMap, configuration, offset)
 	}
 	else if (isCSSFile) {
-		const currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
 		if (!currentCSSService) {
 			return null
 		}
 
-		const fromPart = currentCSSService.findDetailedPartAt(offset)
+		let fromPart = currentCSSService.findDetailedPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -68,22 +68,22 @@ async function getCompletionItemsInHTML(
 ): Promise<CompletionItem[] | null> {
 
 	// `#i` -> `i` to do completion is not working.
-	const matchPart = PartConvertor.toDefinitionMode(fromPart)
-	const labels = new CompletionLabels()
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
+	let labels = new CompletionLabels()
 
 	// Complete only from the CSS Module bound to `styles` in `styles.|` or `styles['|']`.
 	if (fromPart.type === PartType.ImportedCSSModuleProperty) {
-		const moduleNamePart = currentService.findPreviousPart(fromPart)
+		let moduleNamePart = currentService.findPreviousPart(fromPart)
 		if (!moduleNamePart || moduleNamePart.type !== PartType.ImportedCSSModuleName) {
 			return null
 		}
 
-		const uri = await ModuleResolver.resolveReactCSSModuleURIByName(moduleNamePart.escapedText, document)
+		let uri = await ModuleResolver.resolveReactCSSModuleURIByName(moduleNamePart.escapedText, document)
 		if (!uri) {
 			return null
 		}
 
-		const cssModuleService = await cssServiceMap.forceGetServiceByURI(uri)
+		let cssModuleService = await cssServiceMap.forceGetServiceByURI(uri)
 		if (!cssModuleService) {
 			return null
 		}
@@ -113,7 +113,7 @@ async function getCompletionItemsInHTML(
 		}
 	}
 
-	const forceEditCollapseToOffset = fromPart.type === PartType.ClassPotential ? offset : undefined
+	let forceEditCollapseToOffset = fromPart.type === PartType.ClassPotential ? offset : undefined
 	return labels.output(fromPart, document, forceEditCollapseToOffset)
 }
 
@@ -127,8 +127,8 @@ async function getCompletionItemsInCSS(
 	cssServiceMap: CSSServiceMap,
 	configuration: Configuration
 ): Promise<CompletionItem[] | null> {
-	const matchPart = PartConvertor.toDefinitionMode(fromPart)
-	const labels = new CompletionLabels()
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
+	let labels = new CompletionLabels()
 
 	// Find selector referenced completions from current document, and across all html documents.
 	// It ignores css selectors declaration completions, which will be filled by vscode.
@@ -144,7 +144,7 @@ async function getCompletionItemsInCSS(
 
 		// Remove repetitive items with current document.
 		if (configuration.disableOwnCSSVariableCompletion) {
-			const currentLabels = currentService.getReferencedCompletionLabels(fromPart)
+			let currentLabels = currentService.getReferencedCompletionLabels(fromPart)
 			labels.remove(currentLabels.keys())
 		}
 	}

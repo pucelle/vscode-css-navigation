@@ -26,10 +26,10 @@ export class Color {
 
 		// HTML color name.
 		else if (str in HTMLColorNames) {
-			const n = HTMLColorNames[str]
-			const r = (n & 0xff0000) >> 16
-			const g = (n & 0x00ff00) >> 8
-			const b = n & 0x0000ff
+			let n = HTMLColorNames[str]
+			let r = (n & 0xff0000) >> 16
+			let g = (n & 0x00ff00) >> 8
+			let b = n & 0x0000ff
 
 			rgba = {r, g, b, a: 1}
 		}
@@ -40,7 +40,7 @@ export class Color {
 		}
 
 		else {
-			const name = str.match(/^\w+/)?.[0]
+			let name = str.match(/^\w+/)?.[0]
 			if (!name) {
 				return null
 			}
@@ -52,7 +52,7 @@ export class Color {
 			
 			// hsl.
 			else if (name === 'hsl' || name === 'hsla') {
-				const hsla = parseHSLA(str)
+				let hsla = parseHSLA(str)
 				if (hsla) {
 					rgba = HSLA2RGBA(hsla)
 				}
@@ -72,7 +72,7 @@ export class Color {
 	 * H betweens `0~6`, SL betweens `0~1`.
 	 */
 	static fromHSL(h: number, s: number, l: number): Color {
-		const rgba = HSLA2RGBA({h, s, l, a: 1})
+		let rgba = HSLA2RGBA({h, s, l, a: 1})
 		const {r, g, b, a} = rgba
 
 		return new Color(r, g, b, a)
@@ -83,7 +83,7 @@ export class Color {
 	 * H betweens `0~6`, SLA betweens `0~1`.
 	 */
 	static fromHSLA(h: number, s: number, l: number, a: number): Color {
-		const rgba = HSLA2RGBA({h, s, l, a})
+		let rgba = HSLA2RGBA({h, s, l, a})
 		const {r, g, b} = rgba
 		
 		return new Color(r, g, b, a)
@@ -104,8 +104,8 @@ export class Color {
 			return improveColorString
 		}
 
-		const improveColor = Color.fromString(improveColorString)
-		const compareColor = Color.fromString(compareColorString)
+		let improveColor = Color.fromString(improveColorString)
+		let compareColor = Color.fromString(compareColorString)
 
 		if (!improveColor || !compareColor) {
 			return improveColorString
@@ -120,8 +120,8 @@ export class Color {
 			return true
 		}
 
-		const c1 = Color.fromString(color1)
-		const c2 = Color.fromString(color2)
+		let c1 = Color.fromString(color1)
+		let c2 = Color.fromString(color2)
 
 		if (!c1 || !c2) {
 			return false
@@ -152,7 +152,7 @@ export class Color {
 
 	/** Get `{h, s, l}` values, h betweens `0~6`, others betweens `0~1`. */
 	get hsl(): {h: number, s: number, l: number} {
-		const hsla = RGBA2HSLA(this)
+		let hsla = RGBA2HSLA(this)
 		const {h, s, l} = hsla
 
 		return {h, s, l}
@@ -160,7 +160,7 @@ export class Color {
 
 	/** Get `{h, s, l, a}` values, h betweens `0~6`, others betweens `0~1`. */
 	get hsla(): {h: number, s: number, l: number, a: number} {
-		const hsla = RGBA2HSLA(this)
+		let hsla = RGBA2HSLA(this)
 		return hsla
 	}
 
@@ -224,7 +224,7 @@ export class Color {
 
 	/** Convert to `HSL(...)` format. */
 	toHSL() {
-		const hsla = RGBA2HSLA(this)
+		let hsla = RGBA2HSLA(this)
 		let {h, s, l} = hsla
 
 		h = clamp(Math.round(h * 60), 0, 360)
@@ -236,7 +236,7 @@ export class Color {
 
 	/** Convert to `HSLA(...)` format. */
 	toHSLA() {
-		const hsla = RGBA2HSLA(this)
+		let hsla = RGBA2HSLA(this)
 		let {h, s, l, a} = hsla
 
 		h = clamp(Math.round(h * 60), 0, 360)
@@ -320,12 +320,12 @@ export class Color {
 	 * @param inverseContrastRate specifies the rate which will multiple with `minimumLightContrast` when the color value exceed 0~1.
 	 */
 	improveContrast(compareColor: Color, minimumLightContrast: number = 0.15, inverseContrastRate: number = 0.5) {
-		const hsl = RGBA2HSLA(this)
-		const compareHSL = RGBA2HSLA(compareColor)
+		let hsl = RGBA2HSLA(this)
+		let compareHSL = RGBA2HSLA(compareColor)
 
 		// Calc the light diff in HSL color space.
-		const hslDiff = Math.abs(hsl.l - compareHSL.l)
-		const hslToFix = minimumLightContrast - hslDiff
+		let hslDiff = Math.abs(hsl.l - compareHSL.l)
+		let hslToFix = minimumLightContrast - hslDiff
 		
 		// Difference enough. 
 		if (hslToFix <= 0) {

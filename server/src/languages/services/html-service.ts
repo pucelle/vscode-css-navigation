@@ -36,14 +36,14 @@ export class HTMLService extends BaseService {
 	}
 
 	protected initClassNamesReferenceSet() {
-		const classTexts = [
+		let classTexts = [
 			...this.partMap.get(PartType.Class)?.map(p => p.escapedText) || [],
 			...this.partMap.get(PartType.ImportedCSSModuleProperty)?.map(p => p.escapedText) || [],
 			...this.partMap.get(PartType.CSSSelectorQueryClass)?.map(p => p.escapedText.slice(1)) || [],
 			...this.partMap.get(PartType.ReactDefaultImportedCSSModuleClass)?.map(p => p.escapedText) || [],
 		]
 
-		for (const text of classTexts) {
+		for (let text of classTexts) {
 			this.classNamesReferenceSet.set(text, (this.classNamesReferenceSet.get(text) ?? 0) + 1)
 		}
 	}
@@ -67,8 +67,8 @@ export class HTMLService extends BaseService {
 	}
 
 	protected makeTree() {
-		const extension = path.extname(this.document.uri).slice(1).toLowerCase()
-		const languageId = HTMLLanguageIdMap[this.document.languageId] ?? HTMLLanguageExtensionMap[extension] ?? 'html'
+		let extension = path.extname(this.document.uri).slice(1).toLowerCase()
+		let languageId = HTMLLanguageIdMap[this.document.languageId] ?? HTMLLanguageExtensionMap[extension] ?? 'html'
 		
 		if (LanguageIds.isHTMLSyntax(languageId)) {
 			return HTMLTokenTree.fromString(this.document.getText(), 0, languageId)

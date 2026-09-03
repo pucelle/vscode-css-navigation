@@ -10,7 +10,7 @@ export namespace Logger {
 
 	/** Get a time marker `hh:MM:ss` for current time. */
 	function getTimeMarker() {
-		const date = new Date()
+		let date = new Date()
 		
 		return '['
 			+ String(date.getHours())
@@ -63,10 +63,10 @@ export namespace Logger {
 
 
 
-	const startTimeMap: Map<string, number> = new Map()
+	let startTimeMap: Map<string, number> = new Map()
 
 	export function getTimestamp(): number {
-		const time = process.hrtime()
+		let time = process.hrtime()
 		return time[0] * 1000 + time[1] / 1000000
 	}
 
@@ -77,14 +77,14 @@ export namespace Logger {
 
 	/** End a time counter with specified name. */
 	export function timeEnd(name: string, message: string | null = null) {
-		const startTime = startTimeMap.get(name)
+		let startTime = startTimeMap.get(name)
 		if (startTime === undefined) {
 			warn(`Timer "${name}" is not started`)
 			return
 		}
 
 		startTimeMap.delete(name)
-		const timeCost = Math.round(getTimestamp() - startTime)
+		let timeCost = Math.round(getTimestamp() - startTime)
 
 		if (message !== null) {
 			log('🕒 ' + message + ` in ${timeCost} ms`)
@@ -97,7 +97,7 @@ export namespace Logger {
 	/** Log executed time of a function, which will return a list, or a single item. */
 	export function logQuerierExecutedTime<A extends unknown[], T>(fn: ResultsHandler<[A[0], number], T>, type: string): ResultsHandler<A, T> {
 		return async (...args: A) => {
-			const startTime = getTimestamp()
+			let startTime = getTimestamp()
 			let result: Awaited<T> | null
 
 			try {
@@ -108,7 +108,7 @@ export namespace Logger {
 				return null
 			}
 
-			const time = toDecimal(getTimestamp() - startTime, 1)
+			let time = toDecimal(getTimestamp() - startTime, 1)
 			
 			if (Array.isArray(result)) {
 				if (result.length === 0) {

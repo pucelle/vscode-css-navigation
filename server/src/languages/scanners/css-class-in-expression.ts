@@ -117,7 +117,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 					break
 				}
 
-				const char = this.peekChar()
+				let char = this.peekChar()
 
 				// `|${`
 				if (char === '$' && this.peekChar(1) === '{' && LanguageIds.isScriptSyntax(this.languageId)) {
@@ -152,7 +152,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 					break
 				}
 
-				const char = this.peekChar()
+				let char = this.peekChar()
 
 				// `|${`
 				if (char === '$') {
@@ -223,7 +223,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 					break
 				}
 
-				const char = this.peekChar()
+				let char = this.peekChar()
 
 				// `|'` or `|"` or `|``
 				if (char === '\'' || char === '"' || char === '`') {
@@ -270,7 +270,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 				// `abc|`
 				this.readUntilNot(/\w/g)
 
-				const nameToken = this.makeToken(CSSClassInExpressionTokenType.ReactModuleName)
+				let nameToken = this.makeToken(CSSClassInExpressionTokenType.ReactModuleName)
 
 				if (!this.readWhiteSpaces()) {
 					break
@@ -284,7 +284,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 					this.sync()
 
 					this.readUntilNot(/\w/g)
-					const propertyToken = this.makeToken(CSSClassInExpressionTokenType.ReactModuleProperty)
+					let propertyToken = this.makeToken(CSSClassInExpressionTokenType.ReactModuleProperty)
 
 					if (propertyToken.text.length > 0) {
 						yield nameToken
@@ -310,7 +310,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 							return
 						}
 
-						const propertyToken = this.makeToken(CSSClassInExpressionTokenType.ReactModuleProperty, 1, -1)
+						let propertyToken = this.makeToken(CSSClassInExpressionTokenType.ReactModuleProperty, 1, -1)
 
 						if (propertyToken.text.length > 0) {
 							yield nameToken
@@ -354,7 +354,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 						break
 					}
 
-					const propertyToken = this.makeToken(CSSClassInExpressionTokenType.ClassName, 1, -1)
+					let propertyToken = this.makeToken(CSSClassInExpressionTokenType.ClassName, 1, -1)
 					if (!this.readWhiteSpaces()) {
 						break
 					}
@@ -373,7 +373,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 					// `abc|`
 					this.readUntilNot(/\w/g)
 
-					const propertyToken = this.makeToken(CSSClassInExpressionTokenType.ClassName)
+					let propertyToken = this.makeToken(CSSClassInExpressionTokenType.ClassName)
 					if (!this.readWhiteSpaces()) {
 						break
 					}
@@ -416,7 +416,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 					break
 				}
 
-				const char = this.peekChar()
+				let char = this.peekChar()
 
 				// `|'...':`
 				if (char === '\'' || char === '"' || char === '`') {
@@ -463,7 +463,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 		}
 
 		// Skip `abc${...}`
-		const char = this.peekChar()
+		let char = this.peekChar()
 		if (char === '$') {
 
 			// Move to `$|`

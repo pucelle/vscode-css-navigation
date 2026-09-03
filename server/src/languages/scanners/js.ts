@@ -61,7 +61,7 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 			return
 		}
 
-		const char = this.peekChar()
+		let char = this.peekChar()
 
 		// `|//`
 		if (char === '/' && this.peekChar(1) === '/') {
@@ -136,10 +136,10 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 
 	protected *mayMakeTemplateLiteralToken(): Iterable<JSToken> {
 		let templateTagName = ''
-		const nonWhiteSpacesOffset = this.backSearchChar(this.offset - 1, /\S/g)
+		let nonWhiteSpacesOffset = this.backSearchChar(this.offset - 1, /\S/g)
 
 		if (nonWhiteSpacesOffset > -1) {
-			const nameStartOffset = this.backSearchChar(nonWhiteSpacesOffset, /[^\w]/g)
+			let nameStartOffset = this.backSearchChar(nonWhiteSpacesOffset, /[^\w]/g)
 			templateTagName = this.string.slice(nameStartOffset + 1, nonWhiteSpacesOffset + 1)
 		}
 

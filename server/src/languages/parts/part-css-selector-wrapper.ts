@@ -19,8 +19,8 @@ export class CSSSelectorWrapperPart extends Part {
 		commandWrapped: boolean,
 		comment: string | undefined
 	) {
-		const formatted = parseFormatted(jointToken, parents, breaksSeparatorNesting)
-		const details = parseDetailedParts(group, parents, definitionEnd, commandWrapped)
+		let formatted = parseFormatted(jointToken, parents, breaksSeparatorNesting)
+		let details = parseDetailedParts(group, parents, definitionEnd, commandWrapped)
 
 		return new CSSSelectorWrapperPart(jointToken.text, jointToken.start, definitionEnd, comment, formatted, details)
 	}
@@ -78,8 +78,8 @@ function parseFormatted(jointToken: CSSSelectorToken, parents: CSSSelectorWrappe
 
 /** Join parent selectors. */
 function joinSelectorWithParent(token: CSSSelectorToken, parents: CSSSelectorWrapperPart[] | undefined, breaksSeparatorNesting: boolean): string[] {
-	const text = token.text
-	const re = /&/g
+	let text = token.text
+	let re = /&/g
 
 	if (!parents || parents.length === 0) {
 		return [text]
@@ -87,10 +87,10 @@ function joinSelectorWithParent(token: CSSSelectorToken, parents: CSSSelectorWra
 
 	// `a{&-b}` -> `a-b`.
 	if (re.test(text)) {
-		const joint: string[] = []
+		let joint: string[] = []
 
-		for (const parent of parents) {
-			for (const parentText of parent.formatted) {
+		for (let parent of parents) {
+			for (let parentText of parent.formatted) {
 				joint.push(text.replace(re, parentText))
 			}
 		}
@@ -100,10 +100,10 @@ function joinSelectorWithParent(token: CSSSelectorToken, parents: CSSSelectorWra
 
 	// `a{b}` -> `a b`.
 	else if (!breaksSeparatorNesting) {
-		const joint: string[] = []
+		let joint: string[] = []
 
-		for (const parent of parents) {
-			for (const parentText of parent.formatted) {
+		for (let parent of parents) {
+			for (let parentText of parent.formatted) {
 				joint.push(parentText + ' ' + text)
 			}
 		}

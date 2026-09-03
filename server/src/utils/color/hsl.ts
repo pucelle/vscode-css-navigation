@@ -44,8 +44,8 @@ export function parseHSLA(str: string): HSLA | null {
 /** Convert HSLA to RGBA. */
 export function HSLA2RGBA(hsla: HSLA): RGBA {
 	const {h, s, l, a} = hsla
-	const maxOfRGB = l <= 0.5 ? l * (s + 1) : l + s - (l * s)
-	const minOfRGB = l * 2 - maxOfRGB
+	let maxOfRGB = l <= 0.5 ? l * (s + 1) : l + s - (l * s)
+	let minOfRGB = l * 2 - maxOfRGB
 	
 	return {
 		r: hue2RGB(minOfRGB, maxOfRGB, (h + 2) % 6),
@@ -75,11 +75,11 @@ function hue2RGB(minOfRGB: number, maxOfRGB: number, hueDiff: number): number {
 /** Convert RGBA to HSLA. */
 export function RGBA2HSLA(rgba: RGBA): HSLA {
 	const {r, g, b, a} = rgba
-	const minOfRGB = Math.min(Math.min(r, g), b)
-	const maxOfRGB = Math.max(Math.max(r, g), b)
-	const l = (minOfRGB + maxOfRGB) / 2
+	let minOfRGB = Math.min(Math.min(r, g), b)
+	let maxOfRGB = Math.max(Math.max(r, g), b)
+	let l = (minOfRGB + maxOfRGB) / 2
 
-	const s = minOfRGB == maxOfRGB
+	let s = minOfRGB == maxOfRGB
 		? 0
 		: (maxOfRGB - minOfRGB) / (l <= 0.5 ? minOfRGB + maxOfRGB : 2 - minOfRGB - maxOfRGB)
 

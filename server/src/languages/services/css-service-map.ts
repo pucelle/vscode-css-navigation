@@ -26,14 +26,14 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 	protected definedClassNamesSet: Map<string, number> = new Map()
 
 	protected *walkAvailableServices(): IterableIterator<CSSService> {
-		const activeURIs = new Set(this.trackingMap.walkActiveURIs())
+		let activeURIs = new Set(this.trackingMap.walkActiveURIs())
 
-		for (const uri of activeURIs) {
+		for (let uri of activeURIs) {
 			if (this.config.ignoreSameNameCSSFile && shouldIgnoreSameNameCSSURI(uri, activeURIs)) {
 				continue
 			}
 
-			const service = this.serviceMap.get(uri)
+			let service = this.serviceMap.get(uri)
 			if (service) {
 				this.trackingMap.setUseTime(uri, this.timestamp)
 				yield service
@@ -46,7 +46,7 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 		// Make class name set.
 		this.definedClassNamesSet.clear()
 
-		for (const service of this.walkAvailableServices()) {
+		for (let service of this.walkAvailableServices()) {
 			for (const [className, count] of service.getDefinedClassNames()) {
 				this.definedClassNamesSet.set(className, (this.definedClassNamesSet.get(className) ?? 0) + count)
 			}
@@ -71,15 +71,15 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 	protected async parseDocument(uri: string, document: TextDocument) {
 		await super.parseDocument(uri, document)
 
-		const cssService = this.serviceMap.get(uri)
+		let cssService = this.serviceMap.get(uri)
 		if (!cssService) {
 			return
 		}
 
 		// If having `@import ...`, load it.
-		const importURIs = await cssService.getImportedCSSURIs()
+		let importURIs = await cssService.getImportedCSSURIs()
 
-		for (const importURI of importURIs) {
+		for (let importURI of importURIs) {
 			this.trackMoreURI(importURI)
 		}
 

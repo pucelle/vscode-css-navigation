@@ -53,10 +53,10 @@ export function joinTokens<T extends AnyToken<number>>(tokens: T[], string: stri
 		return tokens[0]
 	}
 	else {
-		const type = tokens[0].type
-		const start = tokens[0].start
-		const end = tokens[tokens.length - 1].end
-		const text = string.slice(start - tokenOffset, end - tokenOffset)
+		let type = tokens[0].type
+		let start = tokens[0].start
+		let end = tokens[tokens.length - 1].end
+		let text = string.slice(start - tokenOffset, end - tokenOffset)
 
 		return {
 			type,

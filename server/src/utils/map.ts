@@ -18,7 +18,7 @@ export class ListMap<K, V> {
 
 	/** Iterate all values. */
 	*values(): Iterable<V> {
-		for (const list of this.map.values()) {
+		for (let list of this.map.values()) {
 			yield* list
 		}
 	}
@@ -31,7 +31,7 @@ export class ListMap<K, V> {
 	/** Iterate each key and each associated value after flatted. */
 	*flatEntries(): Iterable<[K, V]> {
 		for (const [key, values] of this.map.entries()) {
-			for (const value of values) {
+			for (let value of values) {
 				yield [key, value]
 			}
 		}
@@ -56,7 +56,7 @@ export class ListMap<K, V> {
 	valueCount(): number {
 		let count = 0
 
-		for (const values of this.map.values()) {
+		for (let values of this.map.values()) {
 			count += values.length
 		}
 
@@ -134,7 +134,7 @@ export class ListMap<K, V> {
 			this.map.set(k, values)
 		}
 
-		for (const v of vs) {
+		for (let v of vs) {
 			if (!values.includes(v)) {
 				values.push(v)
 			}
@@ -153,9 +153,9 @@ export class ListMap<K, V> {
 
 	/** Delete a key value pair. */
 	delete(k: K, v: V) {
-		const values = this.map.get(k)
+		let values = this.map.get(k)
 		if (values) {
-			const index = values.indexOf(v)
+			let index = values.indexOf(v)
 			if (index > -1) {
 				values.splice(index, 1)
 				
@@ -168,10 +168,10 @@ export class ListMap<K, V> {
 
 	/** Delete a key and several values. */
 	deleteSeveral(k: K, vs: Iterable<V>): void {
-		const values = this.map.get(k)
+		let values = this.map.get(k)
 		if (values) {
-			for (const v of vs) {
-				const index = values.indexOf(v)
+			for (let v of vs) {
+				let index = values.indexOf(v)
 				if (index > -1) {
 					values.splice(index, 1)
 				}
@@ -215,7 +215,7 @@ export class SetMap<K, V> {
 
 	/** Iterate all values. */
 	*values(): Iterable<V> {
-		for (const list of this.map.values()) {
+		for (let list of this.map.values()) {
 			yield* list
 		}
 	}
@@ -228,7 +228,7 @@ export class SetMap<K, V> {
 	/** Iterate each key and each associated value after flatted. */
 	*flatEntries(): Iterable<[K, V]> {
 		for (const [key, values] of this.map.entries()) {
-			for (const value of values) {
+			for (let value of values) {
 				yield [key, value]
 			}
 		}
@@ -253,7 +253,7 @@ export class SetMap<K, V> {
 	valueCount(): number {
 		let count = 0
 
-		for (const values of this.map.values()) {
+		for (let values of this.map.values()) {
 			count += values.size
 		}
 
@@ -272,7 +272,7 @@ export class SetMap<K, V> {
 
 	/** Clone to get a new list map with same data. */
 	clone(): SetMap<K, V> {
-		const cloned = new SetMap<K, V>()
+		let cloned = new SetMap<K, V>()
 
 		for (const [key, set] of this.map.entries()) {
 			cloned.map.set(key, new Set(set))
@@ -304,7 +304,7 @@ export class SetMap<K, V> {
 			this.map.set(k, values)
 		}
 		else {
-			for (const v of vs) {
+			for (let v of vs) {
 				values.add(v)
 			}
 		}
@@ -317,7 +317,7 @@ export class SetMap<K, V> {
 
 	/** Delete a key value pair. */
 	delete(k: K, v: V) {
-		const values = this.map.get(k)
+		let values = this.map.get(k)
 		if (values) {
 			values.delete(v)
 
@@ -329,9 +329,9 @@ export class SetMap<K, V> {
 
 	/** Delete a key and several values. */
 	deleteSeveral(k: K, vs: Iterable<V>): void {
-		const values = this.map.get(k)
+		let values = this.map.get(k)
 		if (values) {
-			for (const v of vs) {
+			for (let v of vs) {
 				values.delete(v)
 			}
 								
@@ -385,7 +385,7 @@ export class TwoWayListMap<L, R> {
 
 	/** Iterate associated right keys by left key. */
 	*rightValuesOf(l: L): Iterable<R> {
-		const rs = this.lm.get(l)
+		let rs = this.lm.get(l)
 		if (rs) {
 			yield* rs
 		} 
@@ -393,7 +393,7 @@ export class TwoWayListMap<L, R> {
 
 	/** Iterate associated left keys by right key. */
 	*leftValuesOf(r: R): Iterable<L> {
-		const ls = this.rm.get(r)
+		let ls = this.rm.get(r)
 		if (ls) {
 			yield* ls
 		}
@@ -475,9 +475,9 @@ export class TwoWayListMap<L, R> {
 
 	/** Delete by left key. */
 	deleteLeft(l: L) {
-		const rs = this.getByLeft(l)
+		let rs = this.getByLeft(l)
 		if (rs) {
-			for (const r of rs) {
+			for (let r of rs) {
 				this.rm.delete(r, l)
 			}
 
@@ -487,9 +487,9 @@ export class TwoWayListMap<L, R> {
 
 	/** Delete by right key. */
 	deleteRight(r: R) {
-		const ls = this.getByRight(r)
+		let ls = this.getByRight(r)
 		if (ls) {
-			for (const l of ls) {
+			for (let l of ls) {
 				this.lm.delete(l, r)
 			}
 
@@ -499,23 +499,23 @@ export class TwoWayListMap<L, R> {
 
 	/** Replace left and all it's associated right keys. */
 	replaceLeft(l: L, rs: R[]) {
-		const oldRs = this.lm.get(l)
+		let oldRs = this.lm.get(l)
 
 		if (oldRs) {
-			for (const r of rs) {
+			for (let r of rs) {
 				if (!oldRs.includes(r)) {
 					this.rm.add(r, l)
 				}
 			}
 
-			for (const r of oldRs) {
+			for (let r of oldRs) {
 				if (!rs.includes(r)) {
 					this.rm.delete(r, l)
 				}
 			}
 		}
 		else {
-			for (const r of rs) {
+			for (let r of rs) {
 				this.rm.add(r, l)
 			}
 		}
@@ -532,23 +532,23 @@ export class TwoWayListMap<L, R> {
 
 	/** Replace right and all it's associated left keys. */
 	replaceRight(r: R, ls: L[]) {
-		const oldLs = this.rm.get(r)
+		let oldLs = this.rm.get(r)
 
 		if (oldLs) {
-			for (const l of ls) {
+			for (let l of ls) {
 				if (!oldLs.includes(l)) {
 					this.lm.add(l, r)
 				}
 			}
 
-			for (const l of oldLs) {
+			for (let l of oldLs) {
 				if (!ls.includes(l)) {
 					this.lm.delete(l, r)
 				}
 			}
 		}
 		else {
-			for (const l of ls) {
+			for (let l of ls) {
 				this.lm.add(l, r)
 			}
 		}

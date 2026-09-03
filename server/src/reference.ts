@@ -13,18 +13,18 @@ export async function findReferences(
 	configuration: Configuration,
 	pureReference: boolean
 ): Promise<Location[] | null> {
-	const documentExtension = getPathExtension(document.uri)
-	const isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
-	const isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
+	let documentExtension = getPathExtension(document.uri)
+	let isHTMLFile = configuration.activeHTMLFileExtensions.includes(documentExtension)
+	let isCSSFile = configuration.activeCSSFileExtensions.includes(documentExtension)
 	let locations: Location[] | null = null
 
 	if (isHTMLFile) {
-		const currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
+		let currentHTMLService = await htmlServiceMap.forceGetServiceByDocument(document)
 		if (!currentHTMLService) {
 			return null
 		}
 
-		const fromPart = currentHTMLService.findDetailedPartAt(offset)
+		let fromPart = currentHTMLService.findDetailedPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -37,12 +37,12 @@ export async function findReferences(
 		locations = await findReferencesInHTML(fromPart, currentHTMLService, htmlServiceMap, cssServiceMap, configuration, pureReference)
 	}
 	else if (isCSSFile) {
-		const currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
+		let currentCSSService = await cssServiceMap.forceGetServiceByDocument(document)
 		if (!currentCSSService) {
 			return null
 		}
 
-		const fromPart = currentCSSService.findDetailedPartAt(offset)
+		let fromPart = currentCSSService.findDetailedPartAt(offset)
 		if (!fromPart) {
 			return null
 		}
@@ -63,9 +63,9 @@ async function findReferencesInHTML(
 	configuration: Configuration,
 	pureReference: boolean
 ): Promise<Location[] | null> {
-	const matchPart = PartConvertor.toDefinitionMode(fromPart)
-	const contextMatchParts = currentService.getContextualDefMatchParts(fromPart)
-	const locations: Location[] = []
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
+	let contextMatchParts = currentService.getContextualDefMatchParts(fromPart)
+	let locations: Location[] = []
 
 
 	if (pureReference) {
@@ -106,9 +106,9 @@ async function findReferencesInCSS(
 	cssServiceMap: CSSServiceMap,
 	pureReference: boolean
 ): Promise<Location[] | null> {
-	const matchPart = PartConvertor.toDefinitionMode(fromPart)
-	const contextMatchParts = currentService.getContextualDefMatchParts(fromPart)
-	const locations: Location[] = []
+	let matchPart = PartConvertor.toDefinitionMode(fromPart)
+	let contextMatchParts = currentService.getContextualDefMatchParts(fromPart)
+	let locations: Location[] = []
 
 
 	if (pureReference) {

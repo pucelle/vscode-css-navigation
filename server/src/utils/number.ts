@@ -22,11 +22,11 @@ export function toDecimal(number: number, decimalCount: number): number {
 	}
 
 	if (decimalCount > 0) {
-		const n = Math.pow(10, decimalCount)
+		let n = Math.pow(10, decimalCount)
 		return Math.round(number * n) / n
 	}
 	else {
-		const n = Math.pow(10, -decimalCount)
+		let n = Math.pow(10, -decimalCount)
 		return Math.round(number / n) * n
 	}
 }
