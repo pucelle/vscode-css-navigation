@@ -44,7 +44,7 @@ export class CSSTokenNode extends AnyTokenNode<CSSToken> {
 		}
 	}
 
-	isRoot(): boolean {
+	override isRoot(): boolean {
 		return this.type === CSSTokenNodeType.Root
 	}
 

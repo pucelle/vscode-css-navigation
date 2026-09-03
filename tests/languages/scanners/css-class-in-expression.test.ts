@@ -30,6 +30,16 @@ function potentialClassNameCompletions(tokens: Array<{type: number, text: string
 
 describe('CSSClassInExpressionTokenScanner', () => {
 	describe('JSX: class, className', () => {
+		it('scans a class-name array initializer with ternary branches', () => {
+			let tokens = scan(`[
+				'classA',
+				connected ? 'connected' : 'disconnected',
+				'classB',
+			].join(' ');`, 'js', true)
+
+			expect(classNames(tokens)).toEqual(['classA', 'connected', 'disconnected', 'classB'])
+		})
+
 		it('scans class="class1"', () => {
 			let tokens = scan('"class1"', 'jsx')
 			expect(classNames(tokens)).toContain('class1')

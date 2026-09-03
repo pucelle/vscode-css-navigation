@@ -27,8 +27,12 @@ export class AnyTokenScanner<T extends number> {
 	readonly scannerStart: number
 	readonly languageId: HTMLLanguageId | CSSLanguageId
 
-	protected start = 0
-	protected offset = 0
+	/** Next token start. */
+	start = 0
+
+	/** Current scan offset. */
+	offset = 0
+
 	protected state: number = ScanState.AnyContent
 
 	/** For complex state management when you don't want building a tree. */

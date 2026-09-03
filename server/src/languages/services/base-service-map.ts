@@ -32,20 +32,20 @@ export abstract class BaseServiceMap<S extends BaseService> extends FileTracker 
 		this.timestamp = time
 	}
 
-	protected onFileExpired(uri: string) {
+	protected override onFileExpired(uri: string) {
 		this.serviceMap.delete(uri)
 	}
 
-	protected onFileUntracked(uri: string) {
+	protected override onFileUntracked(uri: string) {
 		this.serviceMap.delete(uri)
 	}
 
-	protected onReleaseResources() {
+	protected override onReleaseResources() {
 		this.serviceMap.clear()
 	}
 
 	// eslint-disable-next-line @typescript-eslint/require-await -- overrides FileTracker.parseDocument, whose contract returns a Promise
-	protected async parseDocument(uri: string, document: TextDocument) {
+	protected override async parseDocument(uri: string, document: TextDocument) {
 		try {
 			let service = this.createService(document)
 			this.serviceMap.set(uri, service)

@@ -14,10 +14,13 @@
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"noImplicitReturns": true,
+		"noImplicitOverride": true,
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitAny": true,
 		"noImplicitThis": true,
-		"composite": true
+		"composite": true,
+		"preserveSymlinks": true,
+		"tsBuildInfoFile": "out/tsconfig.tsbuildinfo",
 	},
 	"include": [
 		"src",

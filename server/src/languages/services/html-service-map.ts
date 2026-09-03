@@ -34,7 +34,7 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 		this.cssServiceMap = cssServiceMap
 	}
 
-	protected untrackURI(uri: string) {
+	protected override untrackURI(uri: string) {
 		super.untrackURI(uri)
 
 		if (this.config.enableGlobalEmbeddedCSS) {
@@ -57,12 +57,12 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 		}
 	}
 
-	protected onReleaseResources() {
+	protected override onReleaseResources() {
 		super.onReleaseResources()
 		this.cssImportMap.clear()
 	}
 
-	protected onAfterUpdated() {
+	protected override onAfterUpdated() {
 
 		// Make definition class name set.
 		this.definedClassNamesSet.clear()
@@ -107,7 +107,7 @@ export class HTMLServiceMap extends BaseServiceMap<HTMLService> {
 	}
 
 	/** Parse document to HTML service, and analyze imported. */
-	protected async parseDocument(uri: string, document: TextDocument) {
+	protected override async parseDocument(uri: string, document: TextDocument) {
 		await super.parseDocument(uri, document)
 
 		if (this.config.enableGlobalEmbeddedCSS) {

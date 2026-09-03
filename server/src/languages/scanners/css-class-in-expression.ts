@@ -56,20 +56,39 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 	/** Start index of string part. */
 	private stringStart: number = -1
 
+	/** To ensure string quotes match. */
 	private stringStartStack: number[] = []
+
+	/** Sets to true will stop scanning after finish the whole expression. */
+	private stopAfterExpression: boolean = false
 
 	/** 
 	 * If can knows that current string is absolute an expression,
 	 * no bracket marker like `{...}`,
 	 * like x-bind:class=`variable ? a : b`,
 	 * or :class=`{prop: boolean}`
+	 * 
 	 * `alreadyAnExpression` indicates whether have no `${...}` or `{...}` wrapped and already an expression.
+	 * `stopAfterExpression` requires `alreadyAnExpression` to be true.
 	 */
-	constructor(string: string, scannerStart: number = 0, languageId: AllLanguageId, alreadyAnExpression: boolean) {
+	constructor(
+		string: string,
+		scannerStart: number = 0,
+		languageId: AllLanguageId,
+		alreadyAnExpression: boolean,
+		stopAfterExpression: boolean = false
+	) {
 		super(string, scannerStart, languageId)
 
 		if (alreadyAnExpression) {
-			this.enterState(ScanState.WithinExpression)
+			if (stopAfterExpression) {
+				this.state = ScanState.WithinExpression
+			}
+			else {
+				this.enterState(ScanState.WithinExpression)
+			}
+
+			this.stopAfterExpression = stopAfterExpression
 		}
 	}
 
@@ -219,7 +238,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			}
 
 			else if (this.state === ScanState.WithinExpression) {
-				if (!this.readUntilToMatch(/['"`{\[\w\}]/g)) {
+				if (!this.readUntilToMatch(this.stopAfterExpression ? /['"`{\[\w\},;]/g : /['"`{\[\w\}]/g)) {
 					break
 				}
 
@@ -256,6 +275,12 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 					// Move to `}|`
 					this.offset += 1
 					this.exitState()
+				}
+
+				// Stop only at the boundary of the root assignment or property value.
+				else if (char === ',' || char === ';') {
+					this.offset += 1
+					this.state = ScanState.EOF
 				}
 
 				// `|a`

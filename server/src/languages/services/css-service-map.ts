@@ -25,7 +25,7 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 	/** Class map to contains all the class names and their count of whole service. */
 	protected definedClassNamesSet: Map<string, number> = new Map()
 
-	protected *walkAvailableServices(): IterableIterator<CSSService> {
+	protected override *walkAvailableServices(): IterableIterator<CSSService> {
 		let activeURIs = new Set(this.trackingMap.walkActiveURIs())
 
 		for (let uri of activeURIs) {
@@ -41,7 +41,7 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 		}
 	}
 
-	protected onAfterUpdated() {
+	protected override onAfterUpdated() {
 
 		// Make class name set.
 		this.definedClassNamesSet.clear()
@@ -68,7 +68,7 @@ export class CSSServiceMap extends BaseServiceMap<CSSService> {
 	}
 
 	/** Parse document to CSS service, and analyze imported. */
-	protected async parseDocument(uri: string, document: TextDocument) {
+	protected override async parseDocument(uri: string, document: TextDocument) {
 		await super.parseDocument(uri, document)
 
 		let cssService = this.serviceMap.get(uri)

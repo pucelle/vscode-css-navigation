@@ -46,7 +46,7 @@ export class CSSSelectorDetailedPart extends Part {
 		this.independent = independent
 	}
 
-	protected escapeText(text: string): string {
+	protected override escapeText(text: string): string {
 		return escapedCSSSelector(text)
 	}
 

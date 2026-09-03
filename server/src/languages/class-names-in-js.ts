@@ -1,5 +1,5 @@
 import {Part, PartType} from './parts'
-import {Picker} from './trees'
+import {CSSClassInExpressionTokenScanner, CSSClassInExpressionTokenType} from './scanners/css-class-in-expression'
 
 
 /** 
@@ -11,7 +11,7 @@ import {Picker} from './trees'
 export namespace ClassNamesInJS {
 
 	let nameMatchRegExp: RegExp | null = null
-	let expressionMathRegExp: RegExp | null = null
+	let startMatchRegExp: RegExp | null = null
 
 
 	/** Set variable names wild match expressions. */
@@ -23,8 +23,8 @@ export namespace ClassNamesInJS {
 
 			let wrappedNameSource = '(?:' + nameSource + ')'
 
-			expressionMathRegExp = new RegExp(
-				`\\b(?:let|var|const)\\s+${wrappedNameSource}\\s*=\\s*["'\`]([\\w-]*?)["'\`]|\\.${wrappedNameSource}\\s*=\\s*["'\`]([\\w-]*?)["'\`]|[{,]\\s*${wrappedNameSource}\\s*:\\s*["'\`]([\\w-]*?)["'\`]`,
+			startMatchRegExp = new RegExp(
+				`\\b(?:let|var|const)\\s+${wrappedNameSource}\\s*=\\s*|\\.${wrappedNameSource}\\s*=\\s*|[{,]\\s*${wrappedNameSource}\\s*:\\s*`,
 				'gi'
 			)
 		}
@@ -40,21 +40,30 @@ export namespace ClassNamesInJS {
 
 	/** Walk for variable parts of `var xxxClassNameXXX = `... */
 	export function* walkParts(text: string, start: number = 0): Iterable<Part> {
-		if (!expressionMathRegExp) {
+		if (!startMatchRegExp) {
 			return
 		}
 
-		let matches = Picker.locateAllMatches(
-			text,
-			expressionMathRegExp,
-			[1, 2, 3]
-		)
+		startMatchRegExp.lastIndex = 0
 
-		for (let match of matches) {
-			let subMatch = match[1] ?? match[2] ?? match[3]
-			if (subMatch) {
-				yield (new Part(PartType.Class, subMatch.text, subMatch.start + start)).trim()
+		for (let match = startMatchRegExp.exec(text); match; match = startMatchRegExp.exec(text)) {
+			let expressionStart = match.index + match[0].length
+
+			let scanner = new CSSClassInExpressionTokenScanner(
+				text.slice(expressionStart),
+				start + expressionStart,
+				'js',
+				true,
+				true
+			)
+
+			for (let token of scanner.parseToTokens()) {
+				if (token.type === CSSClassInExpressionTokenType.ClassName) {
+					yield new Part(PartType.Class, token.text, token.start)
+				}
 			}
+
+			startMatchRegExp.lastIndex = scanner.offset
 		}
 	}
 }

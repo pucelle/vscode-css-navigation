@@ -494,7 +494,7 @@ export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 		return whiteList
 	}
 
-	protected *onWithinStartTag(): Iterable<HTMLToken> {
+	protected override *onWithinStartTag(): Iterable<HTMLToken> {
 		
 		// `<abc|`
 		this.readUntilNot(IsTagName)
@@ -517,7 +517,7 @@ export class WhiteListHTMLTokenScanner extends HTMLTokenScanner {
 		this.state = ScanState.AfterStartTag
 	}
 
-	protected *onWithinEndTag(): Iterable<HTMLToken> {
+	protected override *onWithinEndTag(): Iterable<HTMLToken> {
 
 		// `</abc|>` or `</|>`
 		this.readUntilNot(IsTagName)

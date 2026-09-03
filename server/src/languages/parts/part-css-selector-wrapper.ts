@@ -57,7 +57,7 @@ export class CSSSelectorWrapperPart extends Part {
 		this.primary = details.find(d => d.primary)
 	}
 
-	protected escapeText(text: string): string {
+	protected override escapeText(text: string): string {
 		return escapedCSSSelector(text)
 	}
 
