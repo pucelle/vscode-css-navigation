@@ -35,7 +35,7 @@ async function main() {
 			timeout: requestTimeoutMs,
 			extensionDevelopmentPath,
 			extensionTestsPath,
-			launchArgs: [`--user-data-dir=${userDataDir}`, testWorkspace],
+			launchArgs: [`--user-data-dir=${userDataDir}`, '--disable-extensions', testWorkspace],
 		})
 	}
 	catch (err) {
