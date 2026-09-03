@@ -4,6 +4,7 @@ import {Part, PartType} from './part'
 import {PartConvertor} from './part-convertor'
 import {CSSSelectorWrapperPart} from './part-css-selector-wrapper'
 import {escapedCSSSelector} from './utils'
+import {normalizeAttributeSelector} from './attribute-selector'
 
 
 /** Detailed part, normally contains a tag/class/id selector. */
@@ -100,12 +101,16 @@ export function parseDetailedParts(
 			|| token.type === CSSSelectorTokenType.Nesting
 			|| token.type === CSSSelectorTokenType.Class
 			|| token.type === CSSSelectorTokenType.Id
-
+			|| token.type === CSSSelectorTokenType.Attribute
+		
 		if (!beDetailed) {
 			continue
 		}
 
-		let formatted = joinMainReferenceSelectorWithParent(token, parents)
+		let formatted = token.type === CSSSelectorTokenType.Attribute
+			? [normalizeAttributeSelector(token.text) ?? '']
+			: joinMainReferenceSelectorWithParent(token, parents)
+			
 		if (formatted.length === 0) {
 			continue
 		}
@@ -164,6 +169,9 @@ function getDetailedPartType(type: CSSSelectorTokenType, formatted: string[]): P
 	}
 	else if (type === CSSSelectorTokenType.Class) {
 		return PartType.CSSSelectorClass
+	}
+	else if (type === CSSSelectorTokenType.Attribute) {
+		return PartType.CSSSelectorAttribute
 	}
 	else {
 		return PartConvertor.getCSSSelectorDetailedTypeByText(formatted[0])

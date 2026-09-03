@@ -170,4 +170,59 @@ describe('contextual class navigation', () => {
 			[PartType.CSSSelectorClass, '.b'],
 		])
 	})
+
+	it('includes supported HTML attributes as normalized contextual match parts', () => {
+		const htmlText = `<input disabled="disabled" checked selected hidden type="checkbox" aria-current="page" data-state="open" class="a">`
+		const htmlDocument = TextDocument.create('file:///workspace/index.html', 'html', 1, htmlText)
+		const htmlService = new HTMLService(htmlDocument, configuration)
+		const fromPart = htmlService.findPartAt(htmlText.indexOf('class="a"') + 7)!
+
+		expect(htmlService.getContextualDefMatchParts(fromPart)
+			.filter(part => part.type === PartType.CSSSelectorAttribute)
+			.map(part => part.escapedText)
+		).toEqual([
+			'[disabled]',
+			'[checked]',
+			'[selected]',
+			'[hidden]',
+			'[type=checkbox]',
+			'[aria-current=page]',
+			'[data-state=open]',
+		])
+	})
+
+	it('prefers a class definition with matching attribute selectors', () => {
+		const htmlText = `<input type="checkbox" aria-current="page" data-state="open" class="a">`
+		const cssText = `.a {}\n.a[type="checkbox"][aria-current=page][data-state='open'] {}`
+		const htmlDocument = TextDocument.create('file:///workspace/index.html', 'html', 1, htmlText)
+		const cssDocument = TextDocument.create('file:///workspace/style.css', 'css', 1, cssText)
+		const htmlService = new HTMLService(htmlDocument, configuration)
+		const cssService = new CSSService(cssDocument, configuration)
+		const fromPart = htmlService.findPartAt(htmlText.indexOf('class="a"') + 7)!
+		const matches = cssService.findDefinitionMatchParts(
+			PartConvertor.toDefinitionMode(fromPart),
+			htmlService.getContextualDefMatchParts(fromPart),
+		)
+
+		expect(matches.contextual).toHaveLength(1)
+		expect(matches.contextual[0].start).toBe(cssText.lastIndexOf('.a'))
+	})
+
+	it('prefers class references with matching boolean attributes', () => {
+		const cssText = `.a[disabled] {}`
+		const htmlText = `<button class="a"></button>\n<button class="a" disabled></button>`
+		const cssDocument = TextDocument.create('file:///workspace/style.css', 'css', 1, cssText)
+		const htmlDocument = TextDocument.create('file:///workspace/index.html', 'html', 1, htmlText)
+		const cssService = new CSSService(cssDocument, configuration)
+		const htmlService = new HTMLService(htmlDocument, configuration)
+		const fromPart = cssService.findDetailedPartAt(cssText.indexOf('.a') + 1)!
+		const matches = htmlService.findReferenceMatchParts(
+			PartConvertor.toDefinitionMode(fromPart),
+			fromPart,
+			cssService.getContextualDefMatchParts(fromPart),
+		)
+
+		expect(matches.contextual).toHaveLength(1)
+		expect(matches.contextual[0].start).toBe(htmlText.lastIndexOf('class="a"') + 7)
+	})
 })

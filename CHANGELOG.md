@@ -3,9 +3,11 @@
 
 ## [2.15.0]
 
-- Support CSS Module completion and definition lookup for imported module objects throughout JavaScript and TypeScript files. #134.
-- Add configurable class-name diagnostic exclusions, including wildcard matching and Workspace/User Settings quick fixes. #128.
-- Prefer CSS definitions whose selector-wrapper children match the source HTML tag, id, and class selectors, and use the same context to narrow references. #126.
+- Support CSS Module completion and definition lookup for imported module objects throughout JavaScript and TypeScript files. for #134.
+- Add configurable class-name diagnostic exclusions, including wildcard matching and Workspace/User Settings quick fixes. for #128.
+- Prefer CSS definitions whose selector-wrapper children match the source HTML tag, id, and class selectors, and use the same context to narrow references. for #126.
+- Support class name discovery for expressions like `xxxClassName = ['classes', ...] / {'class': true} / a ? 'class1' : 'class2'`, for #122.
+- Support property selectors: [disabled] [checked] [selected] [hidden] [type=...] [aria-=...] [data-=...], for #53 and #121.
 - Preserve VS Code's built-in color decorators in JavaScript and TypeScript files while CSS variable color previews are enabled.
 - Restore the `ignoreSameNameCSSFile` option, which excludes generated CSS files when a same-name SCSS, Sass, or Less source exists.
 - Apply ordinary configuration changes to running language servers; restart only when file tracking or parsing topology changes.

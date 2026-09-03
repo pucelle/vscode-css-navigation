@@ -36,6 +36,9 @@ export enum PartType {
 	/** To do completion like `class="|"`. */
 	ClassPotential,
 
+	/** Partial HTML attribute used for selector matching. */
+	Attribute,
+
 	/**
 	 * `querySelector('div')`
 	 * `$('div')`
@@ -88,6 +91,9 @@ export enum PartType {
 
 	/** It includes identifier `.`. */
 	CSSSelectorClass,
+
+	/** A normalized presence or exact-value attribute selector. */
+	CSSSelectorAttribute,
 
 	/** `--variable-name: ...;` */
 	CSSVariableDefinition,
@@ -185,6 +191,7 @@ export class Part {
 		return this.type === PartType.CSSSelectorTag
 			|| this.type === PartType.CSSSelectorId
 			|| this.type === PartType.CSSSelectorClass
+			|| this.type === PartType.CSSSelectorAttribute
 	}
 
 	isReferenceType() {
@@ -229,6 +236,7 @@ export class Part {
 		return this.type === PartType.CSSSelectorTag
 			|| this.type === PartType.CSSSelectorId
 			|| this.type === PartType.CSSSelectorClass
+			|| this.type === PartType.CSSSelectorAttribute
 	}
 
 	/** 
@@ -240,6 +248,7 @@ export class Part {
 			|| this.type === PartType.CSSSelectorTag
 			|| this.type === PartType.CSSSelectorId
 			|| this.type === PartType.CSSSelectorClass
+			|| this.type === PartType.CSSSelectorAttribute
 	}
 
 	/** Remove start and end quotes. */

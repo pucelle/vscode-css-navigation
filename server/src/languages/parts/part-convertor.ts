@@ -126,6 +126,9 @@ export namespace PartConvertor {
 		if (type === PartType.Tag) {
 			return PartType.CSSSelectorTag
 		}
+		else if (type === PartType.Attribute) {
+			return PartType.CSSSelectorAttribute
+		}
 		else if (type === PartType.Id) {
 			return PartType.CSSSelectorId
 		}

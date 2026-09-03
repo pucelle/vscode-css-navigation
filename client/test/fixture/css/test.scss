@@ -197,6 +197,47 @@ div.class-match10{
 	color: red;
 }
 
+/* Manually test contextual attribute-selector definition/reference matching. */
+.attribute-boolean[disabled]{
+	color: red;
+}
+
+.attribute-boolean[checked]{
+	color: green;
+}
+
+.attribute-boolean[selected]{
+	color: blue;
+}
+
+.attribute-boolean[hidden]{
+	display: none;
+}
+
+.attribute-value[type="checkbox"]{
+	color: red;
+}
+
+.attribute-value[type=text]{
+	color: green;
+}
+
+.attribute-value[aria-current="page"]{
+	font-weight: bold;
+}
+
+.attribute-value[aria-current=false]{
+	font-weight: normal;
+}
+
+.attribute-value[data-state="open"]{
+	display: block;
+}
+
+.attribute-value[data-state=closed]{
+	display: none;
+}
+
 @media (min-width: 1280px) {
     .xl\:w-1\/6{
         width: 16.666667%;

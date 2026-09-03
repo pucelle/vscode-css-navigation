@@ -84,6 +84,20 @@
 	<div class="xl:w-1/6"></div>
 	<div class="-class-starts-with-dash"></div>
 
+	<!-- Manually test contextual attribute-selector definition/reference matching. -->
+	<button class="attribute-boolean" disabled>disabled</button>
+	<input class="attribute-boolean" checked type="checkbox">
+	<option class="attribute-boolean" selected>selected</option>
+	<div class="attribute-boolean" hidden>hidden</div>
+	<button class="attribute-boolean">no boolean attribute</button>
+
+	<input class="attribute-value" type="checkbox">
+	<input class="attribute-value" type="text">
+	<a class="attribute-value" aria-current="page">current page</a>
+	<a class="attribute-value" aria-current="false">not current</a>
+	<div class="attribute-value" data-state="open"></div>
+	<div class="attribute-value" data-state="closed"></div>
+
 	<style>
 	.css-class-in-style{
 		color: red;

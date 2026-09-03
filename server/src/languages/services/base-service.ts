@@ -56,6 +56,7 @@ export abstract class BaseService {
 		this.partMap.set(PartType.CSSSelectorTag, [])
 		this.partMap.set(PartType.CSSSelectorClass, [])
 		this.partMap.set(PartType.CSSSelectorId, [])
+		this.partMap.set(PartType.CSSSelectorAttribute, [])
 
 		for (let part of selectorParts) {
 			for (let detail of part.details) {
@@ -455,7 +456,7 @@ export abstract class BaseService {
 		for (let i = tagIndex + 1; i < this.parts.length; i++) {
 			let candidate = this.parts[i]
 
-			if (candidate.end > tag.containerEnd) {
+			if (candidate.start >= tag.containerEnd) {
 				break
 			}
 			if (candidate === part) {
