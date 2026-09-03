@@ -9,6 +9,17 @@ Provides CSS **Completion**, **Finding Definition**, **Finding References**, **D
 ## Features
 
 
+### Renaming, Property Selector - New in V2.15
+
+In v2.15, we support:
+
+- class and id renaming.
+- property selectors: [disabled] [checked] [selected] [hidden] [type=...] [aria-=...] [data-=...].
+`:is` and `:where`.
+- `ignoreSameNameCSSFile` option, which excludes generated CSS files when a same-name SCSS, Sass, or Less source exists.
+
+
+
 ### Class Name CodeLens - New in V2.8
 
 Since v2.8.0, this plugin provides **Class Name CodeLens** feature. You should set following options to `true` to enable:
