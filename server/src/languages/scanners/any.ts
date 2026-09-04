@@ -216,6 +216,22 @@ export class AnyTokenScanner<T extends number> {
 		return true
 	}
 
+	/** Skip a comment at the cursor, leaving line endings available to callers. */
+	protected skipComment(): boolean {
+		if (this.peekChar() !== '/') return false
+		if (this.peekChar(1) === '/' && this.languageId !== 'css') {
+			this.offset += 2
+			this.readUntilToMatch(/[\r\n\u2028\u2029]/g)
+			return true
+		}
+		if (this.peekChar(1) === '*') {
+			this.offset += 2
+			this.readOutToMatch(/\*\//g)
+			return true
+		}
+		return false
+	}
+
 	/** 
 	 * Try read an bracketed expression like `[...]`, `(...)`, `{...}`.
 	 * Must ensure the current char is one of `[{(`,
@@ -249,22 +265,7 @@ export class AnyTokenScanner<T extends number> {
 			}
 
 			// `|/*`
-			else if (char === '/' && this.peekChar(1) === '*') {
-
-				// Move cursor to `/*|`.
-				this.offset += 2
-
-				this.readOutToMatch(/\*\//g)
-				continue
-			}
-
-			// `|//`
-			else if (char === '/' && this.peekChar(1) === '/' && this.languageId !== 'css') {
-
-				// Move cursor to `//|`.
-				this.offset += 2
-
-				this.readLineAndEnd()
+			else if (this.skipComment()) {
 				continue
 			}
 

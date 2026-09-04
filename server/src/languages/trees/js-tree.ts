@@ -1,4 +1,4 @@
-import {JSToken, JSTokenScanner, JSTokenType, CSSSelectorTokenScanner, CSSSelectorTokenType, WhiteListHTMLTokenScanner} from '../scanners'
+import {JSToken, JSTokenScanner, JSTokenType, CSSSelectorTokenScanner, CSSSelectorTokenType, WhiteListHTMLTokenScanner, isWithinJSNonCode} from '../scanners'
 import {AttributeSelectorReferencePart, Part, PartType, normalizeAttributeSelector} from '../parts'
 import {Picker} from './picker'
 import {isCSSLikePath} from '../../utils'
@@ -113,15 +113,24 @@ export class JSTokenTree extends JSTokenNode {
 		let text = node.token.text
 		let start = node.token.start
 
+		let isIgnoredMatch = (match: {start: number, text: string}) => isWithinJSNonCode(
+			start + match.start, start + match.start + match.text.length,
+			node.token.stringLocations, node.token.commentLocations
+		)
+
 		// `querySelect('.class-name')`
 	 	// `$('.class-name')`
 		let selectorMatches = Picker.locateAllMatches(
 			text,
 			/(?:\$|\.querySelector|\.querySelectorAll)\s*\(\s*(['"`])((?:(?!\1).)*)\1/g,
-			[2]
+			[0, 2]
 		)
 
 		for (let match of selectorMatches) {
+			if (isIgnoredMatch(match[0])) {
+				continue
+			}
+
 			let selector = match[2].text
 			let selectorStart = match[2].start + start
 			let tokens = new CSSSelectorTokenScanner(selector, selectorStart, 'css').parseToTokens()
@@ -150,16 +159,20 @@ export class JSTokenTree extends JSTokenNode {
 		let matches = Picker.locateAllMatches(
 			text,
 			/\.classList\.add\s*\(\s*['"`]([\w-]*)['"`]/g,
-			[1]
+			[0, 1]
 		)
 
 		for (let match of matches) {
+			if (isIgnoredMatch(match[0])) {
+				continue
+			}
+
 			yield (new Part(PartType.Class, match[1].text, match[1].start + start)).trim()
 		}
 
 
 		// `var xxxClassNameXXX = `
-		for (let part of ClassNamesInJS.walkParts(text, start)) {
+		for (let part of ClassNamesInJS.walkParts(text, start, node.token.stringLocations, node.token.commentLocations)) {
 			yield part
 		}
 
@@ -168,10 +181,14 @@ export class JSTokenTree extends JSTokenNode {
 		matches = Picker.locateAllMatches(
 			text,
 			/\.setProperty\s*\(\s*['"`](-[\w-]*)['"`]/g,
-			[1]
+			[0, 1]
 		)
 
 		for (let match of matches) {
+			if (isIgnoredMatch(match[0])) {
+				continue
+			}
+
 			yield (new Part(PartType.CSSVariableAssignment, match[1].text, match[1].start + start)).trim()
 		}
 
@@ -182,10 +199,14 @@ export class JSTokenTree extends JSTokenNode {
 		matches = Picker.locateAllMatches(
 			text,
 			/import\s+(?:\w+\s+from\s+)?['"`](.+?)['"`]/g,
-			[1]
+			[0, 1]
 		)
 
 		for (let match of matches) {
+			if (isIgnoredMatch(match[0])) {
+				continue
+			}
+			
 			let path = match[1].text
 
 			if (isCSSLikePath(path)) {

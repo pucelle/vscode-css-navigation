@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.15.1]
+
+- Fix many class name missing warnings appear issue.
+
+
 ## [2.15.0]
 
 - Support CSS Module completion and definition lookup for imported module objects throughout JavaScript and TypeScript files. for #134.

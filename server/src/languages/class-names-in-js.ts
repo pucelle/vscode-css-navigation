@@ -1,5 +1,6 @@
 import {Part, PartType} from './parts'
 import {CSSClassInExpressionTokenScanner, CSSClassInExpressionTokenType} from './scanners/css-class-in-expression'
+import {JSStringLocation, JSTokenScanner, JSTokenType, isWithinJSNonCode} from './scanners/js'
 
 
 /** 
@@ -28,7 +29,9 @@ export namespace ClassNamesInJS {
 				'gi'
 			)
 		}
-		catch { /* ignore invalid user-supplied wild-name pattern; leave the regex unset */ }
+		catch {
+			//ignore invalid user-supplied wild-name pattern; leave the regex unset.
+		}
 	}
 
 
@@ -39,15 +42,31 @@ export namespace ClassNamesInJS {
 
 
 	/** Walk for variable parts of `var xxxClassNameXXX = `... */
-	export function* walkParts(text: string, start: number = 0): Iterable<Part> {
+	export function* walkParts(
+		text: string,
+		start: number = 0,
+		stringLocations?: readonly JSStringLocation[],
+		commentLocations?: readonly JSStringLocation[]
+	): Iterable<Part> {
 		if (!startMatchRegExp) {
 			return
+		}
+
+		// Script-tree callers reuse the locations collected during their existing scan.
+		// Standalone callers (including HTML attribute expressions) need the same protection.
+		if (!stringLocations || !commentLocations) {
+			let tokens = [...new JSTokenScanner(text, start, 'js').parseToTokens()]
+			stringLocations ??= tokens.flatMap(token => token.type === JSTokenType.Script ? token.stringLocations ?? [] : [{start: token.start, end: token.end}])
+			commentLocations ??= tokens.flatMap(token => token.commentLocations ?? [])
 		}
 
 		startMatchRegExp.lastIndex = 0
 
 		for (let match = startMatchRegExp.exec(text); match; match = startMatchRegExp.exec(text)) {
 			let expressionStart = match.index + match[0].length
+			if (isWithinJSNonCode(start + match.index, start + expressionStart, stringLocations, commentLocations)) {
+				continue
+			}
 
 			let scanner = new CSSClassInExpressionTokenScanner(
 				text.slice(expressionStart),

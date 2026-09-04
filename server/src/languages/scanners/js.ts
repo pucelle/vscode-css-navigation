@@ -1,4 +1,5 @@
 import {AnyTokenScanner} from './any'
+import {quickBinaryFindIndex} from '../../utils/list'
 
 
 export interface JSToken {
@@ -6,20 +7,43 @@ export interface JSToken {
 	text: string
 	start: number
 	end: number
+
+	/** Absolute, end-exclusive locations of strings, including their quotes, in Script tokens. */
+	stringLocations?: JSStringLocation[]
+
+	/** Absolute, end-exclusive comment ranges, including comment delimiters. */
+	commentLocations?: JSStringLocation[]
+}
+
+export interface JSStringLocation {
+	start: number
+	end: number
+}
+
+/** Look up a whole match in sorted, non-overlapping string/comment ranges. */
+export function isWithinJSNonCode(
+	start: number,
+	end: number,
+	stringLocations: readonly JSStringLocation[] = [],
+	commentLocations: readonly JSStringLocation[] = []
+): boolean {
+	for (let locations of [stringLocations, commentLocations]) {
+		let index = quickBinaryFindIndex(locations, location => {
+			return location.end <= start ? -1 : location.start > start ? 1 : 0
+		})
+
+		if (index >= 0 && end <= locations[index].end) {
+			return true
+		}
+	}
+
+	return false
 }
 
 export enum JSTokenType {
 	HTML,
 	CSS,
 	Script,
-}
-
-
-enum ScanState {
-	EOF = 0,
-	AnyContent = 1,
-	WithinSingleLineComment,
-	WithinMultiLineComment,
 }
 
 
@@ -30,20 +54,66 @@ enum ScanState {
 export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 
 	declare readonly languageId: Exclude<HTMLLanguageId, 'html'>
-	declare protected state: ScanState
+
+	private stringLocations: JSStringLocation[] = []
+	private commentLocations: JSStringLocation[] = []
+
+	protected override skipComment(): boolean {
+		let start = this.offset
+		if (!super.skipComment()) return false
+		this.commentLocations.push({start: start + this.scannerStart, end: this.offset + this.scannerStart})
+		return true
+	}
+
+	protected override readString(): boolean {
+		let start = this.offset
+		let result = super.readString()
+		this.addStringLocation(start, this.offset)
+		return result
+	}
+
+	/** Template text is a string, but the contents of ${...} are executable code. */
+	protected override readTemplateLiteral(): boolean {
+		let start = this.offset++
+
+		while (this.readOutToMatch(/[`\\$]/g)) {
+			let char = this.peekChar(-1)
+
+			if (char === '`') {
+				break
+			}
+
+			if (char === '\\') {
+				this.offset++
+			}
+			else if (char === '$' && this.peekChar() === '{') {
+				this.addStringLocation(start, this.offset + 1)
+
+				if (!this.readBracketed()) {
+					return false
+				}
+				
+				start = this.offset - 1
+			}
+		}
+
+		this.addStringLocation(start, this.offset)
+		return !this.isEnded()
+	}
+
+	private addStringLocation(start: number, end: number) {
+		this.stringLocations.push({
+			start: start + this.scannerStart,
+			end: Math.min(end, this.string.length) + this.scannerStart,
+		})
+	}
 
 	/** Parse html string to tokens. */
 	*parseToTokens(): Iterable<JSToken> {
-		while (this.state !== ScanState.EOF) {
-			if (this.state === ScanState.AnyContent) {
-				yield* this.onAnyContent()
-			}
-			else if (this.state === ScanState.WithinSingleLineComment) {
-				yield* this.onWithinSingleLineComment()
-			}
-			else if (this.state === ScanState.WithinMultiLineComment) {
-				yield* this.onWithinMultiLineComment()
-			}
+		while (!this.isEnded()) {
+			// Parse for at most 100KB.
+			if (this.offset > 100000) break
+			yield* this.onAnyContent()
 		}
 
 		yield* this.makeScriptToken()
@@ -51,36 +121,16 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 
 	protected *onAnyContent(): Iterable<JSToken> {
 
-		// Parse for at most 100KB.
-		if (this.offset > 100000) {
-			this.state = ScanState.EOF
-			return
-		}
-
 		if (!this.readUntilToMatch(/[`'"\/]/g)) {
 			return
 		}
 
 		let char = this.peekChar()
 
-		// `|//`
-		if (char === '/' && this.peekChar(1) === '/') {
-
-			// Move to `//|`
-			this.offset += 2
-			this.state = ScanState.WithinSingleLineComment
-		}
-
-		// `|/*`
-		else if (char === '/' && this.peekChar(1) === '*') {
-
-			// Move to `/*|`
-			this.offset += 2
-			this.state = ScanState.WithinMultiLineComment
-		}
+		if (this.skipComment()) return
 
 		// `|/`, currently can't distinguish it from sign of division.
-		else if (char === '/') {
+		if (char === '/') {
 			this.tryReadRegExp()
 		}
 
@@ -99,35 +149,14 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 		}
 	}
 
-	// eslint-disable-next-line require-yield -- uniform scanner state method; this state emits no tokens
-	protected *onWithinSingleLineComment(): Iterable<JSToken> {
-
-		// `|\n`
-		if (!this.readLine()) {
-			return
-		}
-
-		// Move to `\n|`
-		this.offset += 1
-		this.state = ScanState.AnyContent
-	}
-
-	// eslint-disable-next-line require-yield -- uniform scanner state method; this state emits no tokens
-	protected *onWithinMultiLineComment(): Iterable<JSToken> {
-
-		// `|*/`
-		if (!this.readUntilToMatch(/\*\//g)) {
-			return
-		}
-
-		// Move to `*/|`
-		this.offset += 2
-		this.state = ScanState.AnyContent
-	}
-
 	protected *makeScriptToken(): Iterable<JSToken> {
 		if (this.start < this.offset) {
-			yield this.makeToken(JSTokenType.Script)
+			let token: JSToken = this.makeToken(JSTokenType.Script)
+			token.stringLocations = this.stringLocations
+			token.commentLocations = this.commentLocations
+			this.stringLocations = []
+			this.commentLocations = []
+			yield token
 		}
 		else {
 			this.sync()
@@ -147,12 +176,16 @@ export class JSTokenScanner extends AnyTokenScanner<JSTokenType> {
 			yield* this.makeScriptToken()
 
 			this.readTemplateLiteral()
+			this.stringLocations = []
+			this.commentLocations = []
 			yield this.makeToken(JSTokenType.HTML)
 		}
 		else if (templateTagName === 'css') {
 			yield* this.makeScriptToken()
 
 			this.readTemplateLiteral()
+			this.stringLocations = []
+			this.commentLocations = []
 			yield this.makeToken(JSTokenType.CSS)
 		}
 		else {

@@ -149,27 +149,6 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 		return text.length
 	}
 
-	/** Comments are trivia only outside strings. Keep line endings for boundary detection. */
-	private skipComment(): boolean {
-		if (this.peekChar() !== '/') {
-			return false
-		}
-
-		if (this.peekChar(1) === '/') {
-			this.offset += 2
-			this.readUntilToMatch(/[\r\n]/g)
-			return true
-		}
-
-		if (this.peekChar(1) === '*') {
-			this.offset += 2
-			this.readOutToMatch(/\*\//g)
-			return true
-		}
-
-		return false
-	}
-
 	protected override readWhiteSpaces(): boolean {
 		while (super.readWhiteSpaces()) {
 			if (!this.skipComment()) return true

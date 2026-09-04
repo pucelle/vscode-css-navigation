@@ -1,8 +1,43 @@
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 import {ClassNamesInJS, JSTokenTree, PartType} from '../../server/src/languages'
+import {JSTokenScanner} from '../../server/src/languages/scanners/js'
 
 
 describe('ClassNamesInJS', () => {
+	it.each([
+		`0; // const itemClassName = 'wrong'\n`,
+		`0; /* const itemClassName = 'wrong' */`,
+		`"const itemClassName = 'wrong'"`,
+		`'object.itemClassName = "wrong"'`,
+		'`{itemClassName: "wrong"}`',
+		String.raw`"escaped \" const itemClassName = 'wrong'"`,
+	])('ignores assignment triggers inside %s', literal => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		const source = `const text = ${literal}; const itemClassName = 'right'`
+		expect([...ClassNamesInJS.walkParts(source, 100)].map(part => part.escapedText)).toEqual(['right'])
+		expect([...JSTokenTree.fromString(source, 100, 'js').walkParts()]
+			.filter(part => part.type === PartType.Class).map(part => part.escapedText)).toEqual(['right'])
+	})
+
+	it('reuses Script token locations without rescanning JavaScript', () => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		const tree = JSTokenTree.fromString(`const text = "const className = 'wrong'"; const className = 'right'`)
+		const scan = vi.spyOn(JSTokenScanner.prototype, 'parseToTokens')
+		try {
+			expect([...tree.walkParts()].filter(part => part.type === PartType.Class).map(part => part.escapedText)).toEqual(['right'])
+			expect(scan).not.toHaveBeenCalled()
+		}
+		finally {
+			scan.mockRestore()
+		}
+	})
+
+	it('allows real assignments in template interpolations', () => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		const source = '`const className = "wrong" ${(() => { const className = "right"; return className })()}`'
+		expect([...ClassNamesInJS.walkParts(source)].map(part => part.escapedText)).toEqual(['right'])
+	})
+
 	it('does not scan the following if condition without a semicolon', () => {
 		ClassNamesInJS.initWildNames(['*ClassName*'])
 		const source = `let className = decl.parent.name && transformContext.helper.getText(decl.parent.name)
