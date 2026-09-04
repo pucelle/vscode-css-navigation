@@ -325,7 +325,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			}
 
 			else if (this.state === ScanState.WithinExpression) {
-				if (!this.readUntilToMatch(/['"`{\[\w\},;\/]/g)) {
+				if (!this.readUntilToMatch(/['"`{\[\w\}\/]/g)) {
 					break
 				}
 
@@ -365,12 +365,6 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 					// Move to `}|`
 					this.offset += 1
 					this.exitState()
-				}
-
-				// Root boundaries are already handled by expressionEnd; nested commas are allowed.
-				else if (char === ',' || char === ';') {
-					this.offset += 1
-
 				}
 
 				// `|a`
