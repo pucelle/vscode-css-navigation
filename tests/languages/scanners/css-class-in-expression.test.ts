@@ -29,6 +29,28 @@ function potentialClassNameCompletions(tokens: Array<{type: number, text: string
 
 
 describe('CSSClassInExpressionTokenScanner', () => {
+	it.each([
+		`condition /* 'ignored' */ ? 'enabled' : // 'ignored'\n 'disabled'`,
+		`['enabled', /* 'ignored', } ] */ 'disabled' // 'ignored'\n]`,
+		`{/* 'ignored': true */ enabled /* key comment */: check(/* , } */ value), // 'ignored': true\n disabled: 'not,a,class'}`,
+	])('skips comments in expressions, arrays and objects: %s', source => {
+		expect(classNames(scan(source, 'js', true))).toEqual(['enabled', 'disabled'])
+	})
+
+	it('skips comments between CSS module access tokens', () => {
+		const tokens = scan(`styles /* 'ignored' */ [/* 'ignored' */ 'active']`, 'js', true)
+		expect(classNames(tokens)).toEqual([])
+		expect(moduleProperties(tokens)).toEqual(['active'])
+	})
+
+	it('does not treat comment markers inside class strings as comments', () => {
+		expect(classNames(scan(`'w-1/2'`, 'js', true))).toEqual(['w-1/2'])
+	})
+
+	it.each([`'enabled' /* 'unfinished`, `'enabled' // 'ignored'`])('finishes safely at an EOF comment', source => {
+		expect(classNames(scan(source, 'js', true))).toEqual(['enabled'])
+	})
+
 	describe('JSX: class, className', () => {
 		it('scans a class-name array initializer with ternary branches', () => {
 			let tokens = scan(`[
@@ -173,4 +195,3 @@ describe('CSSClassInExpressionTokenScanner', () => {
 		})
 	})
 })
-

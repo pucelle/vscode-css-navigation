@@ -59,9 +59,6 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 	/** To ensure string quotes match. */
 	private stringStartStack: number[] = []
 
-	/** Sets to true will stop scanning after finish the whole expression. */
-	private stopAfterExpression: boolean = false
-
 	/** 
 	 * If can knows that current string is absolute an expression,
 	 * no bracket marker like `{...}`,
@@ -78,7 +75,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 		alreadyAnExpression: boolean,
 		stopAfterExpression: boolean = false
 	) {
-		super(string, scannerStart, languageId)
+		super(stopAfterExpression ? string.slice(0, CSSClassInExpressionTokenScanner.expressionEnd(string)) : string, scannerStart, languageId)
 
 		if (alreadyAnExpression) {
 			if (stopAfterExpression) {
@@ -88,8 +85,97 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 				this.enterState(ScanState.WithinExpression)
 			}
 
-			this.stopAfterExpression = stopAfterExpression
 		}
+	}
+
+	/** Bound a JS initializer without consuming the next statement or property. */
+	private static expressionEnd(text: string): number {
+		let scanner = new CSSClassInExpressionTokenScanner(text, 0, 'js', true)
+		let brackets: string[] = []
+		let canEnd = false
+		let lineBreak = false
+
+		while (scanner.offset < text.length) {
+			let start = scanner.offset
+			let char = scanner.peekChar()
+
+			if (/\s/.test(char)) {
+				lineBreak ||= /[\r\n]/.test(char)
+				scanner.offset++
+				continue
+			}
+
+			if (scanner.skipComment()) {
+				lineBreak ||= /[\r\n]/.test(text.slice(start, scanner.offset))
+				continue
+			}
+
+			let word = /^[\w$]+/.exec(text.slice(start))?.[0]
+
+			let continues = /[.([`?+\-*/%&|^<>=!:,]/.test(char)
+				|| word === 'in' || word === 'instanceof' || word === 'as' || word === 'satisfies'
+
+			if (brackets.length === 0 && (
+				char === ';' || char === ',' || char === '}' || char === ')'
+				|| lineBreak && canEnd && (!continues || text.startsWith('++', start) || text.startsWith('--', start))
+			)) {
+				return start
+			}
+
+			lineBreak = false
+			if (char === '"' || char === "'" || char === '`') {
+				if (char === '`') scanner.readTemplateLiteral()
+				else scanner.readString()
+				canEnd = true
+			}
+			else if (word) {
+				scanner.offset += word.length
+				canEnd = !['new', 'typeof', 'void', 'delete', 'await', 'yield', 'in', 'instanceof', 'as', 'satisfies'].includes(word)
+			}
+			else {
+				scanner.offset++
+				if ('([{'.includes(char)) {
+					brackets.push(char)
+					canEnd = false
+				}
+				else if (')]}'.includes(char)) {
+					brackets.pop()
+					canEnd = true
+				}
+				else canEnd = false
+			}
+		}
+
+		return text.length
+	}
+
+	/** Comments are trivia only outside strings. Keep line endings for boundary detection. */
+	private skipComment(): boolean {
+		if (this.peekChar() !== '/') {
+			return false
+		}
+
+		if (this.peekChar(1) === '/') {
+			this.offset += 2
+			this.readUntilToMatch(/[\r\n]/g)
+			return true
+		}
+
+		if (this.peekChar(1) === '*') {
+			this.offset += 2
+			this.readOutToMatch(/\*\//g)
+			return true
+		}
+
+		return false
+	}
+
+	protected override readWhiteSpaces(): boolean {
+		while (super.readWhiteSpaces()) {
+			if (!this.skipComment()) return true
+		}
+
+		return false
 	}
 
 	protected get quoted(): string | null {
@@ -132,11 +218,12 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			offset = this.offset
 
 			if (this.state === ScanState.AnyContent) {
-				if (!this.readUntilToMatch(/['"`{$]/g)) {
+				if (!this.readUntilToMatch(/['"`{$\/]/g)) {
 					break
 				}
 
 				let char = this.peekChar()
+				if (this.skipComment()) continue
 
 				// `|${`
 				if (char === '$' && this.peekChar(1) === '{' && LanguageIds.isScriptSyntax(this.languageId)) {
@@ -238,14 +325,17 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			}
 
 			else if (this.state === ScanState.WithinExpression) {
-				if (!this.readUntilToMatch(/['"`{\[\w\},;]/g)) {
+				if (!this.readUntilToMatch(/['"`{\[\w\},;\/]/g)) {
 					break
 				}
 
 				let char = this.peekChar()
 
 				// `|'` or `|"` or `|``
-				if (char === '\'' || char === '"' || char === '`') {
+				if (this.skipComment()) {
+					continue
+				}
+				else if (char === '\'' || char === '"' || char === '`') {
 
 					// Move to `"|`
 					this.offset += 1
@@ -277,13 +367,10 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 					this.exitState()
 				}
 
-				// Stop only at the boundary of the root assignment or property value.
+				// Root boundaries are already handled by expressionEnd; nested commas are allowed.
 				else if (char === ',' || char === ';') {
 					this.offset += 1
 
-					if (this.stopAfterExpression) {
-						this.state = ScanState.EOF
-					}
 				}
 
 				// `|a`
@@ -309,6 +396,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 
 					// Move to `.|`
 					this.offset += 1
+					if (!this.readWhiteSpaces()) break
 					this.sync()
 
 					this.readUntilNot(/\w/g)
@@ -359,11 +447,13 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			else if (this.state === ScanState.WithinObject) {
 
 				// `{|`
-				if (!this.readUntilToMatch(/[\w'"`}]/g)) {
+				if (!this.readUntilToMatch(/[\w'"`}\/]/g)) {
 					break
 				}
 
 				let char = this.peekChar()
+
+				if (this.skipComment()) continue
 
 				// `|}`
 				if (char === '}') {
@@ -414,11 +504,17 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 				}
 
 				while (true) {
-					if (!this.readUntilToMatch(/[\{\[\(,}]/g)) {
+					if (!this.readUntilToMatch(/[\{\[\(,}'"`\/]/g)) {
 						break
 					}
 
 					char = this.peekChar()
+					if (this.skipComment()) continue
+					if (char === '"' || char === "'" || char === '`') {
+						if (char === '`') this.readTemplateLiteral()
+						else this.readString()
+						continue
+					}
 
 					// Skip all bracket expressions.
 					if (char === '{' || char === '[' || char === '(') {
@@ -440,11 +536,13 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			else if (this.state === ScanState.WithinArray) {
 
 				// `{|`
-				if (!this.readUntilToMatch(/['"`,\{\]]/g)) {
+				if (!this.readUntilToMatch(/['"`,\{\]\/]/g)) {
 					break
 				}
 
 				let char = this.peekChar()
+
+				if (this.skipComment()) continue
 
 				// `|'...':`
 				if (char === '\'' || char === '"' || char === '`') {

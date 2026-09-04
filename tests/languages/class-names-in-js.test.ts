@@ -3,6 +3,40 @@ import {ClassNamesInJS, JSTokenTree, PartType} from '../../server/src/languages'
 
 
 describe('ClassNamesInJS', () => {
+	it('does not scan the following if condition without a semicolon', () => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		const source = `let className = decl.parent.name && transformContext.helper.getText(decl.parent.name)
+		if (className !== 'Array' && className !== 'ReadonlyArray') {
+			return null
+		}`
+		expect([...ClassNamesInJS.walkParts(source)]).toEqual([])
+	})
+
+	it.each(['\n', '\r\n', ' /* comment\n "ignored" */ '])('stops at statement boundaries with %j', separator => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		const source = `const className = 'inside'${separator}const unrelated = 'outside'
+		const nextClassName = 'next'`
+		expect([...ClassNamesInJS.walkParts(source)].map(part => part.escapedText)).toEqual(['inside', 'next'])
+	})
+
+	it('preserves multiline continuations and nested call commas', () => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		const source = `const className = condition // 'ignored'
+		? combine('enabled', /* , ; } 'ignored' */ 'extra')
+		: ['disabled', 'base']
+		.join(' ')
+		const unrelated = 'outside'`
+		expect([...ClassNamesInJS.walkParts(source)].map(part => part.escapedText)).toEqual(['enabled', 'extra', 'disabled', 'base'])
+	})
+
+	it('preserves operators before line breaks and skips trailing comments', () => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		const source = `const className = condition && // 'ignored'
+		'enabled' /* 'ignored' */
+		if (name === 'outside') {}`
+		expect([...ClassNamesInJS.walkParts(source)].map(part => part.escapedText)).toEqual(['enabled'])
+	})
+
 	it('scans every class in a named variable expression', () => {
 		ClassNamesInJS.initWildNames(['*ClassName*'])
 
