@@ -25,4 +25,27 @@ describe('JSTokenTree script match locations', () => {
 		const parts = [...JSTokenTree.fromString(source).walkParts()].filter(part => part.type === PartType.CSSSelectorQueryClass)
 		expect(parts.map(part => part.escapedText)).toEqual(['.real'])
 	})
+
+	it('finds every literal argument passed to classList.add', () => {
+		let source = `this.el.classList.add('items-table', "items-table-unique", \`items-table-last\`)`
+		let parts = [...JSTokenTree.fromString(source).walkParts()].filter(part => part.type === PartType.Class)
+
+		expect(parts.map(part => part.escapedText)).toEqual([
+			'items-table',
+			'items-table-unique',
+			'items-table-last',
+		])
+		expect(parts.map(part => source.slice(part.start, part.end))).toEqual([
+			'items-table',
+			'items-table-unique',
+			'items-table-last',
+		])
+	})
+
+	it('does not read past non-literal classList.add arguments', () => {
+		let source = `element.classList.add('first', dynamic, 'not-direct'); element.classList.add('second')`
+		let parts = [...JSTokenTree.fromString(source).walkParts()].filter(part => part.type === PartType.Class)
+
+		expect(parts.map(part => part.escapedText)).toEqual(['first', 'second'])
+	})
 })

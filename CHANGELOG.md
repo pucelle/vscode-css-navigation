@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.15.2]
+
+- Fix `classList.add('xxx', 'xxx')`, only the first parameter recognized as class name issue.
+
+
 ## [2.15.1]
 
 - Fix many class name missing warnings appear issue.
