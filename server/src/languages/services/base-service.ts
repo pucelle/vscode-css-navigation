@@ -356,7 +356,12 @@ export abstract class BaseService {
 				for (let text of PartComparer.mayFormatted(part)) {
 
 					// Replace back from `a-b` to `&-b`.
-					let mayNestedText = PartConvertor.textToType(text, part.type, fromPart.type).replace(re, fromPart.escapedText)
+					let mayNestedText = PartConvertor.textToType(text, part.type, fromPart.type)
+
+					// Avoid replacing `[...]` to `[][...]`
+					if (fromPart.type !== PartType.CSSSelectorAttribute) {
+						mayNestedText = mayNestedText.replace(re, fromPart.escapedText)
+					}
 
 					if (mayNestedText === text) {
 						labelMap.set(mayNestedText, null)

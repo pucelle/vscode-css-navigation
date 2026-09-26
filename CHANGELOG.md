@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.15.3]
+
+- Fix input `[` cause complete as `[][aria...]`.
+
+
 ## [2.15.2]
 
 - Fix `classList.add('xxx', 'xxx')`, only the first parameter recognized as class name issue.
