@@ -6,6 +6,8 @@ import {JSStringLocation, JSTokenScanner, JSTokenType, isWithinJSNonCode} from '
 /** 
  * Handle class name expressions in JS like:
  * `let xxxClassName = '...'`
+ * `xxxClassName: string = '...'`
+ * `xxxClassName = '...'`
  * `{xxxClassName: ''}`
  * `.xxxClassName="..."`
  */
@@ -23,9 +25,12 @@ export namespace ClassNamesInJS {
 			nameMatchRegExp = new RegExp('^' + nameSource + '$', '')
 
 			let wrappedNameSource = '(?:' + nameSource + ')'
+			let initializedNameSource = String.raw`${wrappedNameSource}(?:\s*:\s*[^=;{},\r\n]+)?\s*=\s*`
+			let fieldModifiers = '(?:(?:public|private|protected|static|readonly|override|abstract|accessor)\\s+)*'
+			let fieldSource = String.raw`(?:^|[;{}\r\n])\s*${fieldModifiers}${initializedNameSource}`
 
 			startMatchRegExp = new RegExp(
-				`\\b(?:let|var|const)\\s+${wrappedNameSource}\\s*=\\s*|\\.${wrappedNameSource}\\s*=\\s*|[{,]\\s*${wrappedNameSource}\\s*:\\s*`,
+				`\\b(?:let|var|const)\\s+${initializedNameSource}|${fieldSource}|\\.${wrappedNameSource}\\s*=\\s*|[{,]\\s*${wrappedNameSource}\\s*:\\s*`,
 				'gi'
 			)
 		}

@@ -1,6 +1,12 @@
 # ChangeLog
 
 
+## [2.15.4]
+
+- Will not recognized as class names: `className = fn('xxx')`, `className = 'xxx' + `.
+- Will recognized as class names: `public className = 'xxx'`, `override className: string = 'xxx'`.
+
+
 ## [2.15.3]
 
 - Fix input `[` cause complete as `[][aria...]`.

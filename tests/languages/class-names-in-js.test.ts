@@ -5,6 +5,44 @@ import {JSTokenScanner} from '../../server/src/languages/scanners/js'
 
 describe('ClassNamesInJS', () => {
 	it.each([
+		`class Table { subsectionClassName: string = 'd2-item-bases-drop' }`,
+		`class Table { subsectionClassName = 'd2-item-bases-drop' }`,
+		`class Table {\nprivate readonly subsectionClassName: string = 'd2-item-bases-drop'\n}`,
+	])('discovers class names in a field initializer: %s', source => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		let parts = [...JSTokenTree.fromString(source, 0, 'ts').walkParts()]
+			.filter(part => part.type === PartType.Class)
+
+		expect(parts.map(part => part.escapedText)).toEqual(['d2-item-bases-drop'])
+		expect(parts[0].start).toBe(source.indexOf('d2-item-bases-drop'))
+	})
+
+	it('keeps typed variable declarations and object-property initializers working', () => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		let source = `let buttonClassName: string = 'button'; let options = {itemClassName: 'item'}`
+		let parts = [...ClassNamesInJS.walkParts(source)]
+
+		expect(parts.map(part => part.escapedText)).toEqual(['button', 'item'])
+	})
+
+	it('does not treat function arguments in a class-name initializer as classes', () => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		let source = `let className = tables.getMay('classes', classId)
+		const nextClassName = 'actual'`
+		let parts = [...ClassNamesInJS.walkParts(source)]
+
+		expect(parts.map(part => part.escapedText)).toEqual(['actual'])
+	})
+
+	it('still recognizes class literals outside calls in a grouped initializer', () => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		let source = `let className = (condition ? 'active' : lookup('key'))`
+		let parts = [...ClassNamesInJS.walkParts(source)]
+
+		expect(parts.map(part => part.escapedText)).toEqual(['active'])
+	})
+
+	it.each([
 		`0; // const itemClassName = 'wrong'\n`,
 		`0; /* const itemClassName = 'wrong' */`,
 		`"const itemClassName = 'wrong'"`,
@@ -54,14 +92,14 @@ describe('ClassNamesInJS', () => {
 		expect([...ClassNamesInJS.walkParts(source)].map(part => part.escapedText)).toEqual(['inside', 'next'])
 	})
 
-	it('preserves multiline continuations and nested call commas', () => {
+	it('preserves multiline branches while ignoring nested call arguments', () => {
 		ClassNamesInJS.initWildNames(['*ClassName*'])
 		const source = `const className = condition // 'ignored'
 		? combine('enabled', /* , ; } 'ignored' */ 'extra')
 		: ['disabled', 'base']
 		.join(' ')
 		const unrelated = 'outside'`
-		expect([...ClassNamesInJS.walkParts(source)].map(part => part.escapedText)).toEqual(['enabled', 'extra', 'disabled', 'base'])
+		expect([...ClassNamesInJS.walkParts(source)].map(part => part.escapedText)).toEqual(['disabled', 'base'])
 	})
 
 	it('preserves operators before line breaks and skips trailing comments', () => {

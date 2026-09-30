@@ -1,5 +1,6 @@
 import {describe, it, expect} from 'vitest'
 import {CSSClassInExpressionTokenScanner, CSSClassInExpressionTokenType} from '../../../server/src/languages/scanners/css-class-in-expression'
+import {HTMLTokenTree, PartType} from '../../../server/src/languages'
 
 
 function scan(
@@ -29,6 +30,51 @@ function potentialClassNameCompletions(tokens: Array<{type: number, text: string
 
 
 describe('CSSClassInExpressionTokenScanner', () => {
+	it('skips function-call string arguments inside an array', () => {
+		let tokens = scan("['base', getMay('classes', id), 'after']", 'js', true)
+		expect(classNames(tokens)).toEqual(['base', 'after'])
+	})
+
+	it.each([
+		["quality ? 'quality-' + quality : ''", []],
+		["quality ? 'abc ' + quality : ''", ['abc']],
+		["quality ? 'abc def ' + quality : ''", ['abc', 'def']],
+		["quality + ' abc'", ['abc']],
+		["quality + 'abc def'", ['def']],
+		["'abc def' + quality", ['abc']],
+		["prefix + 'suffix'", []],
+		["'left' + 'right'", []],
+		["quality ? 'complete' : 'missing'", ['complete', 'missing']],
+		["enabled && 'active'", ['active']],
+		["() => 'complete'", ['complete']],
+		["quality + /* comment */ 'quality-'", []],
+		["'quality-' /* comment */ + quality", []],
+		["['static', quality ? 'quality-' + quality : 'fallback']", ['static', 'fallback']],
+	])('ignores joined string fragments in %s', (source, expected) => {
+		expect(classNames(scan(source as string, 'js', true))).toEqual(expected)
+	})
+
+	it.each([
+		[`<div :class="quality ? 'quality-' + quality : 'fallback'"></div>`, 'vue'],
+		[`<div :class=\${quality ? 'quality-' + quality : 'fallback'}></div>`, 'js'],
+	] as const)('skips concatenated fragments in %s', (source, languageId) => {
+		let parts = [...HTMLTokenTree.fromString(source, 0, languageId).walkParts()]
+			.filter(part => part.type === PartType.Class)
+
+		expect(parts.map(part => part.escapedText)).toEqual(['fallback'])
+	})
+
+	it.each([
+		[`<div :class="quality ? 'abc ' + quality : ''"></div>`, 'vue'],
+		[`<div :class=\${quality ? 'abc ' + quality : ''}></div>`, 'js'],
+	] as const)('finds complete class names before concatenation in %s', (source, languageId) => {
+		let parts = [...HTMLTokenTree.fromString(source, 0, languageId).walkParts()]
+			.filter(part => part.type === PartType.Class)
+
+		expect(parts.map(part => part.escapedText)).toEqual(['abc'])
+		expect(source.slice(parts[0].start, parts[0].end)).toBe('abc')
+	})
+
 	it.each([
 		`condition /* 'ignored' */ ? 'enabled' : // 'ignored'\n 'disabled'`,
 		`['enabled', /* 'ignored', } ] */ 'disabled' // 'ignored'\n]`,

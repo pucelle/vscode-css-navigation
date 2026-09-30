@@ -59,6 +59,11 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 	/** To ensure string quotes match. */
 	private stringStartStack: number[] = []
 
+	/** Whether a string's first or last word joins an adjacent expression. */
+	private stringJoinedLeft = false
+	private stringJoinedRight = false
+	private stringJoinStack: Array<{left: boolean, right: boolean}> = []
+
 	/** 
 	 * If can knows that current string is absolute an expression,
 	 * no bracket marker like `{...}`,
@@ -167,18 +172,110 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 	}
 
 	enterStringState() {
+		let quoteStart = this.offset - 1
+
+		let joins = this.state !== ScanState.AnyContent && this.string[quoteStart] !== '`'
+			? this.getStringJoinSides(quoteStart)
+			: {left: false, right: false}
+
 		this.enterState(ScanState.WithinString)
 	
 		if (this.stringStart > -1) {
 			this.stringStartStack.push(this.stringStart)
+
+			this.stringJoinStack.push({
+				left: this.stringJoinedLeft,
+				right: this.stringJoinedRight
+			})
 		}
 
 		this.stringStart = this.offset
+		this.stringJoinedLeft = joins.left
+		this.stringJoinedRight = joins.right
+	}
+
+	/** Find which edge words may be partial classes after concatenation. */
+	private getStringJoinSides(quoteStart: number): {left: boolean, right: boolean} {
+		let quote = this.string[quoteStart]
+		let end = quoteStart + 1
+
+		while (end < this.string.length) {
+			if (this.string[end] === '\\') {
+				end += 2
+			}
+			else if (this.string[end] === quote) {
+				end++
+				break
+			}
+			else {
+				end++
+			}
+		}
+
+		let before = this.skipTriviaBackward(quoteStart)
+		let after = this.skipTriviaForward(end)
+		let previous = this.string.slice(Math.max(0, before - 3), before)
+		let following = this.string.slice(after, after + 3)
+
+		return {
+			left: !previous.endsWith('=>')
+				&& /(?:[+*\/%^-]|={2,3}|!={1,2}|<=?|>=?)$/.test(previous),
+			right: /^(?:[+*\/%^-]|={2,3}|!={1,2}|<=?|>=?)/.test(following),
+		}
+	}
+
+	/** Skip whitespace and completed block comments preceding an offset. */
+	private skipTriviaBackward(offset: number): number {
+		while (offset > 0) {
+			if (/\s/.test(this.string[offset - 1])) {
+				offset--
+			}
+			else if (this.string.slice(offset - 2, offset) === '*/') {
+				let commentStart = this.string.lastIndexOf('/*', offset - 2)
+				if (commentStart < 0) {
+					break
+				}
+
+				offset = commentStart
+			}
+			else {
+				break
+			}
+		}
+
+		return offset
+	}
+
+	/** Skip whitespace and comments following an offset. */
+	private skipTriviaForward(offset: number): number {
+		while (offset < this.string.length) {
+			if (/\s/.test(this.string[offset])) {
+				offset++
+			}
+			else if (this.string.startsWith('/*', offset)) {
+				let commentEnd = this.string.indexOf('*/', offset + 2)
+				offset = commentEnd < 0 ? this.string.length : commentEnd + 2
+			}
+			else if (this.string.startsWith('//', offset)) {
+				let lineEnd = /[\r\n]/g
+				lineEnd.lastIndex = offset + 2
+				offset = lineEnd.exec(this.string)?.index ?? this.string.length
+			}
+			else {
+				break
+			}
+		}
+
+		return offset
 	}
 
 	exitStringState() {
 		this.exitState()
 		this.stringStart = this.stringStartStack.pop()!
+		
+		let joins = this.stringJoinStack.pop()
+		this.stringJoinedLeft = joins?.left ?? false
+		this.stringJoinedRight = joins?.right ?? false
 	}
 
 	/** 
@@ -414,6 +511,11 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 					}
 				}
 
+				// Function-call arguments may be keys or other data, not class names.
+				if (this.peekChar() === '(') {
+					this.readBracketed()
+				}
+
 				this.exitState()
 			}
 
@@ -509,7 +611,7 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 			else if (this.state === ScanState.WithinArray) {
 
 				// `{|`
-				if (!this.readUntilToMatch(/['"`,\{\]\/]/g)) {
+				if (!this.readUntilToMatch(/['"`,\{\]\w\/]/g)) {
 					break
 				}
 
@@ -533,6 +635,11 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 					this.offset += 1
 
 					this.enterState(ScanState.WithinObject)
+				}
+
+				else if (/\w/.test(char)) {
+					this.enterState(ScanState.WithinVariable)
+					this.sync()
 				}
 
 				// `|,`
@@ -587,7 +694,11 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 		// `|'` or `|"` or `|``.
 		else if (char === '\'' || char === '"' || char === '`') {
 			if (char === this.quoted) {
-				yield this.makeToken(CSSClassInExpressionTokenType.ClassName)
+				if (!this.stringJoinedRight
+					&& (!this.stringJoinedLeft || this.start > this.stringStart)
+				) {
+					yield this.makeToken(CSSClassInExpressionTokenType.ClassName)
+				}
 			}
 			else {
 
@@ -598,7 +709,9 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 
 		// `|\s`
 		else {
-			yield this.makeToken(CSSClassInExpressionTokenType.ClassName)
+			if (!this.stringJoinedLeft || this.start > this.stringStart) {
+				yield this.makeToken(CSSClassInExpressionTokenType.ClassName)
+			}
 		}
 	}
 
