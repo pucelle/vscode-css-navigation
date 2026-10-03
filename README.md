@@ -9,6 +9,38 @@ Provides CSS **Completion**, **Finding Definition**, **Finding References**, **D
 ## Features
 
 
+### Explain Class Name Detection in JavaScript and TypeScript
+
+##### querySelector, classList.add, $
+
+Selector strings in `querySelector`, `querySelectorAll`, and `$()`, and literal arguments in `classList.add`, are detected separately and do not require a matching variable name. For `classList.add`, detection reads consecutive literal arguments from the start and stops at the first non-literal argument.
+
+```javascript
+document.querySelector('.item.selected');
+document.querySelectorAll('.item');
+$('.item');
+element.classList.add('item', 'selected');
+```
+
+##### class name variables and properties
+
+CSS Navigation detects literal class names in JavaScript and TypeScript so you can find their CSS definitions, hover over them, and find their references. It scans source code without evaluating expressions or following variable values at runtime.
+
+For variable declarations and property initializers, the name must match option `jsClassNameReferenceNames`. The default patterns are `["*ClassName*", "*class_name*"]`; `*` matches zero or more letters, digits, or underscores. For example, these names match: `className`, `itemClassName`, and `item_class_name`.
+
+```typescript
+const itemClassName = 'item item-large'; // Detects item and item-large.
+this.activeClassName = 'active';
+const options = {itemClassName: 'item'};
+
+class ItemView {
+    subsectionClassName: string = 'd2-item-bases-drop';
+    selectedClassName = 'selected';
+    private readonly rootClassName: string = 'item-view';
+}
+```
+
+
 ### Renaming, Property Selector - New in V2.15
 
 In v2.15, we support:
@@ -161,7 +193,7 @@ editor.quickSuggestions": {
 | `enableCSSVariableColorPreview`         | Whether to enable CSS variable color preview. If enabled, a color preview box is shown beside color-type CSS variables. Default value is `true`.
 | `enableClassNameDefinitionDiagnostic`   | Whether to enable class name definition diagnostic - if can't find definition for a class name in a HTML file, will show a warn message. Default value is `false`.
 | `enableClassNameReferenceDiagnostic`    | Whether to enable class name reference diagnostic - if can't find any reference for a class name in a CSS file, will show a warn message. Default value is `false`.
-| `jsClassNameReferenceNames`             | JS variable names or property names which used for referencing existing class names, can use `*` to wild match `1~n` word characters.
+| `jsClassNameReferenceNames`             | JS variable and property names whose initializers are scanned for literal class names. `*` matches zero or more word characters. Default value is `["*ClassName*", "*class_name*"]`. See [Class Name Detection in JavaScript and TypeScript](#class-name-detection-in-javascript-and-typescript) for examples.
 | `diagnosticIgnoredClassNames`           | Class names excluded from missing-definition and missing-reference diagnostics. Names may omit the leading `.` and use `*` as a wildcard. Default value is `[]`.
 | `enableDefinitionCodeLens`              | Whether to enable CSS class name definition code lens, which will show class name definition count. Default value is `false`.
 | `enableReferenceCodeLens`               | Whether to enable CSS class name reference code lens, which will show class name reference count. Default value is `false`.
