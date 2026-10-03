@@ -22,7 +22,7 @@ $('.item');
 element.classList.add('item', 'selected');
 ```
 
-##### class name variables and properties
+##### variables and properties
 
 CSS Navigation detects literal class names in JavaScript and TypeScript so you can find their CSS definitions, hover over them, and find their references. It scans source code without evaluating expressions or following variable values at runtime.
 

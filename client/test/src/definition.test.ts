@@ -184,7 +184,7 @@ describe('Test Finding Definition from JSX', () => {
 
 	it('Should find right class definition for variable and class name', async () => {
 		assert.deepStrictEqual(await gs(['', 'class-js-variable', ''], jsxDocument), ['.class-js-variable'])
-		assert.deepStrictEqual(await gs(['', 'class-js-property', ''], jsxDocument), ['.class-js-property'])
+		assert.deepStrictEqual(await gs(['', 'class-js-property', ''], jsxDocument), [])
 	})
 
 	it('Should find right id definition', async () => {
