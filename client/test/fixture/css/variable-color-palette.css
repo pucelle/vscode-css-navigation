@@ -1,0 +1,4 @@
+:root {
+	--co-palette-red: #ef4444;
+	--co-palette-page: var(--co-palette-red);
+}

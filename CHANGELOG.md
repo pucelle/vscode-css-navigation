@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.15.5]
+
+- Support resolving CSS variable which point to another variable.
+
+
 ## [2.15.4]
 
 - Will not recognized as class names: `className = fn('xxx')`, `className = 'xxx' + `.

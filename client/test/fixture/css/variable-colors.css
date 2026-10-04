@@ -1,0 +1,33 @@
+@import './variable-color-palette.css';
+
+:root {
+	--co-red: #ef4444;
+	--co-page: var(--co-red);
+	--co-page-chain: var(--co-page);
+	--co-workspace-page: var(--co-palette-page);
+	--co-cycle-a: var(--co-cycle-b);
+	--co-cycle-b: var(--co-cycle-a);
+	--co-self-cycle: var(--co-self-cycle);
+	--co-missing-alias: var(--co-undefined);
+	--co-spacing: 12px;
+	--co-spacing-alias: var(--co-spacing);
+}
+
+/* Both references should preview the same red color. */
+.co-rd {
+	color: var(--co-page);
+	background-color: var(--co-page-chain);
+}
+
+/* The palette file contains the final color and another alias. */
+.co-workspace {
+	color: var(--co-workspace-page);
+}
+
+/* Cyclic, missing and non-color values should not produce previews. */
+.co-unresolved {
+	color: var(--co-cycle-a);
+	background-color: var(--co-self-cycle);
+	border-color: var(--co-missing-alias);
+	padding: var(--co-spacing-alias);
+}
