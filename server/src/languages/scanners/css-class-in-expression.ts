@@ -605,6 +605,13 @@ export class CSSClassInExpressionTokenScanner extends AnyTokenScanner<CSSClassIn
 					else if (char === '}') {
 						break
 					}
+
+					// `|/`, not a comment: a sign of division, a JSX closing tag `</div>`,
+					// or a regexp. Eat the char like `readBracketed` does, otherwise
+					// cursor never moves ahead and the loop never ends.
+					else {
+						this.offset += 1
+					}
 				}
 			}
 

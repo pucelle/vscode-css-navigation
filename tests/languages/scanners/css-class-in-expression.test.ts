@@ -35,6 +35,16 @@ describe('CSSClassInExpressionTokenScanner', () => {
 		expect(classNames(tokens)).toEqual(['base', 'after'])
 	})
 
+	// A `/` which is not a comment start must not stall the object value skipping loop.
+	it.each([
+		["{active: width / 2 > limit, selected: true}", ['active', 'selected']],
+		["{active: total / count}", ['active']],
+		["{matched: /^a+$/.test(name), other: true}", ['matched', 'other']],
+		["{a: <b>{c}</b>}", ['a']],
+	])('does not loop forever on a non-comment slash in an object value: %s', (source, expected) => {
+		expect(classNames(scan(source as string, 'js', true))).toEqual(expected)
+	})
+
 	it.each([
 		["quality ? 'quality-' + quality : ''", []],
 		["quality ? 'abc ' + quality : ''", ['abc']],

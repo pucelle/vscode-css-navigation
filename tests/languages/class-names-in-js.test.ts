@@ -162,4 +162,33 @@ describe('ClassNamesInJS', () => {
 
 		expect(classes).toEqual(['inside'])
 	})
+
+	it('does not loop forever on a division inside an object initializer', () => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		const source = `const boxClassName = {wide: width / 2 > 100, tall: true}\nconst nextClassName = 'after'`
+		const classes = [...ClassNamesInJS.walkParts(source)].map(part => part.escapedText)
+
+		expect(classes).toEqual(['wide', 'tall', 'after'])
+	})
+
+	it('does not loop forever on a JSX closing tag after a line-leading className attribute', () => {
+		ClassNamesInJS.initWildNames(['*ClassName*'])
+		const source = [
+			`export function Card({item}) {`,
+			`	return (`,
+			`		<div`,
+			`			className="card"`,
+			`		>`,
+			`			<h5 title={item.name}>{item.name}</h5>`,
+			`			<p className="text">{item.text}</p>`,
+			`		</div>`,
+			`	)`,
+			`}`,
+		].join('\n')
+		const classes = [...JSTokenTree.fromString(source, 0, 'tsx').walkParts()]
+			.filter(part => part.type === PartType.Class)
+			.map(part => part.escapedText)
+
+		expect(classes).toEqual(['card', 'text'])
+	})
 })
