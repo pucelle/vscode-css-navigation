@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.15.6]
+
+- Fix an infinite code parsing issue.
+
+
 ## [2.15.5]
 
 - Support resolving CSS variable which point to another variable.
