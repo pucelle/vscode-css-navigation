@@ -48,4 +48,36 @@ describe('JSTokenTree script match locations', () => {
 
 		expect(parts.map(part => part.escapedText)).toEqual(['first', 'second'])
 	})
+
+	it.each([
+		`document.documentElement.classList.add('theme-' + theme)`,
+		`element.classList.add("theme-" + theme)`,
+		'element.classList.add(`theme-` + theme)',
+		`element.classList.add('theme-' /* comment */ + theme)`,
+		`element.classList.add('theme-' // comment\n + theme)`,
+		`element.classList.add('theme-' === theme)`,
+		`element.classList.add(theme + 'theme-')`,
+	])('ignores incomplete classList.add string arguments: %s', source => {
+		let parts = [...JSTokenTree.fromString(source).walkParts()]
+			.filter(part => part.type === PartType.Class)
+
+		expect(parts).toEqual([])
+	})
+
+	it('keeps complete arguments before an expression and detects later calls', () => {
+		let source = `element.classList.add('base', 'theme-' + theme, 'after'); element.classList.add('other')`
+		let parts = [...JSTokenTree.fromString(source, 100).walkParts()]
+			.filter(part => part.type === PartType.Class)
+
+		expect(parts.map(part => part.escapedText)).toEqual(['base', 'other'])
+		expect(parts.map(part => source.slice(part.start - 100, part.end - 100))).toEqual(['base', 'other'])
+	})
+
+	it('accepts a complete literal followed by comments before the closing parenthesis', () => {
+		let source = `element.classList.add('base' /* comment */ // comment\n)`
+		let parts = [...JSTokenTree.fromString(source).walkParts()]
+			.filter(part => part.type === PartType.Class)
+
+		expect(parts.map(part => part.escapedText)).toEqual(['base'])
+	})
 })

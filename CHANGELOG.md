@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.15.7]
+
+- `classList.add('xxx' + ...)`, `xxx` will not parsed as class name.
+
+
 ## [2.15.6]
 
 - Fix an infinite code parsing issue.

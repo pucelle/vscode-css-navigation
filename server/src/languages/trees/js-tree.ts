@@ -155,10 +155,10 @@ export class JSTokenTree extends JSTokenNode {
 		}
 
 		
-		// `.classList.add('...', '...')`
+		// Only complete literal arguments count; operators may join a dynamic class fragment.
 		let classListMatches = Picker.locateAllMatches(
 			text,
-			/\.classList\.add\s*\(\s*(?:['"`][\w-]*['"`]\s*,\s*)*['"`][\w-]*['"`]/g,
+			/\.classList\.add\s*\(\s*(?:['"`][\w-]*['"`]\s*,\s*)*['"`][\w-]*['"`](?=(?:\s|\/\*[\s\S]*?\*\/|\/\/[^\r\n\u2028\u2029]*)*(?:[,)]|$))/g,
 			[0]
 		)
 
