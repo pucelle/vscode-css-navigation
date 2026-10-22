@@ -231,6 +231,12 @@ function makeReplacement(part: Part, replacements: ReadonlyMap<string, string>):
 	}
 
 	if (isNestingPart(part)) {
+
+		// Bare parent references inherit the renamed selector without a separate edit.
+		if (part.rawText === '&') {
+			return null
+		}
+
 		let suffix = part.rawText.slice(1)
 		let nestedReplacements = new Set(matched.map(oldText => {
 			let newText = replacements.get(oldText)!

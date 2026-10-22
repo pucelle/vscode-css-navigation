@@ -4,7 +4,7 @@ import {CSSService, HTMLService, PartConvertor} from '../server/src/languages'
 import {CSSServiceMap} from '../server/src/languages/services/css-service-map'
 import {HTMLServiceMap} from '../server/src/languages/services/html-service-map'
 import {TrackingTest} from '../server/src/core/file-tracker/tracking-test'
-import {buildRenameWorkspaceEdit, rename as renameSelector} from '../server/src/rename'
+import {buildRenameWorkspaceEdit, prepareRename, rename as renameSelector} from '../server/src/rename'
 
 
 const configuration = {
@@ -30,6 +30,49 @@ function applyChanges(document: TextDocument, edits: {range: {start: any, end: a
 
 
 describe('class and id rename', () => {
+	it.each(['scss', 'html', 'ts'])('renames maps-je-portrait through the full %s request path', async language => {
+		let config = {
+			...configuration,
+			activeHTMLFileExtensions: ['html', 'ts'],
+			activeCSSFileExtensions: ['scss'],
+			enableGlobalEmbeddedCSS: false,
+		} as any
+		let options = {includeFileGlobPattern: '**/*.{html,ts,scss}'}
+		let scssText = `.maps {
+			&-je-portrait {
+				&.active, &.popped { color: red; }
+				&:hover { color: blue; }
+				&::after { content: ''; }
+			}
+		}`
+		let markup = `<div class="maps-je-portrait"></div>`
+		let htmlText = language === 'ts' ? 'const view = html`' + markup + '`' : markup
+		let htmlLanguage = language === 'ts' ? 'typescript' : 'html'
+		let scssDocument = TextDocument.create('file:///workspace/rename.scss', 'scss', 1, scssText)
+		let htmlDocument = TextDocument.create(`file:///workspace/rename.${language === 'ts' ? 'ts' : 'html'}`, htmlLanguage, 1, htmlText)
+		let cssMap = new CSSServiceMap({all: () => []} as any, {} as any, options, config)
+		let htmlMap = new HTMLServiceMap({all: () => []} as any, {} as any, options, config)
+		htmlMap.bindCSSServiceMap(cssMap)
+		cssMap.trackOpenedDocument(scssDocument)
+		htmlMap.trackOpenedDocument(htmlDocument)
+		let document = language === 'scss' ? scssDocument : htmlDocument
+		let oldName = language === 'scss' ? '&-je-portrait' : 'maps-je-portrait'
+		let newName = language === 'scss' ? '&-portrait' : 'maps-portrait'
+		let offset = document.getText().indexOf(oldName) + 2
+		let prepared = await prepareRename(document, offset, htmlMap, cssMap, config)
+
+		expect(prepared?.placeholder).toBe(oldName)
+		expect(document.getText().slice(
+			document.offsetAt(prepared!.range.start), document.offsetAt(prepared!.range.end),
+		)).toBe(oldName)
+
+		let edit = await renameSelector(document, offset, newName, htmlMap, cssMap, config)
+
+		expect(edit!.changes![scssDocument.uri]).toHaveLength(1)
+		expect(applyChanges(scssDocument, edit!.changes![scssDocument.uri])).toBe(scssText.replace('&-je-portrait', '&-portrait'))
+		expect(applyChanges(htmlDocument, edit!.changes![htmlDocument.uri])).toBe(htmlText.replace('maps-je-portrait', 'maps-portrait'))
+	})
+
 	it('renames every exact class occurrence without contextual narrowing', () => {
 		let htmlText = `<div class="old other" id="old"></div>`
 		let cssText = `.old {}\n.old.other {}\n#old {}`

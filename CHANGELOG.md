@@ -1,6 +1,11 @@
 # ChangeLog
 
 
+## [2.15.8]
+
+- Fix the issue when renaming `&-xxx{}` while including more `&-...` inside.
+
+
 ## [2.15.7]
 
 - `classList.add('xxx' + ...)`, `xxx` will not parsed as class name.

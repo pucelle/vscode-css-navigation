@@ -1,0 +1,17 @@
+.maps {
+	&-je-portrait {
+		color: red;
+
+		&.active, &.popped {
+			color: blue;
+		}
+
+		&:hover {
+			color: green;
+		}
+
+		&::after {
+			content: '';
+		}
+	}
+}
